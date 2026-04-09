@@ -24,6 +24,8 @@ final class ConfigurationTest extends TestCase
         self::assertSame('https://api.deepl.com/v2/translate', $config['deepl_endpoint']);
         self::assertSame('https://libretranslate.com', $config['libretranslate_base_url']);
         self::assertSame('', $config['libretranslate_api_key']);
+        self::assertSame([], $config['machine_translation_locale_map']);
+        self::assertSame([], $config['machine_translator_by_locale']);
     }
 
     public function testCustomConfiguration(): void
@@ -55,14 +57,40 @@ final class ConfigurationTest extends TestCase
     {
         $processor = new Processor();
         $config    = $processor->processConfiguration(new Configuration(), [[
-            'machine_translator'       => 'libretranslate',
-            'libretranslate_base_url'  => 'https://translate.local',
-            'libretranslate_api_key'   => 'k',
+            'machine_translator'      => 'libretranslate',
+            'libretranslate_base_url' => 'https://translate.local',
+            'libretranslate_api_key'  => 'k',
         ]]);
 
         self::assertSame('libretranslate', $config['machine_translator']);
         self::assertSame('https://translate.local', $config['libretranslate_base_url']);
         self::assertSame('k', $config['libretranslate_api_key']);
+    }
+
+    public function testMachineTranslatorByLocale(): void
+    {
+        $processor = new Processor();
+        $config    = $processor->processConfiguration(new Configuration(), [[
+            'machine_translator'           => 'google',
+            'machine_translator_by_locale' => [
+                'pt_BR' => 'libretranslate',
+            ],
+        ]]);
+
+        self::assertSame(['pt_BR' => 'libretranslate'], $config['machine_translator_by_locale']);
+    }
+
+    public function testMachineTranslationLocaleMap(): void
+    {
+        $processor = new Processor();
+        $config    = $processor->processConfiguration(new Configuration(), [[
+            'machine_translation_locale_map' => [
+                'pt_BR' => 'pt-br',
+                'zh-CN' => 'zh-Hans',
+            ],
+        ]]);
+
+        self::assertSame(['pt_BR' => 'pt-br', 'zh-CN' => 'zh-Hans'], $config['machine_translation_locale_map']);
     }
 
     public function testYamlTreeIndentMustBeInRange(): void

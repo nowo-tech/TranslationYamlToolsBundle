@@ -108,6 +108,7 @@ final class TranslationYamlCommandsTest extends TestCase
         ?string $bundleLocale = null,
         string $backend = 'google',
         int $indent = 4,
+        bool $machineTranslatorPerLocaleEnabled = false,
     ): TranslationYamlFillMissingCommand {
         return new TranslationYamlFillMissingCommand(
             $deps['catalog'],
@@ -120,6 +121,7 @@ final class TranslationYamlCommandsTest extends TestCase
             $bundleLocale,
             $indent,
             $backend,
+            $machineTranslatorPerLocaleEnabled,
         );
     }
 
@@ -360,6 +362,30 @@ final class TranslationYamlCommandsTest extends TestCase
         self::assertStringContainsString('inline flow', $tester->getDisplay());
     }
 
+    public function testFlattenCommandFailsWhenCatalogReturnsNoFile(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_flat_nf_' . uniqid();
+        $deps    = $this->createDeps($project, [
+            'messages.en.yaml' => "x: y\n",
+        ]);
+        $catalog = $this->createMock(TranslationYamlCatalog::class);
+        $catalog->method('listDomains')->willReturn(['messages']);
+        $catalog->method('listLocalesForDomain')->with('messages')->willReturn(['en']);
+        $catalog->method('resolveFileForDomainLocale')->with('messages', 'en')->willReturn(null);
+        $cmd = new TranslationYamlFlattenCommand(
+            $catalog,
+            $deps['paths'],
+            new DotKeyTreeAnalyzer(),
+            new TranslationYamlFileHandler(),
+            4,
+        );
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+        $exit   = $tester->execute(['--domain' => 'messages', '--locale' => 'en']);
+        self::assertSame(1, $exit);
+        self::assertStringContainsString('No translation file found', $tester->getDisplay());
+    }
+
     public function testFlattenCommandDryRun(): void
     {
         $project = sys_get_temp_dir() . '/tyt_cmd_flat_dr_' . uniqid();
@@ -451,6 +477,26 @@ final class TranslationYamlCommandsTest extends TestCase
         self::assertSame(0, $exit);
         self::assertStringContainsString('Dry-run', $tester->getDisplay());
         self::assertStringContainsString('new_key', $tester->getDisplay());
+    }
+
+    public function testFillMissingShowsPerLocaleMachineTranslatorHintWhenEnabled(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_fm_pl_' . uniqid();
+        $deps    = $this->createDeps($project, [
+            'messages.en.yaml' => "a: One\n",
+            'messages.es.yaml' => "a: Uno\n",
+        ]);
+        $cmd = $this->fillCommand($deps, new StubMachineTranslator(), null, 'google', 4, true);
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+        $exit   = $tester->execute([
+            '--domain'        => 'messages',
+            '--target-locale' => 'es',
+            '--dry-run'       => true,
+        ]);
+        self::assertSame(0, $exit);
+        self::assertStringContainsString('per-locale overrides', $tester->getDisplay());
+        self::assertStringContainsString('machine_translator_by_locale', $tester->getDisplay());
     }
 
     public function testFillMissingTranslatesAndWrites(): void
@@ -763,6 +809,7 @@ final class TranslationYamlCommandsTest extends TestCase
             null,
             4,
             'google',
+            false,
         );
         $method      = new ReflectionMethod(TranslationYamlFillMissingCommand::class, 'guessTargetPathForNewFile');
         $previousCwd = getcwd();

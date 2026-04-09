@@ -22,6 +22,26 @@ final class DotKeyTreeAnalyzerTest extends TestCase
         $conflict = $analyzer->treeConversionConflict($flat);
         self::assertNotNull($conflict);
         self::assertStringContainsString('a', $conflict);
+
+        $collected = $analyzer->collectTreeConversionConflicts($flat);
+        self::assertCount(1, $collected);
+        self::assertSame(DotKeyTreeAnalyzer::CONFLICT_LEAF_AND_PREFIX, $collected[0]['type']);
+        self::assertSame('a', $collected[0]['leaf_key']);
+        self::assertSame('a.b', $collected[0]['blocked_key']);
+    }
+
+    public function testItCollectsMultipleIndependentTreeConflicts(): void
+    {
+        $analyzer = new DotKeyTreeAnalyzer();
+        $flat     = [
+            'a'   => 1,
+            'a.b' => 2,
+            'x'   => 3,
+            'x.y' => 4,
+        ];
+
+        $collected = $analyzer->collectTreeConversionConflicts($flat);
+        self::assertCount(2, $collected);
     }
 
     public function testItUnflattensWithoutConflict(): void
@@ -98,5 +118,45 @@ final class DotKeyTreeAnalyzerTest extends TestCase
         $msg      = $analyzer->verifyFlattenedLeavesPreserved(['a' => 1], ['a' => 1, 'b' => 2]);
         self::assertNotNull($msg);
         self::assertStringContainsString('count mismatch', $msg);
+    }
+
+    public function testItDetectsMissingLeafKeyOnVerify(): void
+    {
+        $analyzer = new DotKeyTreeAnalyzer();
+        $msg      = $analyzer->verifyFlattenedLeavesPreserved(
+            ['a' => 1, 'b' => 2, 'c' => 3],
+            ['a' => 1, 'b' => 2, 'd' => 3],
+        );
+        self::assertNotNull($msg);
+        self::assertStringContainsString('Missing leaf key', $msg);
+    }
+
+    public function testItDetectsValueMismatchOnVerify(): void
+    {
+        $analyzer = new DotKeyTreeAnalyzer();
+        $msg      = $analyzer->verifyFlattenedLeavesPreserved(['k' => 'old'], ['k' => 'new']);
+        self::assertNotNull($msg);
+        self::assertStringContainsString('Value mismatch', $msg);
+    }
+
+    public function testUniqueConflictTuplesSkipsDuplicates(): void
+    {
+        $analyzer = new DotKeyTreeAnalyzer();
+        $method   = new \ReflectionMethod(DotKeyTreeAnalyzer::class, 'uniqueConflictTuples');
+        $method->setAccessible(true);
+        $dupes = [
+            [
+                'type'        => DotKeyTreeAnalyzer::CONFLICT_LEAF_AND_PREFIX,
+                'leaf_key'    => 'a',
+                'blocked_key' => 'a.b',
+            ],
+            [
+                'type'        => DotKeyTreeAnalyzer::CONFLICT_LEAF_AND_PREFIX,
+                'leaf_key'    => 'a',
+                'blocked_key' => 'a.b',
+            ],
+        ];
+        $out = $method->invoke($analyzer, $dupes);
+        self::assertCount(1, $out);
     }
 }

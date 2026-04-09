@@ -25,6 +25,7 @@ final class GoogleTranslateMachineTranslator implements MachineTranslatorInterfa
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly string $apiKey,
+        private readonly MachineTranslationLocaleMapper $localeMapper,
     ) {
     }
 
@@ -42,8 +43,8 @@ final class GoogleTranslateMachineTranslator implements MachineTranslatorInterfa
             'headers' => ['Content-Type' => 'application/json'],
             'json'    => [
                 'q'      => [$text],
-                'source' => $this->normalizeLocale($sourceLocale),
-                'target' => $this->normalizeLocale($targetLocale),
+                'source' => $this->resolveLocaleForApi($sourceLocale),
+                'target' => $this->resolveLocaleForApi($targetLocale),
                 'format' => 'text',
             ],
         ]);
@@ -66,6 +67,16 @@ final class GoogleTranslateMachineTranslator implements MachineTranslatorInterfa
         }
 
         return $first['translatedText'];
+    }
+
+    private function resolveLocaleForApi(string $locale): string
+    {
+        $mapped = $this->localeMapper->map($locale);
+        if ($mapped !== null) {
+            return $mapped;
+        }
+
+        return $this->normalizeLocale($locale);
     }
 
     private function normalizeLocale(string $locale): string

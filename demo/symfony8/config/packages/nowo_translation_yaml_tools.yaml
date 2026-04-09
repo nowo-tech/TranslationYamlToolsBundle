@@ -3,5 +3,7 @@ nowo_translation_yaml_tools:
     default_locale: null
     yaml_tree_indent: 4
     machine_translator: google
+    # Optional: machine_translation_locale_map: { pt_BR: pt-br }
+    # Optional: machine_translator_by_locale: { pt_BR: libretranslate }
     # For DeepL: machine_translator: deepl, DEEPL_AUTH_KEY in .env, and optionally:
     # deepl_endpoint: 'https://api-free.deepl.com/v2/translate'

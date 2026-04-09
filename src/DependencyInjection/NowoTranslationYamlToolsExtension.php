@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 
-use Nowo\TranslationYamlToolsBundle\MachineTranslation\DeeplMachineTranslator;
-use Nowo\TranslationYamlToolsBundle\MachineTranslation\GoogleTranslateMachineTranslator;
-use Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateMachineTranslator;
-use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslatorInterface;
+use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -33,15 +30,24 @@ final class NowoTranslationYamlToolsExtension extends Extension
         $container->setParameter('nowo_translation_yaml_tools.libretranslate_base_url', $config['libretranslate_base_url']);
         $container->setParameter('nowo_translation_yaml_tools.libretranslate_api_key', $config['libretranslate_api_key']);
 
+        $localeMap = [];
+        foreach ($config['machine_translation_locale_map'] as $symfonyLocale => $apiCode) {
+            $localeMap[MachineTranslationLocaleMapper::canonicalLocaleKey((string) $symfonyLocale)] = (string) $apiCode;
+        }
+        $container->setParameter('nowo_translation_yaml_tools.machine_translation_locale_map', $localeMap);
+
+        $byLocaleBackend = [];
+        foreach ($config['machine_translator_by_locale'] as $symfonyLocale => $backend) {
+            $byLocaleBackend[MachineTranslationLocaleMapper::canonicalLocaleKey((string) $symfonyLocale)] = (string) $backend;
+        }
+        $container->setParameter('nowo_translation_yaml_tools.machine_translator_by_locale', $byLocaleBackend);
+        $container->setParameter(
+            'nowo_translation_yaml_tools.machine_translator_per_locale',
+            $byLocaleBackend !== [],
+        );
+
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');
-
-        $translatorImplementation = match ($config['machine_translator']) {
-            'deepl' => DeeplMachineTranslator::class,
-            'libretranslate' => LibreTranslateMachineTranslator::class,
-            default => GoogleTranslateMachineTranslator::class,
-        };
-        $container->setAlias(MachineTranslatorInterface::class, $translatorImplementation);
     }
 
     /**

@@ -25,6 +25,7 @@ final class DeeplMachineTranslator implements MachineTranslatorInterface
         private readonly HttpClientInterface $httpClient,
         private readonly string $authKey,
         private readonly string $endpointUrl,
+        private readonly MachineTranslationLocaleMapper $localeMapper,
     ) {
     }
 
@@ -48,8 +49,8 @@ final class DeeplMachineTranslator implements MachineTranslatorInterface
             ],
             'json' => [
                 'text'        => [$text],
-                'source_lang' => $this->toDeepLLang($sourceLocale),
-                'target_lang' => $this->toDeepLLang($targetLocale),
+                'source_lang' => $this->resolveLangForApi($sourceLocale),
+                'target_lang' => $this->resolveLangForApi($targetLocale),
             ],
         ]);
 
@@ -71,6 +72,16 @@ final class DeeplMachineTranslator implements MachineTranslatorInterface
         }
 
         return $first['text'];
+    }
+
+    private function resolveLangForApi(string $locale): string
+    {
+        $mapped = $this->localeMapper->map($locale);
+        if ($mapped !== null) {
+            return $mapped;
+        }
+
+        return $this->toDeepLLang($locale);
     }
 
     /**

@@ -9,6 +9,11 @@ services:
             - '../../DependencyInjection/'
             - '../../Resources/'
             - '../../NowoTranslationYamlToolsBundle.php'
+            - '../../MachineTranslation/RoutingMachineTranslator.php'
+
+    Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper:
+        arguments:
+            $canonicalKeyToApiCode: '%nowo_translation_yaml_tools.machine_translation_locale_map%'
 
     Nowo\TranslationYamlToolsBundle\MachineTranslation\GoogleTranslateMachineTranslator:
         arguments:
@@ -23,6 +28,18 @@ services:
         arguments:
             $baseUrl: '%nowo_translation_yaml_tools.libretranslate_base_url%'
             $apiKey: '%nowo_translation_yaml_tools.libretranslate_api_key%'
+
+    Nowo\TranslationYamlToolsBundle\MachineTranslation\RoutingMachineTranslator:
+        arguments:
+            $translators:
+                google: '@Nowo\TranslationYamlToolsBundle\MachineTranslation\GoogleTranslateMachineTranslator'
+                deepl: '@Nowo\TranslationYamlToolsBundle\MachineTranslation\DeeplMachineTranslator'
+                libretranslate: '@Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateMachineTranslator'
+            $defaultBackend: '%nowo_translation_yaml_tools.machine_translator%'
+            $byCanonicalLocale: '%nowo_translation_yaml_tools.machine_translator_by_locale%'
+
+    Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslatorInterface:
+        alias: Nowo\TranslationYamlToolsBundle\MachineTranslation\RoutingMachineTranslator
 
     Nowo\TranslationYamlToolsBundle\Command\TranslationYamlTreeCommand:
         arguments:
@@ -41,3 +58,8 @@ services:
             $bundleDefaultLocaleOverride: '%nowo_translation_yaml_tools.default_locale%'
             $configuredIndent: '%nowo_translation_yaml_tools.yaml_tree_indent%'
             $machineTranslatorBackend: '%nowo_translation_yaml_tools.machine_translator%'
+            $machineTranslatorPerLocaleEnabled: '%nowo_translation_yaml_tools.machine_translator_per_locale%'
+
+    Nowo\TranslationYamlToolsBundle\Command\TranslationYamlAuditCommand:
+        arguments:
+            $bundleDefaultLocaleOverride: '%nowo_translation_yaml_tools.default_locale%'

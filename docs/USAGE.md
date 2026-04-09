@@ -8,8 +8,9 @@
 | `nowo:translation-yaml:flatten` | Same selection pattern; flattens nested maps to a **single-level** map whose keys are **dot paths** (e.g. `demo.title`)—the inverse layout of `tree`. |
 | `nowo:translation-yaml:sort` | Same selection pattern; sorts associative keys recursively. |
 | `nowo:translation-yaml:fill-missing` | Uses the **default source locale** (see [Configuration](CONFIGURATION.md)) and a **target locale** file; translates missing keys via the configured backend (**Google**, **DeepL**, or **LibreTranslate**). |
+| `nowo:translation-yaml:audit` | Read-only **audit** of all domains (or `--domain`): tree convertibility (with `leaf_and_prefix` conflict counts and samples), recursive **alphabetical** key order, and **missing keys** vs `--source-locale` (default: Symfony default). Domains that pass every check show **one** summary line (no per-locale breakdown). Exits **non-zero** if any domain has issues. |
 
-All four write commands accept **`--inline`**: dump translations as compact **YAML flow style** (e.g. `{ demo: { title: … } }` or `{ demo.title: … }`) instead of expanded blocks and multi-line literals.
+The write commands (`tree`, `flatten`, `sort`, `fill-missing`) accept **`--inline`**: dump translations as compact **YAML flow style** (e.g. `{ demo: { title: … } }` or `{ demo.title: … }`) instead of expanded blocks and multi-line literals.
 
 ## Interactive selection
 
@@ -54,6 +55,13 @@ Fill missing Spanish keys from English (default locale):
 
 ```bash
 php bin/console nowo:translation-yaml:fill-missing --domain=messages --target-locale=es
+```
+
+Audit every domain (CI-friendly; fails if anything is wrong):
+
+```bash
+php bin/console nowo:translation-yaml:audit
+php bin/console nowo:translation-yaml:audit --source-locale=en --domain=messages
 ```
 
 Fill and write nested YAML:

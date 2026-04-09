@@ -16,7 +16,7 @@ final class NowoTranslationYamlToolsBundle extends Bundle
     /**
      * {@inheritdoc}
      */
-    public function getContainerExtension(): \Symfony\Component\DependencyInjection\Extension\ExtensionInterface
+    public function getContainerExtension(): ExtensionInterface
     {
         if ($this->extension === null) {
             $this->extension = new NowoTranslationYamlToolsExtension();

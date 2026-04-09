@@ -52,6 +52,7 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
         private readonly ?string $bundleDefaultLocaleOverride,
         private readonly int $configuredIndent,
         private readonly string $machineTranslatorBackend,
+        private readonly bool $machineTranslatorPerLocaleEnabled,
     ) {
         parent::__construct($catalog, $pathsResolver);
     }
@@ -80,7 +81,11 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
 
         $defaultLocale = $this->defaultLocaleResolver->resolve($this->bundleDefaultLocaleOverride);
         $output->writeln('<info>Default source locale:</info> ' . $defaultLocale . ' (override with <comment>nowo_translation_yaml_tools.default_locale</comment> or <comment>--source-locale</comment>)');
-        $output->writeln('<info>Machine translator:</info> ' . $this->machineTranslatorBackend);
+        $mtLine = $this->machineTranslatorBackend;
+        if ($this->machineTranslatorPerLocaleEnabled) {
+            $mtLine .= ' <comment>(default; per-locale overrides in machine_translator_by_locale)</comment>';
+        }
+        $output->writeln('<info>Machine translator:</info> ' . $mtLine);
         $output->writeln('');
 
         $domains = $this->catalog->listDomains();
@@ -207,7 +212,7 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
                 }
             }
         } finally {
-            if ($progress instanceof \Symfony\Component\Console\Helper\ProgressBar) {
+            if ($progress instanceof ProgressBar) {
                 // @codeCoverageIgnoreStart
                 $progress->finish();
                 $output->writeln('');

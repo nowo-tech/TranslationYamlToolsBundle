@@ -51,6 +51,30 @@ final class DotKeyTreeAnalyzer
      */
     public function treeConversionConflict(array $flatLeaves): ?string
     {
+        $conflicts = $this->collectTreeConversionConflicts($flatLeaves);
+        if ($conflicts === []) {
+            return null;
+        }
+
+        $first = $conflicts[0];
+
+        return sprintf(
+            'Cannot build a tree: key "%s" is both a leaf and a prefix of "%s".',
+            $first['leaf_key'],
+            $first['blocked_key'],
+        );
+    }
+
+    /**
+     * All dot-key conflicts that prevent building a nested tree (leaf key is also a prefix of another key).
+     *
+     * @param array<string, mixed> $flatLeaves dot key => value
+     *
+     * @return list<array{type: string, leaf_key: string, blocked_key: string}> type is always {@see self::CONFLICT_LEAF_AND_PREFIX}
+     */
+    public function collectTreeConversionConflicts(array $flatLeaves): array
+    {
+        $raw = [];
         foreach (array_keys($flatLeaves) as $fullKey) {
             $parts = explode('.', (string) $fullKey);
             if (count($parts) < 2) {
@@ -59,18 +83,21 @@ final class DotKeyTreeAnalyzer
             $prefix = $parts[0];
             for ($i = 1, $max = count($parts); $i < $max; ++$i) {
                 if (array_key_exists($prefix, $flatLeaves)) {
-                    return sprintf(
-                        'Cannot build a tree: key "%s" is both a leaf and a prefix of "%s".',
-                        $prefix,
-                        (string) $fullKey,
-                    );
+                    $raw[] = [
+                        'type'        => self::CONFLICT_LEAF_AND_PREFIX,
+                        'leaf_key'    => $prefix,
+                        'blocked_key' => (string) $fullKey,
+                    ];
+                    break;
                 }
                 $prefix .= '.' . $parts[$i];
             }
         }
 
-        return null;
+        return $this->uniqueConflictTuples($raw);
     }
+
+    public const CONFLICT_LEAF_AND_PREFIX = 'leaf_and_prefix';
 
     /**
      * Expands dot-separated keys into a nested associative array.
@@ -140,6 +167,27 @@ final class DotKeyTreeAnalyzer
         }
 
         return null;
+    }
+
+    /**
+     * @param list<array{type: string, leaf_key: string, blocked_key: string}> $items
+     *
+     * @return list<array{type: string, leaf_key: string, blocked_key: string}>
+     */
+    private function uniqueConflictTuples(array $items): array
+    {
+        $seen = [];
+        $out  = [];
+        foreach ($items as $item) {
+            $k = $item['leaf_key'] . "\0" . $item['blocked_key'];
+            if (isset($seen[$k])) {
+                continue;
+            }
+            $seen[$k] = true;
+            $out[]    = $item;
+        }
+
+        return $out;
     }
 
     /**

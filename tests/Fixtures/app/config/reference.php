@@ -697,6 +697,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     deepl_endpoint?: scalar|Param|null, // DeepL translate URL. Use https://api-free.deepl.com/v2/translate with a Free-plan auth key. // Default: "https://api.deepl.com/v2/translate"
  *     libretranslate_base_url?: scalar|Param|null, // LibreTranslate server origin (no trailing path). Public demo is rate-limited; self-host for production. // Default: "https://libretranslate.com"
  *     libretranslate_api_key?: scalar|Param|null, // Optional LibreTranslate API key (empty for public instances that do not require one). // Default: ""
+ *     machine_translation_locale_map?: list<scalar|Param|null>,
+ *     machine_translator_by_locale?: list<"google"|"deepl"|"libretranslate"|Param>,
  * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,

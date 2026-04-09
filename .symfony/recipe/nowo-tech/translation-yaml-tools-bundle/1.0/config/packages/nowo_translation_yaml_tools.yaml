@@ -5,3 +5,7 @@ nowo_translation_yaml_tools:
     # default_locale: null   # null = use Symfony translator.default_locale
     yaml_tree_indent: 4
     machine_translator: google
+    # machine_translation_locale_map:
+    #     pt_BR: pt-br   # optional: Symfony locale => exact API language code for fill-missing
+    # machine_translator_by_locale:
+    #     pt_BR: libretranslate   # optional: Symfony locale => google | deepl | libretranslate

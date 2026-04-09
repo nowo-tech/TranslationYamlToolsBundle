@@ -49,6 +49,20 @@ final class Configuration implements ConfigurationInterface
                     ->info('Optional LibreTranslate API key (empty for public instances that do not require one).')
                     ->defaultValue('')
                 ->end()
+                ->arrayNode('machine_translation_locale_map')
+                    ->info('Map Symfony locales to the exact language code sent to the active machine translator (Google, DeepL, LibreTranslate). Keys match case-insensitively; "-" and "_" are equivalent (e.g. pt_BR, pt-br). Example: pt_BR: pt-br')
+                    ->normalizeKeys(false)
+                    ->defaultValue([])
+                    ->prototype('scalar')->end()
+                ->end()
+                ->arrayNode('machine_translator_by_locale')
+                    ->info('Override machine_translator for specific Symfony locales: use google, deepl, or libretranslate. Target locale is checked first, then source, then machine_translator. Keys match like machine_translation_locale_map.')
+                    ->normalizeKeys(false)
+                    ->defaultValue([])
+                    ->prototype('enum')
+                        ->values(['google', 'deepl', 'libretranslate'])
+                    ->end()
+                ->end()
             ->end();
 
         return $treeBuilder;
