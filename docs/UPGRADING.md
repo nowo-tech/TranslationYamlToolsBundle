@@ -6,6 +6,7 @@ This line is **0.2.x** (after **0.1.0**). Treat minor and patch releases as pote
 
 ## To 0.2.0 (from 0.1.x)
 
+- In Composer, require **`^0.2`** (or pin **`0.2.x`**) to receive this line; **`^0.1`** does not pull **0.2.0**.
 - New console command **`nowo:translation-yaml:audit`** (read-only; optional in your workflow). See `docs/USAGE.md`.
 - **`machine_translator_by_locale`** (optional): route **google** / **deepl** / **libretranslate** per Symfony locale. If you omit it, behaviour matches **0.1.0** (single `machine_translator` default).
 - **`machine_translation_locale_map`** (optional): map Symfony locale identifiers to exact API language codes for the active backend. Omit it if default normalization is enough.
