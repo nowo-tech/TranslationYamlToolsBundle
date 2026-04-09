@@ -12,7 +12,7 @@ The package is intended as a **development** dependency: it registers console co
 
 ### Symfony Flex
 
-If you use Flex, the recipe registers `NowoTranslationYamlToolsBundle` for the `dev` environment and adds `config/packages/translation_yaml_tools.yaml` plus an empty `GOOGLE_TRANSLATE_API_KEY` entry in `.env`.
+If you use Flex, the recipe registers `NowoTranslationYamlToolsBundle` for the `dev` environment and adds `config/packages/translation_yaml_tools.yaml` plus an empty `GOOGLE_TRANSLATE_API_KEY` entry in `.env` (only needed when `machine_translator` is `google`).
 
 ### Manual
 
@@ -29,13 +29,16 @@ Ensure `framework.translator` is configured so `translator.default_path` and dis
 
 ## Environment
 
-For `nowo:translation-yaml:fill-missing`, define:
+For `nowo:translation-yaml:fill-missing`, enable the HTTP client and configure the backend in `nowo_translation_yaml_tools` (see [Configuration](CONFIGURATION.md)):
+
+- **Google** (default): set `GOOGLE_TRANSLATE_API_KEY` in `.env` / secrets.
+- **DeepL**: set `DEEPL_AUTH_KEY` and `machine_translator: deepl` (and `deepl_endpoint` if you use the Free API host).
+- **LibreTranslate**: set `machine_translator: libretranslate`; no paid API key is required for many public instances (rate limits apply).
 
 ```dotenv
-GOOGLE_TRANSLATE_API_KEY=your_api_key
+# Only when using Google as the machine translator:
+GOOGLE_TRANSLATE_API_KEY=
 ```
-
-See [Configuration](CONFIGURATION.md) for details and security notes.
 
 ## Demos
 
