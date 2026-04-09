@@ -7,7 +7,7 @@
 [![PHP](https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php)](https://php.net)
 [![Symfony](https://img.shields.io/badge/Symfony-6%20%7C%207%20%7C%208-000000?logo=symfony)](https://symfony.com)
 [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/translation-yaml-tools-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/TranslationYamlToolsBundle)
-[![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen)](#tests-and-coverage)
+[![Coverage](https://img.shields.io/badge/Coverage-%3E98%25-brightgreen)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** Install from [Packagist](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) and consider starring [the repository](https://github.com/nowo-tech/TranslationYamlToolsBundle).
 
@@ -68,7 +68,7 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 
 ## Tests and coverage
 
-- **PHP:** 100% Lines (target; run `make test-coverage` and read the final `Global PHP coverage (Lines): …` line).
+- **PHP:** high line coverage (run `make test-coverage` and read the final `Global PHP coverage (Lines): …` line; recent runs are above **98%**).
 - **TS/JS:** N/A
 - **Python:** N/A
 
