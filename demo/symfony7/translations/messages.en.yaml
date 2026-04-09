@@ -1,0 +1,6 @@
+demo.inline_banner: 'This demo mixes YAML catalogue keys and %product% (see Twig section below).'
+demo.missing_in_es: 'This key is intentionally absent from messages.es.yaml'
+demo.missing_in_fr: 'Only EN and ES have messages files; FR is missing entirely'
+demo.only_in_en_first: 'This key exists in EN and ES'
+demo.subtitle: 'Default locale is English'
+demo.title: 'Translation YAML Tools demo'

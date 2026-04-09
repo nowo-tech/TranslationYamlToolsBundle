@@ -1,0 +1,9 @@
+demo:
+    title: Demo ES
+    subtitle: Idioma español
+    only_in_en_first: Esta clave existe en EN y ES
+    inline_banner: 'Esta demo mezcla claves del catálogo YAML y %product% (mira la sección Twig abajo).'
+    # demo.missing_in_es deliberately omitted to demonstrate gap detection
+
+# Message id for {% trans %}…{% endtrans %} is the source string (inline-style Twig i18n)
+'Hello, demo visitor': Hola, visitante del demo

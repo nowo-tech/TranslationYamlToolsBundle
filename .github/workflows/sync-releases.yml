@@ -1,0 +1,74 @@
+name: Sync Releases
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * *'
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  sync-releases:
+    name: Create/Update missing releases
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Sync releases from tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+
+          created=0
+          updated=0
+          skipped=0
+
+          for tag in $(git tag -l 'v*' | sort -V); do
+            version="${tag#v}"
+
+            tag_message="$(git tag -l --format='%(contents)' "$tag" | sed '/^[[:space:]]*$/d' || true)"
+            if [ -z "$tag_message" ]; then
+              tag_message="Release $tag"
+            fi
+
+            changelog_entry=""
+            if [ -f docs/CHANGELOG.md ]; then
+              escaped_version="$(printf '%s' "$version" | sed 's/\./\\./g')"
+              changelog_entry="$(awk "/^## \\[?${escaped_version}\\]?/ {flag=1; next} /^## \\[?[0-9]/ {flag=0} flag" docs/CHANGELOG.md || true)"
+            fi
+
+            body="$tag_message"
+            if [ -n "${changelog_entry// /}" ]; then
+              body="$(printf '%s\n\n## Changelog\n\n%s\n' "$tag_message" "$changelog_entry")"
+            fi
+
+            if gh release view "$tag" >/dev/null 2>&1; then
+              current_body="$(gh release view "$tag" --json body -q .body || true)"
+              if [ -n "${changelog_entry// /}" ] && ! printf '%s' "$current_body" | grep -q "## Changelog"; then
+                gh release edit "$tag" --title "Release $tag" --notes "$body"
+                updated=$((updated + 1))
+              else
+                skipped=$((skipped + 1))
+              fi
+            else
+              gh release create "$tag" --title "Release $tag" --notes "$body"
+              created=$((created + 1))
+            fi
+          done
+
+          {
+            echo "## Release sync summary"
+            echo "- Created: $created"
+            echo "- Updated: $updated"
+            echo "- Skipped: $skipped"
+          } >> "$GITHUB_STEP_SUMMARY"

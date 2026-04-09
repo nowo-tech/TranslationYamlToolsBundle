@@ -1,0 +1,10 @@
+framework:
+    secret: 'integration_test_secret'
+    default_locale: en
+    test: true
+    http_method_override: false
+    handle_all_throwables: true
+    http_client: true
+    translator:
+        default_path: '%kernel.project_dir%/translations'
+        fallbacks: [en]

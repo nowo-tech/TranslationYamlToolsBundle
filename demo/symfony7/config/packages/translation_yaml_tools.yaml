@@ -1,0 +1,7 @@
+# Use Symfony default locale (translator.default_locale) for bundle commands unless overridden.
+nowo_translation_yaml_tools:
+    default_locale: null
+    yaml_tree_indent: 4
+    machine_translator: google
+    # For DeepL: machine_translator: deepl, DEEPL_AUTH_KEY in .env, and optionally:
+    # deepl_endpoint: 'https://api-free.deepl.com/v2/translate'

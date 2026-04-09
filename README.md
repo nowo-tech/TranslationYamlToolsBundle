@@ -1,0 +1,80 @@
+# Translation YAML Tools Bundle
+
+[![CI](https://github.com/nowo-tech/TranslationYamlToolsBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/TranslationYamlToolsBundle/actions/workflows/ci.yml)
+[![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/translation-yaml-tools-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle)
+[![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/translation-yaml-tools-bundle.svg)](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PHP](https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php)](https://php.net)
+[![Symfony](https://img.shields.io/badge/Symfony-6%20%7C%207%20%7C%208-000000?logo=symfony)](https://symfony.com)
+[![GitHub stars](https://img.shields.io/github/stars/nowo-tech/translation-yaml-tools-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/TranslationYamlToolsBundle)
+[![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen)](#tests-and-coverage)
+
+> ⭐ **Found this useful?** Install from [Packagist](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) and consider starring [the repository](https://github.com/nowo-tech/TranslationYamlToolsBundle).
+
+Symfony developer tools for **YAML translation files**: discover configured translation directories, convert flat dot-keys to a **nested tree** (with structural validation), **flatten** nested maps back to dot-keys at the file root, **sort** keys alphabetically, and **fill missing** keys in a target locale using **Google Cloud Translation**, **DeepL**, or **LibreTranslate** (pluggable `MachineTranslatorInterface`). The default source locale follows **`translator.default_locale`** unless you override it in bundle configuration.
+
+## Features
+
+- Resolves translation paths from **`translator.default_path`** and from **`config/packages/**/translation.yaml`** (`framework.translator.default_path` and `paths`).
+- **Interactive** console flow (arrow keys) to pick **domain** and **locale**, with non-interactive `--domain` / `--locale` flags.
+- **`nowo:translation-yaml:tree`** — validates that dot-keys can be represented as a tree; on failure prints the conflicting prefix.
+- **`nowo:translation-yaml:flatten`** — writes a one-level map with dot-separated keys (inverse of the tree layout).
+- **`nowo:translation-yaml:sort`** — recursive alphabetical sort of associative keys.
+- **`nowo:translation-yaml:fill-missing`** — merges missing keys into a target locale using the configured machine translator (Google REST v2); optional `--tree` output with the same validation as the tree command.
+- Configurable **YAML indent** (`yaml_tree_indent`) for dumps.
+
+## Requirements
+
+- PHP `>=8.1 <8.6`
+- Symfony `^6.0 || ^7.0 || ^8.0` (FrameworkBundle, Console, HttpClient, Yaml, …)
+- For **fill-missing**: enable `framework.http_client: true`, choose `machine_translator` in config, and set `GOOGLE_TRANSLATE_API_KEY` (Google) or `DEEPL_AUTH_KEY` (DeepL) when using those backends; **LibreTranslate** needs no paid key for open instances (see `docs/CONFIGURATION.md`).
+
+## Quick install
+
+```bash
+composer require --dev nowo-tech/translation-yaml-tools-bundle
+```
+
+Register the bundle in `config/bundles.php` for `dev` (Flex recipe does this). See [Installation](docs/INSTALLATION.md).
+
+## Demos (Symfony 7 & 8)
+
+FrankenPHP sample apps live under [`demo/`](demo/README.md): Web Profiler, **Twig Inspector** (`nowo-tech/twig-inspector-bundle`), explicit `framework.enabled_locales` / `translator` configuration, two translation directories (`translations/` + `translations_extra/`), and a **web page** at `/` that summarizes default locale, enabled locales, YAML paths, missing files per domain, and missing keys vs the default locale.
+
+```bash
+make -C demo up-symfony7   # default PORT 8037 — see demo/symfony7/.env.example
+make -C demo up-symfony8   # default PORT 8038
+```
+
+FrankenPHP worker mode: Supported in production Caddyfile; development uses `Caddyfile.dev` without worker (see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md)).
+
+## Documentation
+
+- [Installation](docs/INSTALLATION.md)
+- [Configuration](docs/CONFIGURATION.md)
+- [Usage](docs/USAGE.md)
+- [Contributing](docs/CONTRIBUTING.md)
+- [Changelog](docs/CHANGELOG.md)
+- [Upgrading](docs/UPGRADING.md)
+- [Release](docs/RELEASE.md)
+- [Security](docs/SECURITY.md)
+- [Engram](docs/ENGRAM.md)
+
+### Additional documentation
+
+- [Demos](demo/README.md)
+- [FrankenPHP demos](docs/DEMO-FRANKENPHP.md)
+
+## Tests and coverage
+
+- **PHP:** 100% Lines (target; run `make test-coverage` and read the final `Global PHP coverage (Lines): …` line).
+- **TS/JS:** N/A
+- **Python:** N/A
+
+## Version information
+
+See [SECURITY POLICY](https://github.com/nowo-tech/TranslationYamlToolsBundle/security/policy) for supported versions.
+
+## License
+
+This bundle is released under the MIT License. See [LICENSE](LICENSE).

@@ -1,0 +1,3 @@
+extra:
+    path_label: Segunda ruta de traducciones (translations_extra)
+    note: Declarada vía framework.translator.paths

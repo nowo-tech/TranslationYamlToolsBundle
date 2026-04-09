@@ -1,0 +1,36 @@
+# Dependencies
+/vendor
+/node_modules
+/.pnpm-store
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+/coverage
+/coverage.xml
+/coverage-php.txt
+
+# Demo apps (generated)
+/demo/symfony7/vendor/
+/demo/symfony7/var/
+/demo/symfony8/vendor/
+/demo/symfony8/var/
+
+# PHP tool caches
+/.php-cs-fixer.cache
+/.phpunit.cache
+/.phpunit.result.cache
+
+# Fixture runtime
+/tests/Fixtures/app/var
+
+# Archives / compressed
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z

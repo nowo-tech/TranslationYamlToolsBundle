@@ -1,0 +1,3 @@
+demo_validation:
+    not_blank: This value must not be blank
+    email: Please enter a valid email

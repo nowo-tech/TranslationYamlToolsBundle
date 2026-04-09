@@ -1,0 +1,7 @@
+# Translation YAML Tools — optional dev tooling for YAML translation files.
+# See docs/CONFIGURATION.md and docs/USAGE.md.
+
+nowo_translation_yaml_tools:
+    # default_locale: null   # null = use Symfony translator.default_locale
+    yaml_tree_indent: 4
+    machine_translator: google

@@ -1,0 +1,43 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Nowo\TranslationYamlToolsBundle\:
+        resource: '../../*'
+        exclude:
+            - '../../DependencyInjection/'
+            - '../../Resources/'
+            - '../../NowoTranslationYamlToolsBundle.php'
+
+    Nowo\TranslationYamlToolsBundle\MachineTranslation\GoogleTranslateMachineTranslator:
+        arguments:
+            $apiKey: '%env(string:GOOGLE_TRANSLATE_API_KEY)%'
+
+    Nowo\TranslationYamlToolsBundle\MachineTranslation\DeeplMachineTranslator:
+        arguments:
+            $authKey: '%env(string:DEEPL_AUTH_KEY)%'
+            $endpointUrl: '%nowo_translation_yaml_tools.deepl_endpoint%'
+
+    Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateMachineTranslator:
+        arguments:
+            $baseUrl: '%nowo_translation_yaml_tools.libretranslate_base_url%'
+            $apiKey: '%nowo_translation_yaml_tools.libretranslate_api_key%'
+
+    Nowo\TranslationYamlToolsBundle\Command\TranslationYamlTreeCommand:
+        arguments:
+            $configuredIndent: '%nowo_translation_yaml_tools.yaml_tree_indent%'
+
+    Nowo\TranslationYamlToolsBundle\Command\TranslationYamlSortCommand:
+        arguments:
+            $configuredIndent: '%nowo_translation_yaml_tools.yaml_tree_indent%'
+
+    Nowo\TranslationYamlToolsBundle\Command\TranslationYamlFlattenCommand:
+        arguments:
+            $configuredIndent: '%nowo_translation_yaml_tools.yaml_tree_indent%'
+
+    Nowo\TranslationYamlToolsBundle\Command\TranslationYamlFillMissingCommand:
+        arguments:
+            $bundleDefaultLocaleOverride: '%nowo_translation_yaml_tools.default_locale%'
+            $configuredIndent: '%nowo_translation_yaml_tools.yaml_tree_indent%'
+            $machineTranslatorBackend: '%nowo_translation_yaml_tools.machine_translator%'
