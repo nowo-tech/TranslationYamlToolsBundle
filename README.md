@@ -20,7 +20,7 @@ Symfony developer tools for **YAML translation files**: discover configured tran
 - **`nowo:translation-yaml:tree`** — validates that dot-keys can be represented as a tree; on failure prints the conflicting prefix.
 - **`nowo:translation-yaml:flatten`** — writes a one-level map with dot-separated keys (inverse of the tree layout).
 - **`nowo:translation-yaml:sort`** — recursive alphabetical sort of associative keys.
-- **`nowo:translation-yaml:fill-missing`** — merges missing keys into a target locale using the configured machine translator (Google REST v2); optional `--tree` output with the same validation as the tree command.
+- **`nowo:translation-yaml:fill-missing`** — merges missing keys into a target locale using the configured machine translator (Google, DeepL, or LibreTranslate); optional `--tree` output with the same validation as the tree command.
 - Configurable **YAML indent** (`yaml_tree_indent`) for dumps.
 
 ## Requirements
