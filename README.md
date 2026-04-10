@@ -7,11 +7,11 @@
 [![PHP](https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php)](https://php.net)
 [![Symfony](https://img.shields.io/badge/Symfony-6%20%7C%207%20%7C%208-000000?logo=symfony)](https://symfony.com)
 [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/translation-yaml-tools-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/TranslationYamlToolsBundle)
-[![Coverage](https://img.shields.io/badge/Coverage-%3E98%25-brightgreen)](#tests-and-coverage)
+[![Coverage](https://img.shields.io/badge/Coverage-report-lightgrey)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** Install from [Packagist](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) and consider starring [the repository](https://github.com/nowo-tech/TranslationYamlToolsBundle).
 
-Symfony developer tools for **YAML translation files**: discover configured translation directories, convert flat dot-keys to a **nested tree** (with structural validation), **flatten** nested maps back to dot-keys at the file root, **sort** keys alphabetically, and **fill missing** keys in a target locale using **Google Cloud Translation**, **DeepL**, or **LibreTranslate** (pluggable `MachineTranslatorInterface`). The default source locale follows **`translator.default_locale`** unless you override it in bundle configuration.
+Symfony developer tools for **YAML translation files**: discover configured translation directories, convert flat dot-keys to a **nested tree** (with structural validation), **flatten** nested maps back to dot-keys at the file root, **sort** keys alphabetically, and **fill missing** keys in a target locale using **Google Cloud Translation**, **DeepL**, or **LibreTranslate** (pluggable `MachineTranslatorInterface`). The default source locale follows Symfony’s translator / kernel default locale (see **`docs/CONFIGURATION.md`**) unless you set **`nowo_translation_yaml_tools.default_locale`**.
 
 ## Features
 
@@ -40,7 +40,7 @@ Register the bundle in `config/bundles.php` for `dev` (Flex recipe does this). S
 
 ## Demos (Symfony 7 & 8)
 
-FrankenPHP sample apps live under [`demo/`](demo/README.md): Web Profiler, **Twig Inspector** (`nowo-tech/twig-inspector-bundle`), explicit `framework.enabled_locales` / `translator` configuration, two translation directories (`translations/` + `translations_extra/`), and a **web page** at `/` that summarizes default locale, enabled locales, YAML paths, missing files per domain, and missing keys vs the default locale.
+FrankenPHP sample apps live under [`demo/`](demo/README.md): Web Profiler, **Twig Inspector** (`nowo-tech/twig-inspector-bundle`), explicit `framework.enabled_locales` / `translator` configuration, two translation directories (`translations/` + `translations_extra/`), and a **web page** at `/` that summarizes default locale, enabled locales, YAML paths, missing files per domain, and missing keys vs the default locale. In **dev**, the demos also enable **`missing_translation_log`** (SQLite, **`event_dispatcher`** flush strategy, optional Web UI) — see [`demo/README.md`](demo/README.md).
 
 ```bash
 make -C demo up-symfony7   # default PORT 8037 — see demo/symfony7/.env.example
@@ -68,7 +68,7 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 
 ## Tests and coverage
 
-- **PHP:** high line coverage (run `make test-coverage` and read the final `Global PHP coverage (Lines): …` line; recent runs are above **98%**).
+- **PHP:** run `make test-coverage` and read the final `Global PHP coverage (Lines): …` line in the output.
 - **TS/JS:** N/A
 - **Python:** N/A
 

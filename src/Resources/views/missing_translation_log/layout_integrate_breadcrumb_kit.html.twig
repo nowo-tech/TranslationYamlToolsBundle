@@ -1,0 +1,18 @@
+{# Bridge: use when missing_translation_log.web_ui.layout_template points here so pages share NowoBreadcrumbKitBundle dashboard shell. Requires nowo-tech/breadcrumb-kit-bundle. #}
+{% extends '@NowoBreadcrumbKitBundle/dashboard/layout.html.twig' %}
+
+{% block dashboard_title %}{% block missing_log_title %}Missing translation log{% endblock %}{% endblock %}
+
+{% block dashboard_head %}
+    {{ parent() }}
+    {% block missing_log_head %}{% endblock %}
+{% endblock %}
+
+{% block nowo_breadcrumb_kit_content %}
+    {% block nowo_translation_yaml_tools_missing_log_content %}{% endblock %}
+{% endblock %}
+
+{% block dashboard_scripts %}
+    {{ parent() }}
+    {% block missing_log_scripts %}{% endblock %}
+{% endblock %}

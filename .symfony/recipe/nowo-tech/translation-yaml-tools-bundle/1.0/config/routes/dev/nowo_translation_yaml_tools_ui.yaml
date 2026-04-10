@@ -1,0 +1,5 @@
+when@dev:
+    nowo_translation_yaml_tools_missing_log_ui:
+        resource: '@NowoTranslationYamlToolsBundle/Resources/config/routes/missing_translation_log_ui.yaml'
+        type: yaml
+        prefix: '%nowo_translation_yaml_tools.missing_translation_log.web_ui.path_prefix%'

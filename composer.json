@@ -41,10 +41,16 @@
         "symfony/framework-bundle": "^6.0 || ^7.0 || ^8.0",
         "symfony/http-client": "^6.0 || ^7.0 || ^8.0",
         "symfony/http-kernel": "^6.0 || ^7.0 || ^8.0",
+        "symfony/translation": "^6.0 || ^7.0 || ^8.0",
         "symfony/yaml": "^6.0 || ^7.0 || ^8.0"
     },
     "require-dev": {
-        "symfony/translation": "^6.0 || ^7.0 || ^8.0",
+        "doctrine/doctrine-bundle": "^2.10",
+        "doctrine/orm": "^2.16 || ^3.0",
+        "symfony/messenger": "^6.0 || ^7.0 || ^8.0",
+        "symfony/browser-kit": "^6.0 || ^7.0 || ^8.0",
+        "symfony/security-csrf": "^6.0 || ^7.0 || ^8.0",
+        "symfony/twig-bundle": "^6.0 || ^7.0 || ^8.0",
         "friendsofphp/php-cs-fixer": "^3.0",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": "^2.0",
@@ -102,6 +108,11 @@
         "qa": "Run all quality assurance checks"
     },
     "suggest": {
-        "symfony/flex": "For automatic recipe installation (config and bundles.php)"
+        "symfony/flex": "For automatic recipe installation (config and bundles.php)",
+        "doctrine/orm": "Required with doctrine/doctrine-bundle to use missing_translation_log (runtime DB table for missing keys)",
+        "doctrine/doctrine-bundle": "Required to use missing_translation_log (entity mapping is prepended when the feature is enabled)",
+        "symfony/twig-bundle": "Required for missing_translation_log.web_ui (HTML list and mark-added forms)",
+        "symfony/security-csrf": "Required for csrf_token() in the missing-log Twig UI (with framework.csrf_protection)",
+        "symfony/messenger": "Optional: missing_translation_log.async_persist dispatches MissingTranslationBufferMessage; route it to an async transport to avoid in-process DB writes after flush"
     }
 }

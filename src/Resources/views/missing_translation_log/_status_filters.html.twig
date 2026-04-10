@@ -1,0 +1,11 @@
+<ul class="nav nav-pills gap-2 flex-wrap mb-4">
+    <li class="nav-item">
+        <a class="nav-link{{ status == 'pending' ? ' active' : '' }}" href="{{ path('nowo_translation_yaml_tools_missing_log_index', { status: 'pending' }) }}">Pending</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link{{ status == 'added' ? ' active' : '' }}" href="{{ path('nowo_translation_yaml_tools_missing_log_index', { status: 'added' }) }}">Added</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link{{ status == 'validated' ? ' active' : '' }}" href="{{ path('nowo_translation_yaml_tools_missing_log_index', { status: 'validated' }) }}">Validated</a>
+    </li>
+</ul>

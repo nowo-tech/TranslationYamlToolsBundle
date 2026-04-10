@@ -1,0 +1,11 @@
+# Dev-only: runtime missing-key log (Doctrine + Web UI). No symfony/messenger: flush uses EventDispatcher.
+nowo_translation_yaml_tools:
+    missing_translation_log:
+        enabled: true
+        table_prefix: demo_translation_
+        record_call_site: true
+        async_persist: true
+        async_persist_strategy: event_dispatcher
+        web_ui:
+            enabled: true
+            path_prefix: '/_demo/translation-yaml-tools/missing-log'

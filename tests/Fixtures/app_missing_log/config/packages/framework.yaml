@@ -1,0 +1,14 @@
+framework:
+    secret: 'missing_log_test_secret'
+    default_locale: en
+    test: true
+    csrf_protection: true
+    session:
+        handler_id: null
+        storage_factory_id: session.storage.factory.mock_file
+    http_method_override: false
+    handle_all_throwables: true
+    http_client: true
+    translator:
+        default_path: '%kernel.project_dir%/translations'
+        fallbacks: [en]

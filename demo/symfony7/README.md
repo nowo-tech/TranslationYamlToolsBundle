@@ -6,6 +6,7 @@ FrankenPHP + Web Profiler + **Twig Inspector** + YAML translation demos.
 - **Enabled locales:** `en`, `es`, `fr` (`framework.enabled_locales`)
 - **Paths:** `translations/` + `translations_extra/` via `framework.translator.paths`
 - **Gaps:** deliberate missing keys / no `fr` files so you can try the insights page and bundle commands
+- **Missing translation log (dev):** SQLite table **`demo_translation_missing_log`**, **`async_persist` + `event_dispatcher`** (no Messenger), Web UI under **`/_demo/translation-yaml-tools/missing-log`**; `make up` applies the Doctrine schema
 
 ## Quick start
 
@@ -27,6 +28,7 @@ Targets invoke `docker-compose` for you.
 | `make translation-yaml-inline-preview` | `sort --inline` on `messages.en.yaml`, prints the file, then restores it |
 | `make translation-yaml-walkthrough` | Runs all useful variants with pauses between steps (default `PAUSE=3`; e.g. `make translation-yaml-walkthrough PAUSE=5`); **restores** `translations/` at the end |
 | `make shell` | Interactive shell in the `php` service |
+| `make missing-log-schema` | `doctrine:schema:update --force` (creates/updates **`demo_translation_missing_log`**) |
 
 ## Inside the container (`docker-compose exec`)
 

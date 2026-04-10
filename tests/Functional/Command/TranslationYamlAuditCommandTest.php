@@ -117,8 +117,8 @@ final class TranslationYamlAuditCommandTest extends TestCase
 
     public function testAuditWithNoDomainsPrintsCommentAndSucceeds(): void
     {
-        $project       = sys_get_temp_dir() . '/tyt_audit_empty_' . uniqid();
-        $translations  = $project . '/translations';
+        $project      = sys_get_temp_dir() . '/tyt_audit_empty_' . uniqid();
+        $translations = $project . '/translations';
         mkdir($translations, 0777, true);
         $kernel = $this->createMock(KernelInterface::class);
         $kernel->method('getProjectDir')->willReturn($project);

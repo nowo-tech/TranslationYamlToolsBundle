@@ -1,0 +1,32 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Nowo\TranslationYamlToolsBundle\Doctrine\MissingTranslationLogMetadataListener:
+        arguments:
+            $tablePrefix: '%nowo_translation_yaml_tools.missing_translation_log.table_prefix%'
+        tags:
+            - { name: doctrine.event_listener, event: loadClassMetadata, connection: default }
+
+    Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository:
+        arguments:
+            $registry: '@doctrine'
+
+    Nowo\TranslationYamlToolsBundle\MissingTranslationLog\DoctrineMissingTranslationRecorder:
+        arguments:
+            $messageBus: '@?messenger.default_bus'
+            $asyncPersist: '%nowo_translation_yaml_tools.missing_translation_log.async_persist%'
+            $asyncPersistStrategy: '%nowo_translation_yaml_tools.missing_translation_log.async_persist_strategy%'
+            $eventDispatcher: '@?event_dispatcher'
+
+    Nowo\TranslationYamlToolsBundle\Translation\RecordingTranslatorDecorator:
+        decorates: translator
+        arguments:
+            $inner: '@.inner'
+            $recorder: '@Nowo\TranslationYamlToolsBundle\MissingTranslationLog\DoctrineMissingTranslationRecorder'
+            $recordCallSite: '%nowo_translation_yaml_tools.missing_translation_log.record_call_site%'
+        decoration_priority: 20
+
+    Nowo\TranslationYamlToolsBundle\Command\MissingTranslationLog\:
+        resource: '../../Command/MissingTranslationLog/*Command.php'

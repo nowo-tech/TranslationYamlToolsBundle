@@ -1,0 +1,25 @@
+{% extends '@NowoTranslationYamlToolsBundle/missing_translation_log/base.html.twig' %}
+
+{% block missing_log_title %}Missing translation log{% endblock %}
+
+{% block missing_log_breadcrumb %}
+    {# Pass {@code trail} from a controller / listener to render BreadcrumbKit; bundle optional. #}
+    {% if trail is defined and trail is not null %}
+        <div class="mb-3">
+            {% include '@NowoBreadcrumbKitBundle/breadcrumb.html.twig' ignore missing %}
+        </div>
+    {% endif %}
+    {% block missing_log_breadcrumb_extra %}{% endblock %}
+{% endblock %}
+
+{% block missing_log_body %}
+    {% block missing_log_page_header %}
+        <h1 class="h3 mb-3">Missing translation log</h1>
+    {% endblock %}
+    {% block missing_log_status_filters %}
+        {% include '@NowoTranslationYamlToolsBundle/missing_translation_log/_status_filters.html.twig' %}
+    {% endblock %}
+    {% block missing_log_table %}
+        {% include '@NowoTranslationYamlToolsBundle/missing_translation_log/_table.html.twig' %}
+    {% endblock %}
+{% endblock %}

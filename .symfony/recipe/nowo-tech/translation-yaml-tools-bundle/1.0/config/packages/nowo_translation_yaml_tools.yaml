@@ -9,3 +9,12 @@ nowo_translation_yaml_tools:
     #     pt_BR: pt-br   # optional: Symfony locale => exact API language code for fill-missing
     # machine_translator_by_locale:
     #     pt_BR: libretranslate   # optional: Symfony locale => google | deepl | libretranslate
+    # missing_translation_log:
+    #     enabled: true   # optional: Doctrine table for runtime missing keys (requires doctrine/orm + doctrine-bundle)
+    #     table_prefix: nowo_translation_   # table name = prefix + "missing_log"
+    #     record_call_site: true   # store caller file:line in call_site (debug_backtrace); false = less overhead
+    #     async_persist: false     # true: delegate flush (see async_persist_strategy)
+    #     async_persist_strategy: messenger   # messenger | event_dispatcher (no Messenger; use MissingTranslationBufferEvent + optional stopPropagation)
+    #     web_ui:
+    #         enabled: true   # requires symfony/twig-bundle; import routes (see recipe config/routes/dev/)
+    #         path_prefix: '/_translation_yaml_tools/missing-log'

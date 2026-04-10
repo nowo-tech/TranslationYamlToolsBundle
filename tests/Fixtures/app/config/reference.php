@@ -302,7 +302,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         },
  *     },
  *     translator?: bool|array{ // Translator configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         fallbacks?: list<scalar|Param|null>,
  *         logging?: bool|Param, // Default: false
  *         formatter?: scalar|Param|null, // Default: "translator.formatter.default"
@@ -699,6 +699,18 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     libretranslate_api_key?: scalar|Param|null, // Optional LibreTranslate API key (empty for public instances that do not require one). // Default: ""
  *     machine_translation_locale_map?: list<scalar|Param|null>,
  *     machine_translator_by_locale?: list<"google"|"deepl"|"libretranslate"|Param>,
+ *     missing_translation_log?: bool|array{ // Record runtime missing keys (id, domain, locale) in Doctrine table {table_prefix}missing_log; decorate translator and flush on kernel terminate
+ *         enabled?: bool|Param, // Default: false
+ *         table_prefix?: scalar|Param|null, // Physical table name = prefix + "missing_log" (e.g. nowo_translation_ → nowo_translation_missing_log). Allowed: lowercase letters, digits, underscore; max 40 chars. // Default: "nowo_translation_"
+ *         record_call_site?: bool|Param, // When true, store the first plausible caller file:line (debug_backtrace) per row; updates on new hits when a path is resolved. Disable to reduce overhead. // Default: true
+ *         async_persist?: bool|Param, // When true, flush delegates persistence (see async_persist_strategy) instead of calling Doctrine immediately in the recorder. With strategy messenger, requires symfony/messenger and a default bus. With event_dispatcher, uses the app event_dispatcher and optional builtin listener. // Default: false
+ *         async_persist_strategy?: "messenger"|"event_dispatcher"|Param, // Used when async_persist is true. messenger: dispatch MissingTranslationBufferMessage. event_dispatcher: dispatch MissingTranslationBufferEvent; a builtin listener persists last unless stopPropagation() was called (e.g. you enqueue and persist in a worker). // Default: "messenger"
+ *         web_ui?: array{
+ *             enabled?: bool|Param, // Expose HTTP routes + Twig UI to list rows and mark pending entries as added (protect with firewall / access_control) // Default: false
+ *             path_prefix?: scalar|Param|null, // URL prefix for imported routes (must start with /) // Default: "/_translation_yaml_tools/missing-log"
+ *             layout_template?: scalar|Param|null, // Twig layout extended by the missing-log UI (global nowo_translation_yaml_tools_missing_log_layout_template). Use @NowoTranslationYamlToolsBundle/missing_translation_log/layout_integrate_dashboard_menu.html.twig or layout_integrate_breadcrumb_kit.html.twig to match those dashboards. // Default: "@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig"
+ *         },
+ *     },
  * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,

@@ -8,13 +8,46 @@ use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleM
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+
+use function dirname;
+use function is_array;
 
 /**
  * Loads services and parameters for Translation YAML Tools.
  */
-final class NowoTranslationYamlToolsExtension extends Extension
+final class NowoTranslationYamlToolsExtension extends Extension implements PrependExtensionInterface
 {
+    /**
+     * {@inheritdoc}
+     */
+    public function prepend(ContainerBuilder $container): void
+    {
+        if ($container->hasExtension('doctrine') && $this->rawConfigEnablesMissingTranslationLog($container)) {
+            $container->prependExtensionConfig('doctrine', [
+                'orm' => [
+                    'mappings' => [
+                        'NowoTranslationYamlToolsMissingLog' => [
+                            'is_bundle' => false,
+                            'type'      => 'attribute',
+                            'dir'       => dirname(__DIR__) . '/Entity',
+                            'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\Entity',
+                        ],
+                    ],
+                ],
+            ]);
+        }
+
+        if ($container->hasExtension('twig') && $this->rawConfigEnablesMissingTranslationWebUi($container)) {
+            $container->prependExtensionConfig('twig', [
+                'paths' => [
+                    dirname(__DIR__) . '/Resources/views' => 'NowoTranslationYamlToolsBundle',
+                ],
+            ]);
+        }
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -46,8 +79,94 @@ final class NowoTranslationYamlToolsExtension extends Extension
             $byLocaleBackend !== [],
         );
 
+        $missingLog        = $config['missing_translation_log'] ?? false;
+        $missingLogEnabled = false;
+        $tablePrefix       = 'nowo_translation_';
+        $recordCallSite    = true;
+        $asyncPersist         = false;
+        $asyncPersistStrategy = 'messenger';
+        $webUiEnabled           = false;
+        $webUiPathPrefix        = '/_translation_yaml_tools/missing-log';
+        $webUiLayoutTemplate    = '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig';
+
+        if ($missingLog === false) {
+            $missingLogEnabled = false;
+        } else {
+            $missingLogEnabled = (bool) ($missingLog['enabled'] ?? false);
+            $tablePrefix       = (string) ($missingLog['table_prefix'] ?? $tablePrefix);
+            $recordCallSite    = (bool) ($missingLog['record_call_site'] ?? true);
+            $asyncPersist         = (bool) ($missingLog['async_persist'] ?? false);
+            $asyncPersistStrategy = (string) ($missingLog['async_persist_strategy'] ?? 'messenger');
+            $webUi                = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
+            $webUiEnabled        = (bool) ($webUi['enabled'] ?? false);
+            $webUiPathPrefix     = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
+            $webUiLayoutTemplate = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
+        }
+
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.enabled', $missingLogEnabled);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.table_prefix', $tablePrefix);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.record_call_site', $recordCallSite);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.async_persist', $asyncPersist);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.async_persist_strategy', $asyncPersistStrategy);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled', $webUiEnabled);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.path_prefix', $webUiPathPrefix);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template', $webUiLayoutTemplate);
+
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');
+
+        if ($missingLogEnabled) {
+            $loader->load('services_missing_translation.yaml');
+            if ($asyncPersist && $asyncPersistStrategy === 'messenger' && interface_exists(\Symfony\Component\Messenger\MessageBusInterface::class)) {
+                $loader->load('services_missing_translation_messenger.yaml');
+            }
+            if ($asyncPersist && $asyncPersistStrategy === 'event_dispatcher') {
+                $loader->load('services_missing_translation_event_dispatcher.yaml');
+            }
+            if ($webUiEnabled) {
+                $loader->load('services_missing_translation_web.yaml');
+            }
+        }
+    }
+
+    private function rawConfigEnablesMissingTranslationLog(ContainerBuilder $container): bool
+    {
+        foreach ($container->getExtensionConfig('nowo_translation_yaml_tools') as $chunk) {
+            if (!is_array($chunk)) {
+                continue;
+            }
+            $missingLog = $chunk['missing_translation_log'] ?? null;
+            if ($missingLog === false) {
+                continue;
+            }
+            if (is_array($missingLog) && ($missingLog['enabled'] ?? false) === true) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function rawConfigEnablesMissingTranslationWebUi(ContainerBuilder $container): bool
+    {
+        foreach ($container->getExtensionConfig('nowo_translation_yaml_tools') as $chunk) {
+            if (!is_array($chunk)) {
+                continue;
+            }
+            $missingLog = $chunk['missing_translation_log'] ?? null;
+            if ($missingLog === false || !is_array($missingLog)) {
+                continue;
+            }
+            if (($missingLog['enabled'] ?? false) !== true) {
+                continue;
+            }
+            $webUi = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
+            if (($webUi['enabled'] ?? false) === true) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

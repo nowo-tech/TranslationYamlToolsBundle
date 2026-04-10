@@ -1,3 +1,6 @@
+# Flex can recreate this with only `database.ports` and break `docker compose` merge (demo uses SQLite).
+/compose.override.yaml
+
 # Local environment (do not version secrets)
 .env
 .env.dev

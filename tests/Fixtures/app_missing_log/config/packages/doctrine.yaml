@@ -1,0 +1,6 @@
+doctrine:
+    dbal:
+        # File-based SQLite so WebTestClient sub-requests reuse the same database (:memory: is per-connection).
+        url: 'sqlite:///%kernel.project_dir%/var/doctrine_test.sqlite'
+    orm:
+        auto_mapping: true

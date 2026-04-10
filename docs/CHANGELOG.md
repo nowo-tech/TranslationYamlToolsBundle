@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.3.0] - 2026-04-10
+
+### Added
+
+- **`missing_translation_log.enabled`**: optional runtime capture of translation lookups where the **requested locale** catalogue does not define the key; persists to Doctrine entity **`MissingTranslationLog`** with statuses **`pending`**, **`added`**, **`validated`**; decorates **`translator`** and flushes buffered hits on **`kernel.terminate`**.
+- **`missing_translation_log.table_prefix`**: physical table **`{prefix}missing_log`** (default **`nowo_translation_missing_log`**), applied via **`MissingTranslationLogMetadataListener`**.
+- **`missing_translation_log.record_call_site`** and DB column **`call_site`**: optional caller **`path:line`** via **`TranslationCallSiteResolver`** (backtrace); disable with **`record_call_site: false`**.
+- **`missing_translation_log.async_persist`** and **`async_persist_strategy`** (`messenger` \| `event_dispatcher`): when **`async_persist`** is **`true`**, flush delegates by strategy — **`MissingTranslationBufferMessage`** + Messenger handler, or **`MissingTranslationBufferEvent`** + optional builtin **`MissingTranslationBufferDoctrinePersistListener`** (skipped if a listener called **`stopPropagation()`**). Without Messenger / bus / **`event_dispatcher`**, the recorder falls back to synchronous **`persistBuffer`**.
+- **`missing_translation_log.web_ui`**: optional Twig UI (**list** + **Mark added** POST with CSRF); routes in **`Resources/config/routes/missing_translation_log_ui.yaml`**; Flex recipe adds a **dev** route import; bundle **prepends** Twig paths when enabled.
+- Console commands **`nowo:translation-yaml:missing-log-list`**, **`missing-log-mark-added`**, **`missing-log-validate`** (when the feature is enabled).
+- Composer **`require`** **`symfony/translation`**; **`require-dev`** **`doctrine/orm`**, **`doctrine/doctrine-bundle`**, **`symfony/messenger`**, **`symfony/twig-bundle`**, **`symfony/browser-kit`**, **`symfony/security-csrf`** for tests.
+- Composer **`suggest`** **`symfony/messenger`** for optional async missing-log persistence.
+
+### Changed
+
+- **`MissingTranslationLogRepository`** is no longer **`final`**, so PHPUnit can generate test doubles for **`persistBuffer`**.
+
+### Fixed
+
+- **`DoctrineMissingTranslationRecorder`**: use **`interface_exists(MessageBusInterface::class)`** (not **`class_exists`**) before the Messenger flush branch so **`async_persist_strategy: messenger`** works when a bus is present.
+
+### Demos
+
+- **Symfony 8**: **`doctrine/doctrine-bundle` ^3.2** (Symfony 8–compatible); SQLite-only **`docker-compose`**; ignore Flex **`compose.override.yaml`** (documented in **`.gitignore`**); Framework / WebProfiler route imports use **`.php`** loaders; **`TranslationInsightsBuilder`** falls back to **`kernel.default_locale`** when **`translator.default_locale`** is absent; Twig **`verbatim`** around literal **`{% trans %}`** in the insights template.
+- **Symfony 7**: aligned Compose / env with SQLite demo; refreshed **`composer.lock`** for Doctrine and CSRF.
+
 ## [0.2.0] - 2026-04-09
 
 ### Added

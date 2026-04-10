@@ -1,0 +1,10 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController: ~
+
+    Nowo\TranslationYamlToolsBundle\Twig\MissingTranslationLogExtension:
+        arguments:
+            $layoutTemplate: '%nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template%'

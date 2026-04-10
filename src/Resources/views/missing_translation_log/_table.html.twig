@@ -1,0 +1,43 @@
+<div class="table-responsive">
+    <table class="table table-sm table-bordered table-hover align-middle bg-white">
+        <thead class="table-light">
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Locale</th>
+            <th scope="col">Domain</th>
+            <th scope="col">Message id</th>
+            <th scope="col">Call site</th>
+            <th scope="col">Hits</th>
+            <th scope="col">Last seen</th>
+            {% if status == 'pending' %}
+                <th scope="col">Action</th>
+            {% endif %}
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+            <tr>
+                <td>{{ row.id }}</td>
+                <td>{{ row.locale }}</td>
+                <td>{{ row.domain }}</td>
+                <td><code class="small">{{ row.messageId }}</code></td>
+                <td><small class="text-muted">{{ row.callSite ?? '—' }}</small></td>
+                <td>{{ row.hitCount }}</td>
+                <td><small>{{ row.lastSeenAt|date('c') }}</small></td>
+                {% if status == 'pending' %}
+                    <td>
+                        <form method="post" action="{{ path('nowo_translation_yaml_tools_missing_log_mark_added', { id: row.id }) }}" class="d-inline">
+                            <input type="hidden" name="_token" value="{{ csrf_token('missing_log_mark_added') }}">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Mark added</button>
+                        </form>
+                    </td>
+                {% endif %}
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="{{ status == 'pending' ? 8 : 7 }}" class="text-muted">No rows.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

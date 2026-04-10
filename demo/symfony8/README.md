@@ -4,6 +4,8 @@ Same setup as the Symfony 7 demo: FrankenPHP, Web Profiler, **Twig Inspector**, 
 
 Default **PORT** in `.env.example`: **8038**.
 
+**Missing translation log (dev):** same as the Symfony 7 demo — SQLite **`demo_translation_missing_log`**, **`async_persist` + `event_dispatcher`** (no Messenger), Web UI at **`/_demo/translation-yaml-tools/missing-log`**; `make up` runs `doctrine:schema:update`.
+
 ## Quick start
 
 ```bash
@@ -24,6 +26,7 @@ Targets run `docker-compose` for you; you do not need a shell in the container f
 | `make translation-yaml-inline-preview` | `sort --inline` on `messages.en.yaml`, prints the file, then restores it |
 | `make translation-yaml-walkthrough` | Runs **all** useful variants with pauses (default `PAUSE=3`; e.g. `PAUSE=5`) and **restores** `translations/` at the end |
 | `make shell` | Interactive shell inside the `php` service |
+| `make missing-log-schema` | `doctrine:schema:update --force` (creates/updates **`demo_translation_missing_log`**) |
 
 ## Inside the container (`docker-compose exec`)
 

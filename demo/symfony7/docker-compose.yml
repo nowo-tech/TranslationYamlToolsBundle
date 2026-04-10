@@ -19,6 +19,9 @@ services:
       - APP_ENV=dev
       - APP_DEBUG=1
       - APP_SECRET=${APP_SECRET:-demo-secret}
+      - TRUSTED_PROXIES=${TRUSTED_PROXIES:-127.0.0.1,REMOTE_ADDR}
+      - DEFAULT_URI=${DEFAULT_URI:-http://localhost}
+      - DATABASE_URL=sqlite:////app/var/demo_missing_log.sqlite
     networks:
       - translation-yaml-tools-demo-symfony7-network
 

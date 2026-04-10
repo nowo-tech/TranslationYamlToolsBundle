@@ -96,10 +96,19 @@
     {% endfor %}
 </section>
 
+{% if app.environment == 'dev' %}
+<section>
+    <h2>Missing translation log (dev)</h2>
+    <p>Runtime missing keys are recorded in SQLite (<code>demo_translation_missing_log</code>) with <strong>async_persist</strong> + <strong>event_dispatcher</strong> (no Messenger). After loading this page, open the UI or run <code>nowo:translation-yaml:missing-log-list</code>.</p>
+    <p><strong>Probe</strong> (key absent from YAML — shows as missing id in UI): <code>{{ 'nowo_demo.missing_log_probe'|trans({}, 'messages') }}</code></p>
+    <p><a href="{{ path('nowo_translation_yaml_tools_missing_log_index') }}">Missing-log Web UI</a> (<code>/_demo/translation-yaml-tools/missing-log</code>)</p>
+</section>
+{% endif %}
+
 <section>
     <h2>Inline translations (Twig)</h2>
     <p>{{ 'demo.inline_banner'|trans({'%product%': 'Translation YAML Tools'}) }}</p>
-    <p><em>{% trans %}Hello, demo visitor{% endtrans %}</em> — second line uses the <code>{% trans %}</code> tag (message id = English source string; Spanish lives in <code>messages.es.yaml</code>).</p>
+    <p><em>{% trans %}Hello, demo visitor{% endtrans %}</em> — second line uses the <code>{% verbatim %}{% trans %}{% endverbatim %}</code> tag (message id = English source string; Spanish lives in <code>messages.es.yaml</code>).</p>
 </section>
 
 <section>

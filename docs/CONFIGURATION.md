@@ -4,7 +4,7 @@
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `default_locale` | `string\|null` | `null` | When set, used as the default **source** locale for `fill-missing`. When `null`, the bundle uses Symfony parameters `translator.default_locale`, then `kernel.default_locale`, then `en`. |
+| `default_locale` | `string\|null` | `null` | When set, used as the default **source** locale for `fill-missing`. When `null`, the bundle uses Symfony parameter **`translator.default_locale`** if defined, then **`kernel.default_locale`**, then **`en`**. On some Symfony versions (e.g. **8.x**), only **`kernel.default_locale`** may be available. |
 | `yaml_tree_indent` | `int` | `4` | Spaces per indentation level when writing nested YAML (`tree`, `sort`, `fill-missing`). Allowed range: 2–12. |
 | `machine_translator` | `string` | `google` | **Default** backend for `fill-missing` when `machine_translator_by_locale` does not match: `google`, `deepl`, or `libretranslate`. |
 | `machine_translator_by_locale` | `array<string, string>` | `{}` | Override the backend **per Symfony locale** (`google`, `deepl`, or `libretranslate`). The **target** locale is checked first, then the **source** locale, then `machine_translator`. Keys match like `machine_translation_locale_map` (`pt_BR` ≡ `pt-br`). |
@@ -12,6 +12,14 @@
 | `libretranslate_base_url` | `string` | `https://libretranslate.com` | Origin of the LibreTranslate server (no `/translate` path). Prefer **self-hosting** for reliability; the public demo enforces strict limits. |
 | `libretranslate_api_key` | `string` | `''` | Optional API key when your LibreTranslate instance requires one; leave empty for open public endpoints. |
 | `machine_translation_locale_map` | `array<string, string>` | `{}` | Map **Symfony locale** identifiers to the **exact** `source` / `target` language code sent to the active backend (Google, DeepL, LibreTranslate). Keys are matched after normalizing case and `-` / `_` (e.g. `pt_BR`, `pt-br`, `PT_BR` share one entry). Values are sent **as-is**—use the format your provider expects (e.g. LibreTranslate `pt-br`, DeepL `PT-BR`, Google `pt-BR`). |
+| `missing_translation_log` | `array` | see below | Runtime missing-key log (Doctrine). Use `missing_translation_log: false` to disable the subtree explicitly. |
+| `missing_translation_log.enabled` | `bool` | `false` | When **`true`**, decorates **`translator`**, records missing keys per request, flushes on **`kernel.terminate`**. In the usual **`index.php`** flow, **`terminate`** runs **after** **`$response->send()`**, so the client has already received the response body; the process may still run DB or Messenger work during terminate. Requires **`doctrine/orm`** and **`doctrine/doctrine-bundle`**; the bundle **prepends** ORM mapping for **`MissingTranslationLog`**. |
+| `missing_translation_log.table_prefix` | `string` | `nowo_translation_` | Physical table name = **`{table_prefix}missing_log`** (only `[a-z0-9_]`, max 40 chars). Default → **`nowo_translation_missing_log`**. |
+| `missing_translation_log.record_call_site` | `bool` | `true` | When **`true`**, each flush stores **`call_site`** (absolute **`file:line`** of the first plausible caller from `debug_backtrace`, excluding Symfony translation/Twig bridge internals). New hits can refresh **`call_site`**. Set **`false`** to avoid backtrace overhead on hot **`trans()`** paths. |
+| `missing_translation_log.async_persist` | `bool` | `false` | When **`true`**, flush uses **`async_persist_strategy`** instead of calling **`persistBuffer`** directly in the recorder. If the chosen strategy is unavailable (no bus, no **`event_dispatcher`**), the recorder **falls back** to synchronous **`persistBuffer`**. |
+| `missing_translation_log.async_persist_strategy` | `string` | `messenger` | Only when **`async_persist`** is **`true`**: **`messenger`** dispatches **`MissingTranslationBufferMessage`** (needs **`symfony/messenger`** + **`messenger.default_bus`**; route the message to an async transport for workers). **`event_dispatcher`** dispatches **`MissingTranslationBufferEvent`** on the app **`event_dispatcher`**; the bundle registers **`MissingTranslationBufferDoctrinePersistListener`** at priority **-1024** to call **`persistBuffer`** unless a listener with higher priority called **`stopPropagation()`** (use that to enqueue the buffer and persist later without Messenger). |
+| `missing_translation_log.web_ui.enabled` | `bool` | `false` | When **`true`** (and the log is enabled), registers **`MissingTranslationLogUiController`** and the bundle **prepends** a Twig path for `@NowoTranslationYamlToolsBundle/...` templates. Requires **`symfony/twig-bundle`**. |
+| `missing_translation_log.web_ui.path_prefix` | `string` | `/_translation_yaml_tools/missing-log` | URL prefix for the routes you import (must start with **`/`**). Use a **trailing slash** on the list URL if your router enforces strict trailing slashes. |
 
 Example:
 
@@ -27,7 +35,67 @@ nowo_translation_yaml_tools:
     #     pt_BR: 'pt-br'   # Symfony locale => API code (see table above)
     # machine_translator_by_locale:
     #     pt_BR: libretranslate   # use LibreTranslate when translating to/from this locale (see below)
+    # missing_translation_log:
+    #     enabled: true
+    #     table_prefix: nowo_translation_
+    #     web_ui:
+    #         enabled: true
+    #         path_prefix: '/_translation_yaml_tools/missing-log'
 ```
+
+## Missing translation log (database)
+
+1. Install **`doctrine/orm`** and **`doctrine/doctrine-bundle`** in your application (the bundle lists them under `suggest`).
+2. Enable the feature and optional **table prefix** / **web UI**:
+
+```yaml
+nowo_translation_yaml_tools:
+    missing_translation_log:
+        enabled: true
+        table_prefix: nowo_translation_   # table: nowo_translation_missing_log
+        web_ui:
+            enabled: true
+            path_prefix: '/_translation_yaml_tools/missing-log'
+```
+
+3. Create the table (migrations / `doctrine:schema:update` in dev only). Entity: **`Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog`**; table name follows **`{table_prefix}missing_log`**.
+
+4. **Import HTTP routes** (not automatic) with the same prefix as **`web_ui.path_prefix`**:
+
+```yaml
+# config/routes/nowo_translation_yaml_tools_ui.yaml
+nowo_translation_yaml_tools_missing_log_ui:
+    resource: '@NowoTranslationYamlToolsBundle/Resources/config/routes/missing_translation_log_ui.yaml'
+    type: yaml
+    prefix: '%nowo_translation_yaml_tools.missing_translation_log.web_ui.path_prefix%'
+```
+
+The Flex recipe adds this under **`config/routes/dev/`** when you install the bundle (dev only).
+
+5. **Framework** (for the Twig UI and CSRF on “Mark added”):
+
+```yaml
+framework:
+    csrf_protection: true
+```
+
+Also install **`symfony/security-csrf`** (and enable **`session`** if you do not already) so the **`csrf_token()`** Twig function is available.
+
+6. **Optional deferred flush** (the response is usually already sent before **`kernel.terminate`**; this further decouples *how* you persist):
+   - **`async_persist_strategy: messenger`** (default when **`async_persist: true`**): install **`symfony/messenger`**, route **`MissingTranslationBufferMessage`** to an async transport; the bundle registers **`PersistMissingTranslationBufferMessageHandler`** when Messenger is available.
+   - **`async_persist_strategy: event_dispatcher`**: no Messenger required. Set **`async_persist: true`** and **`async_persist_strategy: event_dispatcher`**. Subscribe to **`MissingTranslationBufferEvent`**; to **only** enqueue and persist in your own worker, call **`$event->stopPropagation()`** after enqueueing so the builtin Doctrine listener (priority **-1024**) does not run.
+
+7. **Protect** the URL in production (`access_control`, firewall, VPN, etc.).
+
+8. **Routes** (fixed names): **`nowo_translation_yaml_tools_missing_log_index`** (GET list + `?status=pending|added|validated`), **`nowo_translation_yaml_tools_missing_log_mark_added`** (POST, CSRF id **`missing_log_mark_added`**).
+
+9. **Console** (registered only when the log feature is enabled):
+
+- **`nowo:translation-yaml:missing-log-list`** — `--status=pending|added|validated` (default `pending`), `--limit=…`
+- **`nowo:translation-yaml:missing-log-mark-added <id>`** — mark a row as **added** (string present in YAML)
+- **`nowo:translation-yaml:missing-log-validate <id>`** — mark as **validated**; optional **`--note=`**
+
+Row fields include **`message_id`** (max 500 chars), **`domain`**, **`locale`**, **`status`**, **`hit_count`**, **`call_site`** (nullable, max 1024 chars), **`first_seen_at`**, **`last_seen_at`**, **`status_changed_at`**, **`notes`**.
 
 ## Machine translator by locale
 

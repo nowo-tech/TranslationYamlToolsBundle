@@ -1,0 +1,5 @@
+nowo_translation_yaml_tools:
+    missing_translation_log:
+        enabled: true
+        web_ui:
+            enabled: true

@@ -10,6 +10,14 @@ services:
             - '../../Resources/'
             - '../../NowoTranslationYamlToolsBundle.php'
             - '../../MachineTranslation/RoutingMachineTranslator.php'
+            - '../../Entity/'
+            - '../../Repository/'
+            - '../../Translation/'
+            - '../../MissingTranslationLog/'
+            - '../../Command/MissingTranslationLog/'
+            - '../../Controller/'
+            - '../../Doctrine/'
+            - '../../Twig/'
 
     Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper:
         arguments:

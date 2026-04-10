@@ -45,7 +45,12 @@ final class TranslationInsightsBuilder
      */
     public function buildReport(): array
     {
-        $defaultLocale = (string) $this->parameters->get('translator.default_locale');
+        $defaultLocale = 'en';
+        if ($this->parameters->has('translator.default_locale')) {
+            $defaultLocale = (string) $this->parameters->get('translator.default_locale');
+        } elseif ($this->parameters->has('kernel.default_locale')) {
+            $defaultLocale = (string) $this->parameters->get('kernel.default_locale');
+        }
 
         $enabledLocales = [];
         if ($this->parameters->has('kernel.enabled_locales')) {

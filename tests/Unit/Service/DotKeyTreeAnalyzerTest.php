@@ -7,6 +7,7 @@ namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\Service;
 use Nowo\TranslationYamlToolsBundle\Service\DotKeyTreeAnalyzer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 
 #[CoversClass(DotKeyTreeAnalyzer::class)]
 final class DotKeyTreeAnalyzerTest extends TestCase
@@ -142,7 +143,7 @@ final class DotKeyTreeAnalyzerTest extends TestCase
     public function testUniqueConflictTuplesSkipsDuplicates(): void
     {
         $analyzer = new DotKeyTreeAnalyzer();
-        $method   = new \ReflectionMethod(DotKeyTreeAnalyzer::class, 'uniqueConflictTuples');
+        $method   = new ReflectionMethod(DotKeyTreeAnalyzer::class, 'uniqueConflictTuples');
         $method->setAccessible(true);
         $dupes = [
             [

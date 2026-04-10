@@ -1,0 +1,25 @@
+{# Default shell for the missing-translation log UI (Bootstrap 5, aligned with NowoBreadcrumbKitBundle / NowoDashboardMenuBundle dashboards). Override: templates/bundles/NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig or set missing_translation_log.web_ui.layout_template (e.g. layout_integrate_dashboard_menu.html.twig). #}
+<!DOCTYPE html>
+<html lang="{{ app.request.locale|default('en') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block missing_log_title %}Missing translation log{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    {% block missing_log_head %}{% endblock %}
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ path('nowo_translation_yaml_tools_missing_log_index', { status: 'pending' }) }}">{% block missing_log_nav_brand %}Translation tools{% endblock %}</a>
+            <div class="navbar-nav">{% block missing_log_nav_links %}{% endblock %}</div>
+        </div>
+    </nav>
+    <main class="container-fluid py-4">
+        {% block nowo_translation_yaml_tools_missing_log_content %}{% endblock %}
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block missing_log_scripts %}{% endblock %}
+</body>
+</html>

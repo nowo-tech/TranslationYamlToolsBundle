@@ -7,6 +7,7 @@ namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\Service;
 use Nowo\TranslationYamlToolsBundle\Service\YamlArraySorter;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 
 #[CoversClass(YamlArraySorter::class)]
 final class YamlArraySorterTest extends TestCase
@@ -75,7 +76,7 @@ final class YamlArraySorterTest extends TestCase
     public function testDeepEqualEdgeCasesViaReflection(): void
     {
         $sorter = new YamlArraySorter();
-        $m      = new \ReflectionMethod(YamlArraySorter::class, 'deepEqual');
+        $m      = new ReflectionMethod(YamlArraySorter::class, 'deepEqual');
         $m->setAccessible(true);
 
         self::assertFalse($m->invoke($sorter, 1, [1]));

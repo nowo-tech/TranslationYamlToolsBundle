@@ -12,6 +12,7 @@ Each demo includes:
 - **Web Profiler** + **Twig Inspector** (`nowo-tech/twig-inspector-bundle`, dev/test)
 - **Translation** setup with `framework.default_locale`, `framework.enabled_locales` (`en`, `es`, `fr`), `translator.paths` for a second directory (`translations_extra/`)
 - A **web insights** page at `/` showing default locale, enabled locales, YAML paths, missing locale files, and missing keys vs the default locale
+- **Dev-only** **`missing_translation_log`**: Doctrine + SQLite, **Web UI** at `/_demo/translation-yaml-tools/missing-log`, **`async_persist_strategy: event_dispatcher`** (no `symfony/messenger`); `make up` runs `doctrine:schema:update` to create **`demo_translation_missing_log`**
 - Sample YAML gaps (no `messages.fr.yaml`, missing keys in `es`, etc.) to exercise the bundle commands
 
 ## Commands

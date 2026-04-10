@@ -5,6 +5,8 @@
     "license": "MIT",
     "require": {
         "php": ">=8.4,<8.6",
+        "doctrine/doctrine-bundle": "^3.2",
+        "doctrine/orm": "^3.0",
         "nowo-tech/translation-yaml-tools-bundle": "@dev",
         "symfony/console": "^8.0",
         "symfony/dotenv": "^8.0",
@@ -12,6 +14,7 @@
         "symfony/framework-bundle": "^8.0",
         "symfony/http-client": "^8.0",
         "symfony/runtime": "^8.0",
+        "symfony/security-csrf": "8.0.*",
         "symfony/translation": "^8.0",
         "symfony/twig-bundle": "^8.0",
         "symfony/web-profiler-bundle": "^8.0",

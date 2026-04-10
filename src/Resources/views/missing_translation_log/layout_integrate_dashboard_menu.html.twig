@@ -1,0 +1,19 @@
+{# Bridge: use when missing_translation_log.web_ui.layout_template points here so pages share NowoDashboardMenuBundle shell. Requires nowo-tech/dashboard-menu-bundle. #}
+{% extends '@NowoDashboardMenuBundle/dashboard/layout.html.twig' %}
+
+{% block dashboard_title %}{% block missing_log_title %}Missing translation log{% endblock %}{% endblock %}
+
+{% block dashboard_head %}
+    {{ parent() }}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    {% block missing_log_head %}{% endblock %}
+{% endblock %}
+
+{% block nowo_dashboard_menu_content %}
+    {% block nowo_translation_yaml_tools_missing_log_content %}{% endblock %}
+{% endblock %}
+
+{% block dashboard_scripts %}
+    {{ parent() }}
+    {% block missing_log_scripts %}{% endblock %}
+{% endblock %}

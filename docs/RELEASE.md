@@ -7,4 +7,6 @@
 5. Push the commit and tag; GitHub Actions **`release.yml`** creates the GitHub Release (it merges the tag message with the matching changelog section when present).
 6. Confirm Packagist (or your proxy) picks up the new tag.
 
+**Tag message:** keep the first line short (e.g. `0.3.0: missing translation log, async flush`); GitHub Actions can merge it with the matching **`[0.3.0]`** section from `docs/CHANGELOG.md` when publishing the release.
+
 See also `docs/SECURITY.md` for the pre-release security checklist.

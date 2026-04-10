@@ -27,6 +27,8 @@ return [
 
 Ensure `framework.translator` is configured so `translator.default_path` and discovery of extra `paths` match your project. See [Configuration](CONFIGURATION.md).
 
+Optional **runtime missing-key log** (Doctrine table + optional Twig UI) needs **`doctrine/orm`** and **`doctrine/doctrine-bundle`** in your app and is configured under **`missing_translation_log`** — see [Configuration](CONFIGURATION.md) (“Missing translation log”).
+
 ## Environment
 
 For `nowo:translation-yaml:fill-missing`, enable the HTTP client and configure the backend in `nowo_translation_yaml_tools` (see [Configuration](CONFIGURATION.md)):
