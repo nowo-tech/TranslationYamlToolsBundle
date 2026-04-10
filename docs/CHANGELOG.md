@@ -4,15 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-10
+
 ### Fixed
 
-- **Twig (Web UI):** **`TwigPathsPass`** registers **`@NowoTranslationYamlToolsBundle/`** with **`prependPath()`** for **`templates/bundles/NowoTranslationYamlToolsBundle/`** when that directory exists, then **`addPath()`** for **`src/Resources/views`** (Composer package root), so app overrides win without **`twig.paths`** (**REQ-TWIG-001**). Earlier builds pointed at a non-existent **`Resources/views`** at the package root and broke **`cache:clear`** when warming Twig.
+- **Twig (Web UI):** **`TwigPathsPass`** registers **`@NowoTranslationYamlToolsBundle/`** with **`prependPath()`** for **`templates/bundles/NowoTranslationYamlToolsBundle/`** when that directory exists, then **`addPath()`** for **`src/Resources/views`** (Composer package root), so app overrides win without **`twig.paths`** (**REQ-TWIG-001**). **0.3.0** pointed at a non-existent **`Resources/views`** directory at the package root, which made **`bin/console cache:clear`** fail while Twig warmed the **`FilesystemLoader`**.
 
 ### Documentation
 
-- **[USAGE](USAGE.md):** Twig Web UI note and **“Overriding templates (REQ-TWIG-001)”** with subpath table and procedure.
-- **[CONFIGURATION](CONFIGURATION.md):** **`web_ui.layout_template`** row; clarify Web UI Twig registration.
+- **[USAGE](USAGE.md):** Web UI and **“Overriding templates (REQ-TWIG-001)”** (procedure, subpath table, **`prependPath` / `addPath`**).
+- **[CONFIGURATION](CONFIGURATION.md):** **`web_ui`** row; Twig registration via **`TwigPathsPass`** and **`src/Resources/views`**.
 - **[INSTALLATION](INSTALLATION.md):** link to template override procedure.
+- **[UPGRADING](UPGRADING.md):** **0.3.0 → 0.3.1** notes for Web UI users.
 
 ## [0.3.0] - 2026-04-10
 

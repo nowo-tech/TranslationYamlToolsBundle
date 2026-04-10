@@ -4,11 +4,17 @@
 
 This line is **0.3.x** (after **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
 
+## To 0.3.1 (from 0.3.0)
+
+- **Strongly recommended** if **`missing_translation_log.web_ui.enabled`** is **`true`**: **0.3.0** registered the bundle Twig namespace against **`…/translation-yaml-tools-bundle/Resources/views`**, which does not exist in the Composer package (views live under **`src/Resources/views`**). That breaks **`bin/console cache:clear`** when Twig warms the native filesystem loader. **0.3.1** fixes the path and keeps **REQ-TWIG-001**: when **`templates/bundles/NowoTranslationYamlToolsBundle/`** exists, the bundle calls **`prependPath()`** on the Twig loader so overrides win without **`twig.paths`**. Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.1**).
+- No YAML, route, or PHP API changes are required beyond updating the dependency.
+- If you added **`twig.paths`** entries **only** to work around the **0.3.0** path error, you can remove them after upgrading; the compiler pass registers the namespace when the Web UI is enabled.
+
 ## To 0.3.0 (from 0.2.x)
 
 - In Composer, require **`^0.3`** (or pin **`0.3.x`**) to receive this line; **`^0.2`** does not pull **0.3.0**.
 - Optional **`missing_translation_log`**: requires **`doctrine/orm`** and **`doctrine/doctrine-bundle`** in the app. Table name is **`{table_prefix}missing_log`** (default prefix **`nowo_translation_`**). The bundle prepends Doctrine mapping when **`enabled: true`**. See **`docs/CONFIGURATION.md`** (“Missing translation log”).
-- Optional **`missing_translation_log.web_ui`**: requires **`symfony/twig-bundle`**, importing the bundle routes, and **`framework.csrf_protection`** + **`symfony/security-csrf`** for the **Mark added** form. The Flex recipe ships a **dev-only** route import.
+- Optional **`missing_translation_log.web_ui`**: requires **`symfony/twig-bundle`**, importing the bundle routes, and **`framework.csrf_protection`** + **`symfony/security-csrf`** for the **Mark added** form. The Flex recipe ships a **dev-only** route import. Use **0.3.1+** for a correct Twig loader path (see **To 0.3.1** above).
 - **`missing_translation_log.record_call_site`** (default **true**) fills column **`call_site`** with **`absolutePath:lineNumber`** of the calling code (not the YAML translation file path). Set **`false`** if you want to avoid `debug_backtrace` cost.
 - **`missing_translation_log.async_persist`** and **`async_persist_strategy`** (`messenger` \| `event_dispatcher`): optional deferred flush. **`messenger`** needs **`symfony/messenger`** and **`messenger.default_bus`** (route **`MissingTranslationBufferMessage`** to an async transport for workers). **`event_dispatcher`** uses **`MissingTranslationBufferEvent`** on the app **`event_dispatcher`**; call **`stopPropagation()`** in your listener if you enqueue and persist elsewhere so the builtin Doctrine listener is skipped.
 - **Symfony 8 apps**: the container may not define **`translator.default_locale`**; the bundle’s **`TranslationDefaultLocaleResolver`** already falls back to **`kernel.default_locale`**. If you read that parameter yourself, use the same pattern (see **`TranslationDefaultLocaleResolver`**).
