@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle;
 
+use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\TwigPathsPass;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\NowoTranslationYamlToolsExtension;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
@@ -13,6 +15,11 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  */
 final class NowoTranslationYamlToolsBundle extends Bundle
 {
+    public function build(ContainerBuilder $container): void
+    {
+        $container->addCompilerPass(new TwigPathsPass());
+    }
+
     /**
      * {@inheritdoc}
      */

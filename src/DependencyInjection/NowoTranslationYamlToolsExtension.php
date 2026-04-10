@@ -39,13 +39,6 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
             ]);
         }
 
-        if ($container->hasExtension('twig') && $this->rawConfigEnablesMissingTranslationWebUi($container)) {
-            $container->prependExtensionConfig('twig', [
-                'paths' => [
-                    dirname(__DIR__) . '/Resources/views' => 'NowoTranslationYamlToolsBundle',
-                ],
-            ]);
-        }
     }
 
     /**
@@ -140,28 +133,6 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
                 continue;
             }
             if (is_array($missingLog) && ($missingLog['enabled'] ?? false) === true) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function rawConfigEnablesMissingTranslationWebUi(ContainerBuilder $container): bool
-    {
-        foreach ($container->getExtensionConfig('nowo_translation_yaml_tools') as $chunk) {
-            if (!is_array($chunk)) {
-                continue;
-            }
-            $missingLog = $chunk['missing_translation_log'] ?? null;
-            if ($missingLog === false || !is_array($missingLog)) {
-                continue;
-            }
-            if (($missingLog['enabled'] ?? false) !== true) {
-                continue;
-            }
-            $webUi = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
-            if (($webUi['enabled'] ?? false) === true) {
                 return true;
             }
         }

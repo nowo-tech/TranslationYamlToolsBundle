@@ -691,7 +691,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     },
  * }
  * @psalm-type NowoTranslationYamlToolsConfig = array{
- *     default_locale?: scalar|Param|null, // Override default source locale; null uses Symfony translator.default_locale / kernel.default_locale // Default: null
+ *     default_locale?: scalar|Param|null, // Override default source locale; null uses translator.default_locale if defined, else kernel.default_locale, else en (Symfony 8 may only expose kernel.default_locale) // Default: null
  *     yaml_tree_indent?: int|Param, // Spaces per indentation level when dumping nested YAML // Default: 4
  *     machine_translator?: "google"|"deepl"|"libretranslate"|Param, // Machine translation backend used by nowo:translation-yaml:fill-missing // Default: "google"
  *     deepl_endpoint?: scalar|Param|null, // DeepL translate URL. Use https://api-free.deepl.com/v2/translate with a Free-plan auth key. // Default: "https://api.deepl.com/v2/translate"
