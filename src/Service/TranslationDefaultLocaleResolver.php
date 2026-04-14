@@ -9,7 +9,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 /**
  * Resolves the default locale: bundle override, then Symfony translator.default_locale, then fallback.
  */
-final class TranslationDefaultLocaleResolver
+class TranslationDefaultLocaleResolver
 {
     public function __construct(
         private readonly ParameterBagInterface $parameterBag,

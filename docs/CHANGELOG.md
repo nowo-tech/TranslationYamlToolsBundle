@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Missing translation log:** **`persistBuffer`** uses Doctrine **class metadata** for physical column names in DBAL **`INSERT`/`UPDATE`** (correct when the default naming strategy maps fields such as **`hitCount`** to **`hitCount`**, not **`hit_count`**).
+
+### Changed
+
+- **`require-dev`:** **`symfony/var-exporter`** is constrained to **`^6.4 || ^7.0`** (Symfony **8**’s **`var-exporter`** drops **`ProxyHelper::generateLazyGhost`**, which Doctrine ORM still expects when **`enable_native_lazy_objects`** is **`false`**, breaking **`composer test`** on PHP **8.4+**).
+
+### Tests
+
+- **`TranslationYamlCommandsTest`:** **`createDeps`** creates **`translations/`** only when missing (avoids **`mkdir(): File exists`** when a test already created that directory).
+- **`MissingTranslationLogWebUiTest`:** **`setUp`** calls **`ensureKernelShutdown()`** before **`createClient()`** so a kernel leaked from another test does not trigger **“Booting the kernel before calling createClient() is not supported”**.
+
 ## [0.3.2] - 2026-04-14
 
 ### Fixed

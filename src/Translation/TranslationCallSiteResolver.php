@@ -23,6 +23,14 @@ final class TranslationCallSiteResolver
         /** @var list<array{file?: string, line?: int}> $trace */
         $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 48);
 
+        return self::pickCallSiteFromTrace($trace);
+    }
+
+    /**
+     * @param list<array{file?: string, line?: int}> $trace
+     */
+    private static function pickCallSiteFromTrace(array $trace): ?string
+    {
         foreach ($trace as $frame) {
             $file = $frame['file'] ?? null;
             if (!is_string($file) || $file === '') {

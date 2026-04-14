@@ -12,7 +12,7 @@ use function sprintf;
 /**
  * Analyses flattened translation keys (dot paths) for safe conversion to a nested YAML tree.
  */
-final class DotKeyTreeAnalyzer
+class DotKeyTreeAnalyzer
 {
     /**
      * Flattens a nested associative array into dot-separated keys (leaf values only).

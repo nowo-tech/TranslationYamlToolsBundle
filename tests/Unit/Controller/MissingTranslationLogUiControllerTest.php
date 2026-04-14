@@ -1,0 +1,167 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\Controller;
+
+use Doctrine\Common\EventManager;
+use Doctrine\DBAL\DriverManager;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Events;
+use Doctrine\ORM\ORMSetup;
+use Doctrine\ORM\Tools\SchemaTool;
+use Doctrine\Persistence\ManagerRegistry;
+use Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController;
+use Nowo\TranslationYamlToolsBundle\Doctrine\MissingTranslationLogMetadataListener;
+use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
+use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
+use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Twig\Environment;
+
+#[CoversClass(MissingTranslationLogUiController::class)]
+final class MissingTranslationLogUiControllerTest extends TestCase
+{
+    private function createRepository(): MissingTranslationLogRepository
+    {
+        $entityDir = dirname(__DIR__, 3) . '/src/Entity';
+        $config    = ORMSetup::createAttributeMetadataConfiguration([$entityDir], true);
+        $evm       = new EventManager();
+        $evm->addEventListener(Events::loadClassMetadata, new MissingTranslationLogMetadataListener('nowo_translation_'));
+
+        $connection = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'path'   => ':memory:',
+        ]);
+        $em = new EntityManager($connection, $config, $evm);
+
+        $tool = new SchemaTool($em);
+        $tool->createSchema([$em->getClassMetadata(MissingTranslationLog::class)]);
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->with(MissingTranslationLog::class)->willReturn($em);
+        $registry->method('getManager')->willReturn($em);
+
+        return new MissingTranslationLogRepository($registry);
+    }
+
+    public function testIndexRendersList(): void
+    {
+        $repo = $this->createMock(MissingTranslationLogRepository::class);
+        $repo->method('findByStatus')->willReturn([]);
+
+        $twig = $this->createMock(Environment::class);
+        $twig->expects(self::once())->method('render')->willReturn('<html>ok</html>');
+
+        $container = new Container();
+        $container->set('twig', $twig);
+
+        $controller = new MissingTranslationLogUiController($repo);
+        $controller->setContainer($container);
+
+        $response = $controller->index(Request::create('/?status=pending'));
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('ok', (string) $response->getContent());
+    }
+
+    public function testMarkAddedRedirectsOnSuccess(): void
+    {
+        $repo = $this->createRepository();
+        $repo->persistBuffer([
+            'a' => [
+                'hits'      => 1,
+                'messageId' => 'm',
+                'domain'    => 'd',
+                'locale'    => 'en',
+                'callSite'  => null,
+            ],
+        ]);
+        $id = $repo->findByStatus(MissingTranslationLogStatus::Pending, 5)[0]->getId();
+        self::assertNotNull($id);
+
+        $csrf = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrf->method('isTokenValid')->willReturnCallback(static function (CsrfToken $token): bool {
+            return $token->getId() === 'missing_log_mark_added' && $token->getValue() === 'good';
+        });
+
+        $router = $this->createMock(UrlGeneratorInterface::class);
+        $router->method('generate')->willReturn('/missing-log/');
+
+        $request = Request::create('/' . $id . '/mark-added', 'POST', ['_token' => 'good']);
+        $request->setSession(new Session(new MockArraySessionStorage()));
+
+        $requestStack = new RequestStack();
+        $requestStack->push($request);
+
+        $container = new Container();
+        $container->set('twig', $this->createMock(Environment::class));
+        $container->set('security.csrf.token_manager', $csrf);
+        $container->set('router', $router);
+        $container->set('request_stack', $requestStack);
+
+        $controller = new MissingTranslationLogUiController($repo);
+        $controller->setContainer($container);
+
+        $response = $controller->markAdded((int) $id, $request);
+        self::assertSame(302, $response->getStatusCode());
+
+        $fresh = $repo->findOneById((int) $id);
+        self::assertNotNull($fresh);
+        self::assertSame(MissingTranslationLogStatus::Added, $fresh->getStatus());
+    }
+
+    public function testMarkAddedThrowsWhenCsrfInvalid(): void
+    {
+        $repo = $this->createRepository();
+
+        $csrf = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrf->method('isTokenValid')->willReturn(false);
+
+        $container = new Container();
+        $container->set('twig', $this->createMock(Environment::class));
+        $container->set('security.csrf.token_manager', $csrf);
+        $container->set('router', $this->createMock(UrlGeneratorInterface::class));
+        $container->set('request_stack', new RequestStack());
+
+        $controller = new MissingTranslationLogUiController($repo);
+        $controller->setContainer($container);
+
+        $request = Request::create('/1/mark-added', 'POST', ['_token' => 'bad']);
+
+        $this->expectException(AccessDeniedException::class);
+        $controller->markAdded(1, $request);
+    }
+
+    public function testMarkAddedThrowsWhenRowMissing(): void
+    {
+        $repo = $this->createRepository();
+
+        $csrf = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrf->method('isTokenValid')->willReturn(true);
+
+        $container = new Container();
+        $container->set('twig', $this->createMock(Environment::class));
+        $container->set('security.csrf.token_manager', $csrf);
+        $container->set('router', $this->createMock(UrlGeneratorInterface::class));
+        $container->set('request_stack', new RequestStack());
+
+        $controller = new MissingTranslationLogUiController($repo);
+        $controller->setContainer($container);
+
+        $request = Request::create('/99/mark-added', 'POST', ['_token' => 'ok']);
+
+        $this->expectException(NotFoundHttpException::class);
+        $controller->markAdded(99, $request);
+    }
+}

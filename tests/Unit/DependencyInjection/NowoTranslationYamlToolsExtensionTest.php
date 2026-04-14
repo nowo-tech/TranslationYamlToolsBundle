@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\DependencyInjection;
 
+use Doctrine\Bundle\DoctrineBundle\DependencyInjection\DoctrineExtension;
 use Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\NowoTranslationYamlToolsExtension;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslatorInterface;
@@ -145,5 +146,100 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
 
         self::assertSame('event_dispatcher', $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.async_persist_strategy'));
         self::assertTrue($container->hasDefinition(MissingTranslationBufferDoctrinePersistListener::class));
+    }
+
+    public function testLoadWithMissingTranslationLogFalseSkipsExtraYaml(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoTranslationYamlToolsExtension())->load([['missing_translation_log' => false]], $container);
+
+        self::assertFalse($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.enabled'));
+        self::assertFalse($container->hasDefinition(RecordingTranslatorDecorator::class));
+    }
+
+    public function testPrependAddsDoctrineMappingWhenDoctrineExtensionPresentAndMissingLogEnabled(): void
+    {
+        $container = new ContainerBuilder();
+        $container->registerExtension(new DoctrineExtension());
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+        $container->loadFromExtension('nowo_translation_yaml_tools', [
+            'missing_translation_log' => ['enabled' => true],
+        ]);
+
+        $extension->prepend($container);
+
+        $doctrineConfigs = $container->getExtensionConfig('doctrine');
+        self::assertNotEmpty($doctrineConfigs);
+        $merged = array_merge_recursive(...$doctrineConfigs);
+        self::assertArrayHasKey('orm', $merged);
+        self::assertArrayHasKey('mappings', $merged['orm']);
+        self::assertArrayHasKey('NowoTranslationYamlToolsMissingLog', $merged['orm']['mappings']);
+    }
+
+    public function testPrependDoesNothingWhenMissingLogDisabled(): void
+    {
+        $container = new ContainerBuilder();
+        $container->registerExtension(new DoctrineExtension());
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+        $container->loadFromExtension('nowo_translation_yaml_tools', [
+            'missing_translation_log' => ['enabled' => false],
+        ]);
+
+        $extension->prepend($container);
+
+        self::assertSame([], $container->getExtensionConfig('doctrine'));
+    }
+
+    public function testPrependDoesNothingWhenDoctrineExtensionMissing(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+        $container->loadFromExtension('nowo_translation_yaml_tools', [
+            'missing_translation_log' => ['enabled' => true],
+        ]);
+
+        $extension->prepend($container);
+
+        self::assertSame([], $container->getExtensionConfig('doctrine'));
+    }
+
+    public function testRawConfigEnablesMissingTranslationLogViaReflection(): void
+    {
+        $reflection = new \ReflectionMethod(NowoTranslationYamlToolsExtension::class, 'rawConfigEnablesMissingTranslationLog');
+        $reflection->setAccessible(true);
+
+        $container = new ContainerBuilder();
+        $ext1 = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($ext1);
+        $container->loadFromExtension('nowo_translation_yaml_tools', [
+            'missing_translation_log' => false,
+        ]);
+        self::assertFalse($reflection->invoke($ext1, $container));
+
+        $extension2 = new NowoTranslationYamlToolsExtension();
+        $container2 = new ContainerBuilder();
+        $container2->registerExtension($extension2);
+        $container2->loadFromExtension('nowo_translation_yaml_tools', [
+            'missing_translation_log' => ['enabled' => true],
+        ]);
+        self::assertTrue($reflection->invoke($extension2, $container2));
+    }
+
+    public function testRawConfigEnablesMissingTranslationLogSkipsNonArrayChunks(): void
+    {
+        $reflection = new \ReflectionMethod(NowoTranslationYamlToolsExtension::class, 'rawConfigEnablesMissingTranslationLog');
+        $reflection->setAccessible(true);
+
+        $container = $this->createMock(ContainerBuilder::class);
+        $container->method('getExtensionConfig')->with('nowo_translation_yaml_tools')->willReturn([
+            null,
+            123,
+            ['missing_translation_log' => ['enabled' => true]],
+        ]);
+
+        self::assertTrue($reflection->invoke(new NowoTranslationYamlToolsExtension(), $container));
     }
 }

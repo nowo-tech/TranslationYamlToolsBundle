@@ -13,7 +13,7 @@ use const SORT_STRING;
 /**
  * Recursively sorts associative array keys alphabetically (locale-sensitive string order).
  */
-final class YamlArraySorter
+class YamlArraySorter
 {
     /**
      * @param array<string, mixed> $data

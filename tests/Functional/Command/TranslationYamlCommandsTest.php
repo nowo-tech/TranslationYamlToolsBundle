@@ -49,7 +49,9 @@ final class TranslationYamlCommandsTest extends TestCase
     private function createDeps(string $project, array $filesUnderTranslations = []): array
     {
         $translations = $project . '/translations';
-        mkdir($translations, 0777, true);
+        if (!is_dir($translations)) {
+            mkdir($translations, 0777, true);
+        }
         foreach ($filesUnderTranslations as $name => $content) {
             file_put_contents($translations . '/' . $name, $content);
         }

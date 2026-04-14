@@ -24,6 +24,12 @@ final class MissingTranslationLogWebUiTest extends WebTestCase
         return MissingTranslationLogTestKernel::class;
     }
 
+    protected function setUp(): void
+    {
+        self::ensureKernelShutdown();
+        parent::setUp();
+    }
+
     public function testListAndMarkAdded(): void
     {
         $client = self::createClient();

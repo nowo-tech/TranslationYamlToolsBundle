@@ -57,8 +57,27 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $em         = $this->getEntityManager();
         $connection = $em->getConnection();
         $now        = new DateTimeImmutable();
-        $tableName  = $em->getClassMetadata(MissingTranslationLog::class)->getTableName();
+        $meta       = $em->getClassMetadata(MissingTranslationLog::class);
+        $tableName  = $meta->getTableName();
         $qTableName = $connection->quoteIdentifier($tableName);
+
+        $cMessageId       = $meta->getColumnName('messageId');
+        $cDomain          = $meta->getColumnName('domain');
+        $cLocale          = $meta->getColumnName('locale');
+        $cStatus          = $meta->getColumnName('status');
+        $cHitCount        = $meta->getColumnName('hitCount');
+        $cFirstSeenAt     = $meta->getColumnName('firstSeenAt');
+        $cLastSeenAt      = $meta->getColumnName('lastSeenAt');
+        $cStatusChangedAt = $meta->getColumnName('statusChangedAt');
+        $cNotes           = $meta->getColumnName('notes');
+        $cCallSite        = $meta->getColumnName('callSite');
+
+        $qMessageId       = $connection->quoteIdentifier($cMessageId);
+        $qDomain          = $connection->quoteIdentifier($cDomain);
+        $qLocale          = $connection->quoteIdentifier($cLocale);
+        $qHitCount        = $connection->quoteIdentifier($cHitCount);
+        $qLastSeenAt      = $connection->quoteIdentifier($cLastSeenAt);
+        $qCallSite        = $connection->quoteIdentifier($cCallSite);
 
         foreach ($buffer as $row) {
             $messageId = $row['messageId'];
@@ -70,30 +89,30 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
 
             try {
                 $connection->insert($tableName, [
-                    'message_id'        => $messageId,
-                    'domain'            => $domain,
-                    'locale'            => $locale,
-                    'status'            => MissingTranslationLogStatus::Pending->value,
-                    'hit_count'         => $hits,
-                    'first_seen_at'     => $seenAt,
-                    'last_seen_at'      => $seenAt,
-                    'status_changed_at' => null,
-                    'notes'             => null,
-                    'call_site'         => $callSite,
+                    $cMessageId       => $messageId,
+                    $cDomain          => $domain,
+                    $cLocale          => $locale,
+                    $cStatus          => MissingTranslationLogStatus::Pending->value,
+                    $cHitCount        => $hits,
+                    $cFirstSeenAt     => $seenAt,
+                    $cLastSeenAt      => $seenAt,
+                    $cStatusChangedAt => null,
+                    $cNotes           => null,
+                    $cCallSite        => $callSite,
                 ], [
-                    'message_id'        => ParameterType::STRING,
-                    'domain'            => ParameterType::STRING,
-                    'locale'            => ParameterType::STRING,
-                    'status'            => ParameterType::STRING,
-                    'hit_count'         => ParameterType::INTEGER,
-                    'first_seen_at'     => ParameterType::STRING,
-                    'last_seen_at'      => ParameterType::STRING,
-                    'status_changed_at' => ParameterType::NULL,
-                    'notes'             => ParameterType::NULL,
-                    'call_site'         => $callSite === null ? ParameterType::NULL : ParameterType::STRING,
+                    $cMessageId       => ParameterType::STRING,
+                    $cDomain          => ParameterType::STRING,
+                    $cLocale          => ParameterType::STRING,
+                    $cStatus          => ParameterType::STRING,
+                    $cHitCount        => ParameterType::INTEGER,
+                    $cFirstSeenAt     => ParameterType::STRING,
+                    $cLastSeenAt      => ParameterType::STRING,
+                    $cStatusChangedAt => ParameterType::NULL,
+                    $cNotes           => ParameterType::NULL,
+                    $cCallSite        => $callSite === null ? ParameterType::NULL : ParameterType::STRING,
                 ]);
             } catch (UniqueConstraintViolationException) {
-                $sql    = "UPDATE {$qTableName} SET hit_count = hit_count + :hits, last_seen_at = :lastSeenAt";
+                $sql    = "UPDATE {$qTableName} SET {$qHitCount} = {$qHitCount} + :hits, {$qLastSeenAt} = :lastSeenAt";
                 $params = [
                     'hits'       => $hits,
                     'lastSeenAt' => $seenAt,
@@ -110,12 +129,12 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
                 ];
 
                 if ($callSite !== null) {
-                    $sql .= ', call_site = :callSite';
+                    $sql .= ", {$qCallSite} = :callSite";
                     $params['callSite'] = $callSite;
                     $types['callSite']  = ParameterType::STRING;
                 }
 
-                $sql .= ' WHERE message_id = :messageId AND domain = :domain AND locale = :locale';
+                $sql .= " WHERE {$qMessageId} = :messageId AND {$qDomain} = :domain AND {$qLocale} = :locale";
                 $connection->executeStatement($sql, $params, $types);
             }
         }

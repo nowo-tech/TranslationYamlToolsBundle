@@ -87,4 +87,52 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
         $recorder->record('key.one', 'messages', 'en');
         $recorder->flushBuffer();
     }
+
+    public function testRecordIgnoresEmptyLocale(): void
+    {
+        $repository = $this->createMock(MissingTranslationLogRepository::class);
+        $repository->expects(self::never())->method('persistBuffer');
+
+        $recorder = new DoctrineMissingTranslationRecorder($repository);
+        $recorder->record('k', 'messages', '');
+        $recorder->flushBuffer();
+    }
+
+    public function testResetClearsBuffer(): void
+    {
+        $repository = $this->createMock(MissingTranslationLogRepository::class);
+        $repository->expects(self::never())->method('persistBuffer');
+
+        $recorder = new DoctrineMissingTranslationRecorder($repository);
+        $recorder->record('k', 'messages', 'en');
+        $recorder->reset();
+        $recorder->flushBuffer();
+    }
+
+    public function testFlushBufferNoOpWhenBufferWasEmpty(): void
+    {
+        $repository = $this->createMock(MissingTranslationLogRepository::class);
+        $repository->expects(self::never())->method('persistBuffer');
+
+        $recorder = new DoctrineMissingTranslationRecorder($repository);
+        $recorder->flushBuffer();
+    }
+
+    public function testRecordStoresCallSiteWhenNonEmpty(): void
+    {
+        $repository = $this->createMock(MissingTranslationLogRepository::class);
+        $repository->expects(self::once())->method('persistBuffer')->with(self::callback(static function (array $buffer): bool {
+            foreach ($buffer as $row) {
+                if (($row['callSite'] ?? null) === '/src/Foo.php:10') {
+                    return true;
+                }
+            }
+
+            return false;
+        }));
+
+        $recorder = new DoctrineMissingTranslationRecorder($repository);
+        $recorder->record('k', 'messages', 'en', '/src/Foo.php:10');
+        $recorder->flushBuffer();
+    }
 }
