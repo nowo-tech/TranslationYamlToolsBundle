@@ -91,6 +91,26 @@ final class MissingTranslationLogIntegrationTest extends KernelTestCase
         self::assertSame(0, $em->getRepository(MissingTranslationLog::class)->count([]));
     }
 
+    public function testSameMissingKeyUpdatesExistingRowInsteadOfInsertingDuplicate(): void
+    {
+        $translator = self::getContainer()->get('translator');
+        self::assertInstanceOf(LocaleAwareInterface::class, $translator);
+        $translator->setLocale('es');
+        $translator->trans('app.body', [], 'messages', 'es');
+
+        $recorder = self::getContainer()->get(DoctrineMissingTranslationRecorder::class);
+        $recorder->flushBuffer();
+
+        $translator->trans('app.body', [], 'messages', 'es');
+        $recorder->flushBuffer();
+
+        $em = self::getContainer()->get('doctrine.orm.entity_manager');
+        self::assertInstanceOf(EntityManagerInterface::class, $em);
+        $rows = $em->getRepository(MissingTranslationLog::class)->findAll();
+        self::assertCount(1, $rows);
+        self::assertSame(2, $rows[0]->getHitCount());
+    }
+
     private function resetMissingLogTable(): void
     {
         $em = self::getContainer()->get('doctrine.orm.entity_manager');

@@ -6,6 +6,8 @@ namespace Nowo\TranslationYamlToolsBundle\Repository;
 
 use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
@@ -50,34 +52,79 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
             return;
         }
 
-        $em  = $this->getEntityManager();
-        $now = new DateTimeImmutable();
+        $em         = $this->getEntityManager();
+        $connection = $em->getConnection();
+        $now        = new DateTimeImmutable();
+        $tableName  = $em->getClassMetadata(MissingTranslationLog::class)->getTableName();
+        $qTableName = $connection->quoteIdentifier($tableName);
 
         foreach ($buffer as $row) {
             $messageId = $row['messageId'];
             $domain    = $row['domain'];
             $locale    = $row['locale'];
             $hits      = $row['hits'];
-            $callSite  = $row['callSite'] ?? null;
+            $callSite  = $this->normalizeCallSite($row['callSite'] ?? null);
+            $seenAt    = $now->format('Y-m-d H:i:s');
 
-            $existing = $this->findOneBy([
-                'messageId' => $messageId,
-                'domain'    => $domain,
-                'locale'    => $locale,
-            ]);
+            try {
+                $connection->insert($tableName, [
+                    'message_id'        => $messageId,
+                    'domain'            => $domain,
+                    'locale'            => $locale,
+                    'status'            => MissingTranslationLogStatus::Pending->value,
+                    'hit_count'         => $hits,
+                    'first_seen_at'     => $seenAt,
+                    'last_seen_at'      => $seenAt,
+                    'status_changed_at' => null,
+                    'notes'             => null,
+                    'call_site'         => $callSite,
+                ], [
+                    'message_id'        => ParameterType::STRING,
+                    'domain'            => ParameterType::STRING,
+                    'locale'            => ParameterType::STRING,
+                    'status'            => ParameterType::STRING,
+                    'hit_count'         => ParameterType::INTEGER,
+                    'first_seen_at'     => ParameterType::STRING,
+                    'last_seen_at'      => ParameterType::STRING,
+                    'status_changed_at' => ParameterType::NULL,
+                    'notes'             => ParameterType::NULL,
+                    'call_site'         => $callSite === null ? ParameterType::NULL : ParameterType::STRING,
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                $sql    = "UPDATE $qTableName SET hit_count = hit_count + :hits, last_seen_at = :lastSeenAt";
+                $params = [
+                    'hits'       => $hits,
+                    'lastSeenAt' => $seenAt,
+                    'messageId'  => $messageId,
+                    'domain'     => $domain,
+                    'locale'     => $locale,
+                ];
+                $types  = [
+                    'hits'       => ParameterType::INTEGER,
+                    'lastSeenAt' => ParameterType::STRING,
+                    'messageId'  => ParameterType::STRING,
+                    'domain'     => ParameterType::STRING,
+                    'locale'     => ParameterType::STRING,
+                ];
 
-            if ($existing instanceof MissingTranslationLog) {
-                $existing->registerAdditionalHits($hits, $now, $callSite);
-                continue;
+                if ($callSite !== null) {
+                    $sql               .= ', call_site = :callSite';
+                    $params['callSite'] = $callSite;
+                    $types['callSite']  = ParameterType::STRING;
+                }
+
+                $sql .= ' WHERE message_id = :messageId AND domain = :domain AND locale = :locale';
+                $connection->executeStatement($sql, $params, $types);
             }
+        }
+    }
 
-            $entity = new MissingTranslationLog($messageId, $domain, $locale, $now, $callSite);
-            if ($hits > 1) {
-                $entity->registerAdditionalHits($hits - 1, $now, null);
-            }
-            $em->persist($entity);
+    private function normalizeCallSite(?string $callSite): ?string
+    {
+        if ($callSite === null || $callSite === '') {
+            return null;
         }
 
-        $em->flush();
+        return strlen($callSite) <= 1024 ? $callSite : substr($callSite, 0, 1021) . '...';
     }
 }
