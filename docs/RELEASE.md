@@ -7,6 +7,8 @@
 5. Push the commit and tag; GitHub Actions **`release.yml`** creates the GitHub Release (it merges the tag message with the matching changelog section when present).
 6. Confirm Packagist (or your proxy) picks up the new tag.
 
+**Avoid duplicate release jobs:** **`sync-releases.yml`** is intentionally **not** bound to tag pushes (only **`workflow_dispatch`** and a daily **schedule**). It backfills or updates older releases without competing with **`release.yml`** on new tags; running both on the same tag caused GitHub API races (**`already_exists`** on **`tag_name`**).
+
 **Tag message:** keep the first line short (e.g. `0.3.3: coverage, persistBuffer columns, internal refactors`); GitHub Actions can merge it with the matching **`[0.3.3]`** section from `docs/CHANGELOG.md` when publishing the release.
 
 See also `docs/SECURITY.md` for the pre-release security checklist.

@@ -1,12 +1,11 @@
 name: Sync Releases
 
+# Do not trigger on tag push: `release.yml` already creates the GitHub Release for new tags.
+# Running both workflows on the same tag causes a race (duplicate `tag_name` / already_exists).
 on:
   workflow_dispatch:
   schedule:
     - cron: '17 4 * * *'
-  push:
-    tags:
-      - 'v*'
 
 jobs:
   sync-releases:
