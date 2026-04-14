@@ -14,6 +14,8 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
+use function count;
+
 #[CoversClass(DoctrineMissingTranslationRecorder::class)]
 final class DoctrineMissingTranslationRecorderTest extends TestCase
 {
@@ -27,7 +29,7 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
         $repository->expects(self::never())->method('persistBuffer');
 
         $bus = $this->createMock(MessageBusInterface::class);
-        $bus->expects(self::once())->method('dispatch')->willReturnCallback(function (object $message): Envelope {
+        $bus->expects(self::once())->method('dispatch')->willReturnCallback(static function (object $message): Envelope {
             self::assertInstanceOf(MissingTranslationBufferMessage::class, $message);
 
             return new Envelope($message);
@@ -41,8 +43,8 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
     public function testFlushPersistsSynchronouslyWhenAsyncPersistFalse(): void
     {
         $repository = $this->createMock(MissingTranslationLogRepository::class);
-        $repository->expects(self::once())->method('persistBuffer')->with(self::callback(function (array $buffer): bool {
-            return 1 === count($buffer);
+        $repository->expects(self::once())->method('persistBuffer')->with(self::callback(static function (array $buffer): bool {
+            return count($buffer) === 1;
         }));
 
         $bus = $this->createMock(MessageBusInterface::class);

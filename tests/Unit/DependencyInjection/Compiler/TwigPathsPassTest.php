@@ -10,6 +10,8 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 
+use function dirname;
+
 #[CoversClass(TwigPathsPass::class)]
 final class TwigPathsPassTest extends TestCase
 {
@@ -115,8 +117,8 @@ final class TwigPathsPassTest extends TestCase
      */
     private static function expectedVendorAddPathArgs(): array
     {
-        $bundleRoot  = dirname(__DIR__, 4);
-        $viewsPath   = $bundleRoot . '/src/Resources/views';
+        $bundleRoot = dirname(__DIR__, 4);
+        $viewsPath  = $bundleRoot . '/src/Resources/views';
 
         return [$viewsPath, 'NowoTranslationYamlToolsBundle'];
     }

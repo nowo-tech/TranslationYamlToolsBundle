@@ -72,28 +72,28 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
             $byLocaleBackend !== [],
         );
 
-        $missingLog        = $config['missing_translation_log'] ?? false;
-        $missingLogEnabled = false;
-        $tablePrefix       = 'nowo_translation_';
-        $recordCallSite    = true;
+        $missingLog           = $config['missing_translation_log'] ?? false;
+        $missingLogEnabled    = false;
+        $tablePrefix          = 'nowo_translation_';
+        $recordCallSite       = true;
         $asyncPersist         = false;
         $asyncPersistStrategy = 'messenger';
-        $webUiEnabled           = false;
-        $webUiPathPrefix        = '/_translation_yaml_tools/missing-log';
-        $webUiLayoutTemplate    = '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig';
+        $webUiEnabled         = false;
+        $webUiPathPrefix      = '/_translation_yaml_tools/missing-log';
+        $webUiLayoutTemplate  = '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig';
 
         if ($missingLog === false) {
             $missingLogEnabled = false;
         } else {
-            $missingLogEnabled = (bool) ($missingLog['enabled'] ?? false);
-            $tablePrefix       = (string) ($missingLog['table_prefix'] ?? $tablePrefix);
-            $recordCallSite    = (bool) ($missingLog['record_call_site'] ?? true);
+            $missingLogEnabled    = (bool) ($missingLog['enabled'] ?? false);
+            $tablePrefix          = (string) ($missingLog['table_prefix'] ?? $tablePrefix);
+            $recordCallSite       = (bool) ($missingLog['record_call_site'] ?? true);
             $asyncPersist         = (bool) ($missingLog['async_persist'] ?? false);
             $asyncPersistStrategy = (string) ($missingLog['async_persist_strategy'] ?? 'messenger');
             $webUi                = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
-            $webUiEnabled        = (bool) ($webUi['enabled'] ?? false);
-            $webUiPathPrefix     = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
-            $webUiLayoutTemplate = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
+            $webUiEnabled         = (bool) ($webUi['enabled'] ?? false);
+            $webUiPathPrefix      = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
+            $webUiLayoutTemplate  = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
         }
 
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.enabled', $missingLogEnabled);

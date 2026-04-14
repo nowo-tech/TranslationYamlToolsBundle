@@ -27,15 +27,15 @@ final class ConfigurationTest extends TestCase
         self::assertSame([], $config['machine_translation_locale_map']);
         self::assertSame([], $config['machine_translator_by_locale']);
         self::assertSame([
-            'enabled'                 => false,
-            'table_prefix'            => 'nowo_translation_',
-            'record_call_site'        => true,
-            'async_persist'           => false,
-            'async_persist_strategy'  => 'messenger',
-            'web_ui'                  => [
-                'enabled'          => false,
-                'path_prefix'      => '/_translation_yaml_tools/missing-log',
-                'layout_template'  => '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig',
+            'enabled'                => false,
+            'table_prefix'           => 'nowo_translation_',
+            'record_call_site'       => true,
+            'async_persist'          => false,
+            'async_persist_strategy' => 'messenger',
+            'web_ui'                 => [
+                'enabled'         => false,
+                'path_prefix'     => '/_translation_yaml_tools/missing-log',
+                'layout_template' => '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig',
             ],
         ], $config['missing_translation_log']);
     }

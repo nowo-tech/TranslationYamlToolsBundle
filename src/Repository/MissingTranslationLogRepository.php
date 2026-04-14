@@ -12,6 +12,8 @@ use Doctrine\Persistence\ManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 
+use function strlen;
+
 /**
  * @extends ServiceEntityRepository<MissingTranslationLog>
  *
@@ -91,7 +93,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
                     'call_site'         => $callSite === null ? ParameterType::NULL : ParameterType::STRING,
                 ]);
             } catch (UniqueConstraintViolationException) {
-                $sql    = "UPDATE $qTableName SET hit_count = hit_count + :hits, last_seen_at = :lastSeenAt";
+                $sql    = "UPDATE {$qTableName} SET hit_count = hit_count + :hits, last_seen_at = :lastSeenAt";
                 $params = [
                     'hits'       => $hits,
                     'lastSeenAt' => $seenAt,
@@ -99,7 +101,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
                     'domain'     => $domain,
                     'locale'     => $locale,
                 ];
-                $types  = [
+                $types = [
                     'hits'       => ParameterType::INTEGER,
                     'lastSeenAt' => ParameterType::STRING,
                     'messageId'  => ParameterType::STRING,
@@ -108,7 +110,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
                 ];
 
                 if ($callSite !== null) {
-                    $sql               .= ', call_site = :callSite';
+                    $sql .= ', call_site = :callSite';
                     $params['callSite'] = $callSite;
                     $types['callSite']  = ParameterType::STRING;
                 }
