@@ -68,7 +68,7 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 
 ## Tests and coverage
 
-- **PHP:** run `make test-coverage` and read the final `Global PHP coverage (Lines): …` line in the output.
+- **PHP:** run `make test-coverage` and read the final `Global PHP coverage (Lines): …` line in the output (releases **0.3.3+** aim for **100%** line coverage on `src/`).
 - **TS/JS:** N/A
 - **Python:** N/A
 

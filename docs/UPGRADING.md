@@ -4,6 +4,12 @@
 
 This line is **0.3.x** (after **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
 
+## To 0.3.3 (from 0.3.2)
+
+- **No configuration or migration changes** are required. Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.3**).
+- **0.3.3** is primarily test-suite and internal clean-up (full line coverage on **`src/`**, **`TranslationCallSiteResolver`** / extension refactors, **`persistBuffer`** column-name fix). Runtime behaviour for normal bundle usage matches **0.3.2**.
+- **`DotKeyTreeAnalyzer`**, **`YamlArraySorter`**, and **`TranslationDefaultLocaleResolver`** are no longer declared **`final`**. This does not change supported configuration or services; it only matters if custom tooling assumed **`final`** for those classes (subclassing them was never part of the public API).
+
 ## To 0.3.2 (from 0.3.1)
 
 - **Recommended** if **`missing_translation_log.enabled`** is **`true`**: **0.3.2** fixes duplicate-key database errors when the same missing translation is recorded concurrently (e.g. parallel HTTP requests or multiple workers flushing the buffer). Persistence is unchanged from an app-configuration perspective: no migration beyond what you already have for **`{table_prefix}missing_log`**, and no YAML changes. Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.2**).

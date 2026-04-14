@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-04-15
+
 ### Fixed
 
 - **Missing translation log:** **`persistBuffer`** uses Doctrine **class metadata** for physical column names in DBAL **`INSERT`/`UPDATE`** (correct when the default naming strategy maps fields such as **`hitCount`** to **`hitCount`**, not **`hit_count`**).
@@ -11,11 +13,22 @@ All notable changes to this project are documented in this file.
 ### Changed
 
 - **`require-dev`:** **`symfony/var-exporter`** is constrained to **`^6.4 || ^7.0`** (Symfony **8**’s **`var-exporter`** drops **`ProxyHelper::generateLazyGhost`**, which Doctrine ORM still expects when **`enable_native_lazy_objects`** is **`false`**, breaking **`composer test`** on PHP **8.4+**).
+- **`DotKeyTreeAnalyzer`**, **`YamlArraySorter`**, **`TranslationDefaultLocaleResolver`:** removed **`final`** so the bundle test suite can use PHPUnit test doubles. Behaviour and supported usage are unchanged; subclassing these classes is not a documented extension point.
+- **`TranslationCallSiteResolver`:** internal refactor (**`pickCallSiteFromTrace()`**); public **`resolve()`** behaviour is unchanged.
+- **`NowoTranslationYamlToolsExtension::load()`:** simplified **`missing_translation_log`** handling after the configuration processor runs (removed an unreachable **`=== false`** branch; valid YAML config always yields an array for this node).
 
 ### Tests
 
+- **PHPUnit + PCOV:** **100%** line coverage on **`src/`**.
 - **`TranslationYamlCommandsTest`:** **`createDeps`** creates **`translations/`** only when missing (avoids **`mkdir(): File exists`** when a test already created that directory).
 - **`MissingTranslationLogWebUiTest`:** **`setUp`** calls **`ensureKernelShutdown()`** before **`createClient()`** so a kernel leaked from another test does not trigger **“Booting the kernel before calling createClient() is not supported”**.
+- Additional unit tests for missing-log commands, Web UI controller (direct calls with a minimal container and SQLite-backed repository), Doctrine metadata listener, buffer DTOs and Messenger handler, Twig globals extension, YAML command integrity-failure paths, extension **`rawConfig`** edge cases, recorder **`call_site`** updates, and **`TranslationCallSiteResolver`** synthetic stack traces.
+
+### Documentation
+
+- **[CONFIGURATION](CONFIGURATION.md):** missing-log **`persistBuffer`** and **0.3.3+** column resolution via metadata.
+- **[UPGRADING](UPGRADING.md):** **0.3.2 → 0.3.3** (no configuration migration).
+- **[README](README.md):** coverage note for **0.3.3+**.
 
 ## [0.3.2] - 2026-04-14
 
