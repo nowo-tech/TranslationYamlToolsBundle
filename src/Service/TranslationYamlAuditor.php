@@ -139,7 +139,7 @@ final class TranslationYamlAuditor
 
             if ($canCompareMissing && $locale !== $sourceLocale) {
                 $missing = 0;
-                foreach ($sourceFlat as $k => $_) {
+                foreach (array_keys($sourceFlat) as $k) {
                     if (!array_key_exists($k, $flat)) {
                         ++$missing;
                     }

@@ -28,7 +28,7 @@ final class TwigPathsPassTest extends TestCase
             $calls     = $loaderDef->getMethodCalls();
 
             self::assertSame(
-                [['addPath', self::expectedVendorAddPathArgs()]],
+                [['addPath', $this->expectedVendorAddPathArgs()]],
                 $calls,
             );
         } finally {
@@ -52,7 +52,7 @@ final class TwigPathsPassTest extends TestCase
             self::assertSame(
                 [
                     ['prependPath', [$overridePath, 'NowoTranslationYamlToolsBundle']],
-                    ['addPath', self::expectedVendorAddPathArgs()],
+                    ['addPath', $this->expectedVendorAddPathArgs()],
                 ],
                 $calls,
             );
@@ -115,7 +115,7 @@ final class TwigPathsPassTest extends TestCase
     /**
      * @return array{0: string, 1: string}
      */
-    private static function expectedVendorAddPathArgs(): array
+    private function expectedVendorAddPathArgs(): array
     {
         $bundleRoot = dirname(__DIR__, 4);
         $viewsPath  = $bundleRoot . '/src/Resources/views';

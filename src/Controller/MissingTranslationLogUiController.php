@@ -37,7 +37,7 @@ final class MissingTranslationLogUiController extends AbstractController
     }
 
     #[Route('/{id}/mark-added', name: 'nowo_translation_yaml_tools_missing_log_mark_added', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function markAdded(int $id, Request $request): Response
+    public function markAdded(int $id, Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
     {
         $token = (string) $request->request->get('_token');
         if (!$this->isCsrfTokenValid('missing_log_mark_added', $token)) {
@@ -45,7 +45,7 @@ final class MissingTranslationLogUiController extends AbstractController
         }
 
         $row = $this->repository->findOneById($id);
-        if ($row === null) {
+        if (!$row instanceof \Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog) {
             throw $this->createNotFoundException(sprintf('Missing translation log row %d not found.', $id));
         }
 

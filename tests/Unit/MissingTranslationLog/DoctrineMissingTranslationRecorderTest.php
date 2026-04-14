@@ -35,7 +35,7 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
             return new Envelope($message);
         });
 
-        $recorder = new DoctrineMissingTranslationRecorder($repository, $bus, true, 'messenger', null);
+        $recorder = new DoctrineMissingTranslationRecorder($repository, $bus, true, 'messenger');
         $recorder->record('key.one', 'messages', 'en');
         $recorder->flushBuffer();
     }
@@ -50,7 +50,7 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
         $bus = $this->createMock(MessageBusInterface::class);
         $bus->expects(self::never())->method('dispatch');
 
-        $recorder = new DoctrineMissingTranslationRecorder($repository, $bus, false, 'messenger', null);
+        $recorder = new DoctrineMissingTranslationRecorder($repository, $bus, false, 'messenger');
         $recorder->record('key.one', 'messages', 'en');
         $recorder->flushBuffer();
     }
@@ -60,7 +60,7 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
         $repository = $this->createMock(MissingTranslationLogRepository::class);
         $repository->expects(self::once())->method('persistBuffer');
 
-        $recorder = new DoctrineMissingTranslationRecorder($repository, null, true, 'messenger', null);
+        $recorder = new DoctrineMissingTranslationRecorder($repository, null, true, 'messenger');
         $recorder->record('key.one', 'messages', 'en');
         $recorder->flushBuffer();
     }
@@ -83,7 +83,7 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
         $repository = $this->createMock(MissingTranslationLogRepository::class);
         $repository->expects(self::once())->method('persistBuffer');
 
-        $recorder = new DoctrineMissingTranslationRecorder($repository, null, true, 'event_dispatcher', null);
+        $recorder = new DoctrineMissingTranslationRecorder($repository, null, true, 'event_dispatcher');
         $recorder->record('key.one', 'messages', 'en');
         $recorder->flushBuffer();
     }

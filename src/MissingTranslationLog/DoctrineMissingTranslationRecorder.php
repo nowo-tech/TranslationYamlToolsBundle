@@ -37,7 +37,7 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
      */
     public function record(string $id, string $domain, string $locale, ?string $callSite = null): void
     {
-        if ($id === '' || $domain === '' || $locale === '') {
+        if ($locale === '') {
             return;
         }
 
@@ -85,7 +85,7 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
                 return;
             }
 
-            if ($this->asyncPersistStrategy === 'event_dispatcher' && $this->eventDispatcher !== null) {
+            if ($this->asyncPersistStrategy === 'event_dispatcher' && $this->eventDispatcher instanceof \Symfony\Contracts\EventDispatcher\EventDispatcherInterface) {
                 $this->eventDispatcher->dispatch(new MissingTranslationBufferEvent($snapshot));
 
                 return;

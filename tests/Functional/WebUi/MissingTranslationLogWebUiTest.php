@@ -26,13 +26,13 @@ final class MissingTranslationLogWebUiTest extends WebTestCase
 
     public function testListAndMarkAdded(): void
     {
-        $client = static::createClient();
+        $client = self::createClient();
         $this->resetMissingLogTable();
 
-        $translator = static::getContainer()->get('translator');
+        $translator = self::getContainer()->get('translator');
         $translator->setLocale('es');
         $translator->trans('app.body', [], 'messages', 'es');
-        static::getContainer()->get(DoctrineMissingTranslationRecorder::class)->flushBuffer();
+        self::getContainer()->get(DoctrineMissingTranslationRecorder::class)->flushBuffer();
 
         $client->request('GET', '/_translation_yaml_tools/missing-log/');
         self::assertResponseIsSuccessful();
@@ -46,7 +46,7 @@ final class MissingTranslationLogWebUiTest extends WebTestCase
         $client->followRedirect();
         self::assertResponseIsSuccessful();
 
-        $em = static::getContainer()->get('doctrine.orm.entity_manager');
+        $em = self::getContainer()->get('doctrine.orm.entity_manager');
         self::assertInstanceOf(EntityManagerInterface::class, $em);
         $row = $em->getRepository(MissingTranslationLog::class)->findOneBy([]);
         self::assertNotNull($row);
@@ -55,7 +55,7 @@ final class MissingTranslationLogWebUiTest extends WebTestCase
 
     private function resetMissingLogTable(): void
     {
-        $em = static::getContainer()->get('doctrine.orm.entity_manager');
+        $em = self::getContainer()->get('doctrine.orm.entity_manager');
         self::assertInstanceOf(EntityManagerInterface::class, $em);
         $tool = new SchemaTool($em);
         $meta = $em->getClassMetadata(MissingTranslationLog::class);

@@ -44,7 +44,7 @@ final class MissingTranslationLogMarkAddedCommand extends Command
         $id = (int) $input->getArgument('id');
 
         $row = $this->repository->findOneById($id);
-        if ($row === null) {
+        if (!$row instanceof \Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog) {
             $io->error(sprintf('No row with id %d.', $id));
 
             return Command::FAILURE;

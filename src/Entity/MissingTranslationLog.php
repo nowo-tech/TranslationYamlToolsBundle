@@ -32,7 +32,7 @@ class MissingTranslationLog
     private MissingTranslationLogStatus $status = MissingTranslationLogStatus::Pending;
 
     #[ORM\Column]
-    private int $hitCount = 0;
+    private int $hitCount = 1;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private DateTimeImmutable $firstSeenAt;
@@ -56,8 +56,7 @@ class MissingTranslationLog
         $this->locale      = $locale;
         $this->firstSeenAt = $seenAt;
         $this->lastSeenAt  = $seenAt;
-        $this->hitCount    = 1;
-        $this->callSite    = self::normalizeCallSite($callSite);
+        $this->callSite    = $this->normalizeCallSite($callSite);
     }
 
     public function getId(): ?int
@@ -122,13 +121,13 @@ class MissingTranslationLog
         }
         $this->hitCount += $hits;
         $this->lastSeenAt = $at;
-        $normalized       = self::normalizeCallSite($latestCallSite);
+        $normalized       = $this->normalizeCallSite($latestCallSite);
         if ($normalized !== null) {
             $this->callSite = $normalized;
         }
     }
 
-    private static function normalizeCallSite(?string $callSite): ?string
+    private function normalizeCallSite(?string $callSite): ?string
     {
         if ($callSite === null || $callSite === '') {
             return null;
