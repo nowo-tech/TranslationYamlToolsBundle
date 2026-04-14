@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-04-14
+
+### Fixed
+
+- **Missing translation log:** **`MissingTranslationLogRepository::persistBuffer()`** writes rows with DBAL **`INSERT`** and, on **unique constraint violation** (same **`message_id`**, **`domain`**, **`locale`**), runs **`UPDATE`** to add **`hit_count`**, refresh **`last_seen_at`**, and optionally **`call_site`**. Avoids **`SQLSTATE[23000]`** / MySQL **1062** duplicate-entry errors when two requests or workers try to create the same missing-key row at once (the previous **`findOneBy` + ORM `persist`** path was not safe under concurrency).
+
+### Tests
+
+- **Integration:** repeated flush for the same missing key keeps **one** row and increments **`hit_count`**.
+
+### Documentation
+
+- **[CONFIGURATION](CONFIGURATION.md):** unique key **`(message_id, domain, locale)`** and **0.3.2+** persist behaviour.
+- **[USAGE](USAGE.md):** missing-log Web UI section — concurrency / duplicate-safe flushes.
+- **[UPGRADING](UPGRADING.md):** **0.3.1 → 0.3.2** for **`missing_translation_log`** users.
+
 ## [0.3.1] - 2026-04-10
 
 ### Fixed

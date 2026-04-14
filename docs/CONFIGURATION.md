@@ -60,7 +60,7 @@ nowo_translation_yaml_tools:
             path_prefix: '/_translation_yaml_tools/missing-log'
 ```
 
-3. Create the table (migrations / `doctrine:schema:update` in dev only). Entity: **`Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog`**; table name follows **`{table_prefix}missing_log`**.
+3. Create the table (migrations / `doctrine:schema:update` in dev only). Entity: **`Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog`**; table name follows **`{table_prefix}missing_log`**. The bundle metadata adds a **unique** constraint on **`message_id`**, **`domain`**, and **`locale`**. From **0.3.2** onward, **`persistBuffer`** uses **`INSERT`** and, if that row already exists, **`UPDATE`**s **`hit_count`**, **`last_seen_at`**, and optionally **`call_site`**, so concurrent flushes do not raise duplicate-key SQL errors.
 
 4. **Import HTTP routes** (not automatic) with the same prefix as **`web_ui.path_prefix`**:
 

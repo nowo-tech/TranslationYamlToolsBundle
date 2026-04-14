@@ -4,6 +4,11 @@
 
 This line is **0.3.x** (after **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
 
+## To 0.3.2 (from 0.3.1)
+
+- **Recommended** if **`missing_translation_log.enabled`** is **`true`**: **0.3.2** fixes duplicate-key database errors when the same missing translation is recorded concurrently (e.g. parallel HTTP requests or multiple workers flushing the buffer). Persistence is unchanged from an app-configuration perspective: no migration beyond what you already have for **`{table_prefix}missing_log`**, and no YAML changes. Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.2**).
+- If you subclass or replace **`MissingTranslationLogRepository`**, ensure your **`persistBuffer`** implementation remains consistent with the unique index on **`message_id`**, **`domain`**, and **`locale`** (or call the parent).
+
 ## To 0.3.1 (from 0.3.0)
 
 - **Strongly recommended** if **`missing_translation_log.web_ui.enabled`** is **`true`**: **0.3.0** registered the bundle Twig namespace against **`…/translation-yaml-tools-bundle/Resources/views`**, which does not exist in the Composer package (views live under **`src/Resources/views`**). That breaks **`bin/console cache:clear`** when Twig warms the native filesystem loader. **0.3.1** fixes the path and keeps **REQ-TWIG-001**: when **`templates/bundles/NowoTranslationYamlToolsBundle/`** exists, the bundle calls **`prependPath()`** on the Twig loader so overrides win without **`twig.paths`**. Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.1**).
