@@ -32,6 +32,19 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         );
     }
 
+    public function testYamlTreeLeafPrefixSuffixParameters(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoTranslationYamlToolsExtension())->load([[]], $container);
+        self::assertSame('index', $container->getParameter('nowo_translation_yaml_tools.yaml_tree_leaf_prefix_suffix'));
+
+        $container = new ContainerBuilder();
+        (new NowoTranslationYamlToolsExtension())->load([[
+            'yaml_tree_leaf_prefix_suffix' => 'text',
+        ]], $container);
+        self::assertSame('text', $container->getParameter('nowo_translation_yaml_tools.yaml_tree_leaf_prefix_suffix'));
+    }
+
     public function testMachineTranslatorPerLocaleParameter(): void
     {
         $container = new ContainerBuilder();

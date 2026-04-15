@@ -32,6 +32,7 @@ final class TranslationYamlTreeCommand extends AbstractTranslationYamlCommand
         private readonly DotKeyTreeAnalyzer $dotKeyTreeAnalyzer,
         private readonly TranslationYamlFileHandler $fileHandler,
         private readonly int $configuredIndent,
+        private readonly string $configuredLeafPrefixSuffix,
     ) {
         parent::__construct($catalog, $pathsResolver);
     }
@@ -43,9 +44,21 @@ final class TranslationYamlTreeCommand extends AbstractTranslationYamlCommand
     {
         $this
             ->addOption('domain', 'd', InputOption::VALUE_REQUIRED, 'Translation domain (e.g. messages)')
-            ->addOption('locale', 'l', InputOption::VALUE_REQUIRED, 'Locale (e.g. en)')
+            ->addOption('locale', 'l', InputOption::VALUE_OPTIONAL, 'Locale (omit to convert every locale file for the domain)')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Analyse only; do not write the file')
-            ->addOption('inline', null, InputOption::VALUE_NONE, 'Write YAML in compact inline (flow) style instead of expanded blocks');
+            ->addOption('inline', null, InputOption::VALUE_NONE, 'Write YAML in compact inline (flow) style instead of expanded blocks')
+            ->addOption(
+                'fix-leaf-prefix',
+                null,
+                InputOption::VALUE_NONE,
+                'When a key is both a leaf and a prefix of another, rename those leaves by appending .<suffix> (see bundle yaml_tree_leaf_prefix_suffix, or --leaf-prefix-suffix)',
+            )
+            ->addOption(
+                'leaf-prefix-suffix',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Override the configured final segment for --fix-leaf-prefix (e.g. index → key a becomes a.index)',
+            );
     }
 
     /**
@@ -60,55 +73,106 @@ final class TranslationYamlTreeCommand extends AbstractTranslationYamlCommand
         $output->writeln('<info>Domains found:</info> ' . (count($domains) === 0 ? '(none)' : implode(', ', $domains)));
         $output->writeln('');
 
-        ['domain' => $domain, 'locale' => $locale] = $this->resolveDomainAndLocale(
+        $domain = $this->resolveDomain(
             $input,
             $output,
             $input->getOption('domain') ? (string) $input->getOption('domain') : null,
-            $input->getOption('locale') ? (string) $input->getOption('locale') : null,
         );
 
-        $path = $this->catalog->resolveFileForDomainLocale($domain, $locale);
-        if ($path === null) {
-            $output->writeln('<error>No file found for ' . $domain . '.' . $locale . '.*</error>');
+        $localesToProcess = $this->resolveLocalesForDomainOption($input, $domain);
+        $this->printLocalesBannerWhenOmittingLocaleOption($input, $output, $domain, $localesToProcess, 'converting all');
 
-            return Command::FAILURE;
+        $failed      = false;
+        $dryRun      = (bool) $input->getOption('dry-run');
+        $asInline    = (bool) $input->getOption('inline');
+        $localeCount = count($localesToProcess);
+        foreach ($localesToProcess as $index => $locale) {
+            if ($localeCount > 1 && $index > 0) {
+                $output->writeln('');
+            }
+
+            $path = $this->catalog->resolveFileForDomainLocale($domain, $locale);
+            if ($path === null) {
+                $output->writeln('<error>No file found for ' . $domain . '.' . $locale . '.*</error>');
+                $failed = true;
+
+                continue;
+            }
+
+            $output->writeln(sprintf('<info>File:</info> %s', $path));
+
+            $data        = $this->fileHandler->loadFile($path);
+            $flat        = $this->dotKeyTreeAnalyzer->flatten($data);
+            $beforeCount = count($flat);
+            $output->writeln(sprintf('<info>Leaf keys (before transform):</info> %d', $beforeCount));
+            $conflict = $this->dotKeyTreeAnalyzer->treeConversionConflict($flat);
+            if ($conflict !== null) {
+                if (!(bool) $input->getOption('fix-leaf-prefix')) {
+                    $output->writeln('<error>Cannot convert to tree.</error>');
+                    $output->writeln($conflict);
+                    $output->writeln(sprintf(
+                        '<comment>Tip: use --fix-leaf-prefix to rename blocking leaves by appending .%s (bundle option yaml_tree_leaf_prefix_suffix).</comment>',
+                        $this->configuredLeafPrefixSuffix,
+                    ));
+                    $failed = true;
+
+                    continue;
+                }
+
+                $suffixOpt = $input->getOption('leaf-prefix-suffix');
+                $suffix    = ($suffixOpt !== null && $suffixOpt !== false && $suffixOpt !== '')
+                    ? (string) $suffixOpt
+                    : $this->configuredLeafPrefixSuffix;
+                $result = $this->dotKeyTreeAnalyzer->disambiguateLeafPrefixConflicts($flat, $suffix);
+                if (isset($result['error'])) {
+                    $output->writeln('<error>Cannot disambiguate leaf/prefix keys.</error>');
+                    $output->writeln('<error>' . $result['error'] . '</error>');
+                    $failed = true;
+
+                    continue;
+                }
+
+                $flat = $result['flat'];
+                foreach ($result['renames'] as $row) {
+                    $output->writeln(sprintf(
+                        '<comment>Renamed leaf key "%s" → "%s" (leaf/prefix conflict).</comment>',
+                        $row['from'],
+                        $row['to'],
+                    ));
+                }
+
+                $conflict = $this->dotKeyTreeAnalyzer->treeConversionConflict($flat);
+                if ($conflict !== null) {
+                    $output->writeln('<error>Cannot convert to tree after disambiguation.</error>');
+                    $output->writeln($conflict);
+                    $failed = true;
+
+                    continue;
+                }
+            }
+
+            $tree       = $this->dotKeyTreeAnalyzer->unflatten($flat);
+            $afterCount = $this->dotKeyTreeAnalyzer->countFlattenedLeaves($tree);
+            $output->writeln(sprintf('<info>Leaf keys (after transform):</info> %d', $afterCount));
+            $preserveError = $this->dotKeyTreeAnalyzer->verifyFlattenedLeavesPreserved($flat, $tree);
+            if ($preserveError !== null) {
+                $output->writeln('<error>Leaf key integrity check failed.</error>');
+                $output->writeln('<error>' . $preserveError . '</error>');
+                $failed = true;
+
+                continue;
+            }
+            $output->writeln('<info>Leaf key counts match (round-trip).</info>');
+            if ($dryRun) {
+                $output->writeln('<comment>Dry-run: structure is valid; no file written.</comment>');
+
+                continue;
+            }
+
+            $this->fileHandler->dumpToFile($path, $tree, $this->configuredIndent, $asInline);
+            $output->writeln('<info>Wrote nested YAML (' . ($asInline ? 'inline flow' : 'block') . ') using indent of ' . $this->configuredIndent . ' spaces per level.</info>');
         }
 
-        $output->writeln(sprintf('<info>File:</info> %s', $path));
-
-        $data        = $this->fileHandler->loadFile($path);
-        $flat        = $this->dotKeyTreeAnalyzer->flatten($data);
-        $beforeCount = count($flat);
-        $output->writeln(sprintf('<info>Leaf keys (before transform):</info> %d', $beforeCount));
-        $conflict = $this->dotKeyTreeAnalyzer->treeConversionConflict($flat);
-        if ($conflict !== null) {
-            $output->writeln('<error>Cannot convert to tree.</error>');
-            $output->writeln($conflict);
-
-            return Command::FAILURE;
-        }
-
-        $tree       = $this->dotKeyTreeAnalyzer->unflatten($flat);
-        $afterCount = $this->dotKeyTreeAnalyzer->countFlattenedLeaves($tree);
-        $output->writeln(sprintf('<info>Leaf keys (after transform):</info> %d', $afterCount));
-        $preserveError = $this->dotKeyTreeAnalyzer->verifyFlattenedLeavesPreserved($flat, $tree);
-        if ($preserveError !== null) {
-            $output->writeln('<error>Leaf key integrity check failed.</error>');
-            $output->writeln('<error>' . $preserveError . '</error>');
-
-            return Command::FAILURE;
-        }
-        $output->writeln('<info>Leaf key counts match (round-trip).</info>');
-        if ((bool) $input->getOption('dry-run')) {
-            $output->writeln('<comment>Dry-run: structure is valid; no file written.</comment>');
-
-            return Command::SUCCESS;
-        }
-
-        $asInline = (bool) $input->getOption('inline');
-        $this->fileHandler->dumpToFile($path, $tree, $this->configuredIndent, $asInline);
-        $output->writeln('<info>Wrote nested YAML (' . ($asInline ? 'inline flow' : 'block') . ') using indent of ' . $this->configuredIndent . ' spaces per level.</info>');
-
-        return Command::SUCCESS;
+        return $failed ? Command::FAILURE : Command::SUCCESS;
     }
 }

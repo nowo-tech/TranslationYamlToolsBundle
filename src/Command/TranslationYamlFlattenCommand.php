@@ -45,7 +45,7 @@ final class TranslationYamlFlattenCommand extends AbstractTranslationYamlCommand
     {
         $this
             ->addOption('domain', 'd', InputOption::VALUE_REQUIRED, 'Translation domain')
-            ->addOption('locale', 'l', InputOption::VALUE_REQUIRED, 'Locale')
+            ->addOption('locale', 'l', InputOption::VALUE_OPTIONAL, 'Locale (omit to flatten every locale file for the domain)')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Analyse only; do not write the file')
             ->addOption('inline', null, InputOption::VALUE_NONE, 'Write YAML in compact inline (flow) style instead of expanded blocks');
     }
@@ -62,51 +62,64 @@ final class TranslationYamlFlattenCommand extends AbstractTranslationYamlCommand
         $output->writeln('<info>Domains found:</info> ' . (count($domains) === 0 ? '(none)' : implode(', ', $domains)));
         $output->writeln('');
 
-        ['domain' => $domain, 'locale' => $locale] = $this->resolveDomainAndLocale(
+        $domain = $this->resolveDomain(
             $input,
             $output,
             $input->getOption('domain') ? (string) $input->getOption('domain') : null,
-            $input->getOption('locale') ? (string) $input->getOption('locale') : null,
         );
 
-        $path = $this->catalog->resolveFileForDomainLocale($domain, $locale);
-        if ($path === null) {
-            $output->writeln(sprintf('<error>No translation file found for domain "%s" and locale "%s".</error>', $domain, $locale));
+        $localesToProcess = $this->resolveLocalesForDomainOption($input, $domain);
+        $this->printLocalesBannerWhenOmittingLocaleOption($input, $output, $domain, $localesToProcess, 'flattening all');
 
-            return Command::FAILURE;
+        $failed      = false;
+        $dryRun      = (bool) $input->getOption('dry-run');
+        $asInline    = (bool) $input->getOption('inline');
+        $localeCount = count($localesToProcess);
+        foreach ($localesToProcess as $index => $locale) {
+            if ($localeCount > 1 && $index > 0) {
+                $output->writeln('');
+            }
+
+            $path = $this->catalog->resolveFileForDomainLocale($domain, $locale);
+            if ($path === null) {
+                $output->writeln(sprintf('<error>No translation file found for domain "%s" and locale "%s".</error>', $domain, $locale));
+                $failed = true;
+
+                continue;
+            }
+
+            $output->writeln(sprintf('<info>File:</info> %s', $path));
+
+            $data        = $this->fileHandler->loadFile($path);
+            $flat        = $this->dotKeyTreeAnalyzer->flatten($data);
+            $beforeCount = count($flat);
+            $output->writeln(sprintf('<info>Leaf keys (before transform):</info> %d', $beforeCount));
+
+            $expectedLeaves = $flat;
+            ksort($flat, SORT_STRING);
+
+            $afterCount = count($flat);
+            $output->writeln(sprintf('<info>Leaf keys (after transform):</info> %d', $afterCount));
+            $preserveError = $this->dotKeyTreeAnalyzer->verifyFlattenedLeavesPreserved($expectedLeaves, $flat);
+            if ($preserveError !== null) {
+                $output->writeln('<error>Leaf key integrity check failed.</error>');
+                $output->writeln('<error>' . $preserveError . '</error>');
+                $failed = true;
+
+                continue;
+            }
+            $output->writeln('<info>Leaf key counts match (round-trip).</info>');
+
+            if ($dryRun) {
+                $output->writeln('<comment>Dry-run: would write flat dot keys; no file written.</comment>');
+
+                continue;
+            }
+
+            $this->fileHandler->dumpToFile($path, $flat, $this->configuredIndent, $asInline);
+            $output->writeln('<info>Wrote flat YAML (' . ($asInline ? 'inline flow' : 'block') . ') with dot-separated keys at root.</info>');
         }
 
-        $output->writeln(sprintf('<info>File:</info> %s', $path));
-
-        $data        = $this->fileHandler->loadFile($path);
-        $flat        = $this->dotKeyTreeAnalyzer->flatten($data);
-        $beforeCount = count($flat);
-        $output->writeln(sprintf('<info>Leaf keys (before transform):</info> %d', $beforeCount));
-
-        $expectedLeaves = $flat;
-        ksort($flat, SORT_STRING);
-
-        $afterCount = count($flat);
-        $output->writeln(sprintf('<info>Leaf keys (after transform):</info> %d', $afterCount));
-        $preserveError = $this->dotKeyTreeAnalyzer->verifyFlattenedLeavesPreserved($expectedLeaves, $flat);
-        if ($preserveError !== null) {
-            $output->writeln('<error>Leaf key integrity check failed.</error>');
-            $output->writeln('<error>' . $preserveError . '</error>');
-
-            return Command::FAILURE;
-        }
-        $output->writeln('<info>Leaf key counts match (round-trip).</info>');
-
-        if ((bool) $input->getOption('dry-run')) {
-            $output->writeln('<comment>Dry-run: would write flat dot keys; no file written.</comment>');
-
-            return Command::SUCCESS;
-        }
-
-        $asInline = (bool) $input->getOption('inline');
-        $this->fileHandler->dumpToFile($path, $flat, $this->configuredIndent, $asInline);
-        $output->writeln('<info>Wrote flat YAML (' . ($asInline ? 'inline flow' : 'block') . ') with dot-separated keys at root.</info>');
-
-        return Command::SUCCESS;
+        return $failed ? Command::FAILURE : Command::SUCCESS;
     }
 }

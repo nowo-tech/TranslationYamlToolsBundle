@@ -51,6 +51,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
 
         $container->setParameter('nowo_translation_yaml_tools.default_locale', $config['default_locale']);
         $container->setParameter('nowo_translation_yaml_tools.yaml_tree_indent', $config['yaml_tree_indent']);
+        $container->setParameter('nowo_translation_yaml_tools.yaml_tree_leaf_prefix_suffix', $config['yaml_tree_leaf_prefix_suffix']);
         $container->setParameter('nowo_translation_yaml_tools.machine_translator', $config['machine_translator']);
         $container->setParameter('nowo_translation_yaml_tools.deepl_endpoint', $config['deepl_endpoint']);
         $container->setParameter('nowo_translation_yaml_tools.libretranslate_base_url', $config['libretranslate_base_url']);

@@ -15,9 +15,9 @@
 
 | Command | Purpose |
 |---------|---------|
-| `nowo:translation-yaml:tree` | After listing **domains** and letting you pick **domain** and **locale** (interactive) or via flags, validates that dot-keys can be turned into a nested tree; writes nested YAML using `yaml_tree_indent`. |
-| `nowo:translation-yaml:flatten` | Same selection pattern; flattens nested maps to a **single-level** map whose keys are **dot paths** (e.g. `demo.title`)—the inverse layout of `tree`. |
-| `nowo:translation-yaml:sort` | Same selection pattern; sorts associative keys recursively. |
+| `nowo:translation-yaml:tree` | Pick **domain** (and optionally **locale**); validates that dot-keys can be turned into a nested tree; writes nested YAML using `yaml_tree_indent`. Omit **`--locale`** to convert **every** locale file for the domain. Optional **`--fix-leaf-prefix`** resolves leaf/prefix conflicts (see [When tree conversion is impossible](#when-tree-conversion-is-impossible)). |
+| `nowo:translation-yaml:flatten` | Same pattern; flattens nested maps to a **single-level** map whose keys are **dot paths** (e.g. `demo.title`). Omit **`--locale`** to flatten **all** locale files for the domain. |
+| `nowo:translation-yaml:sort` | Same pattern; sorts associative keys recursively. Omit **`--locale`** to sort **all** locale files for the domain. |
 | `nowo:translation-yaml:fill-missing` | Uses the **default source locale** (see [Configuration](CONFIGURATION.md)) and a **target locale** file; translates missing keys via the configured backend (**Google**, **DeepL**, or **LibreTranslate**). |
 | `nowo:translation-yaml:audit` | Read-only **audit** of all domains (or `--domain`): tree convertibility (with `leaf_and_prefix` conflict counts and samples), recursive **alphabetical** key order, and **missing keys** vs `--source-locale` (default: Symfony default). Domains that pass every check show **one** summary line (no per-locale breakdown). Exits **non-zero** if any domain has issues. |
 
@@ -25,9 +25,11 @@ The write commands (`tree`, `flatten`, `sort`, `fill-missing`) accept **`--inlin
 
 ## Interactive selection
 
-Run without `--domain` / `--locale` (where applicable) in a TTY: the commands print discovered directories, list **domains** from files named `domain.locale.yaml`, then prompt with **choice lists** (arrow keys in most terminals).
+Run without `--domain` in a TTY: the commands print discovered directories, list **domains** from files named `domain.locale.yaml`, then prompt for **domain** with a **choice list** (arrow keys in most terminals).
 
-Use `--no-interaction` together with explicit options for CI or scripts.
+For **`tree`**, **`flatten`**, and **`sort`**, **`--locale` is optional**: if you omit it (interactive or not), the command runs for **every locale** discovered for that domain. Commands that target a **single** target file (e.g. **`fill-missing`**) still ask for **locale** / use **`--target-locale`** as before.
+
+Use `--no-interaction` together with explicit options for CI or scripts (for **`tree`**, **`flatten`**, **`sort`**, **`--domain` alone** is enough to process all locales).
 
 ## Examples
 
@@ -37,16 +39,35 @@ Dry-run tree conversion:
 php bin/console nowo:translation-yaml:tree --domain=messages --locale=en --dry-run
 ```
 
-Apply nested tree:
+Apply nested tree (one locale):
 
 ```bash
 php bin/console nowo:translation-yaml:tree --domain=messages --locale=en
 ```
 
-Sort keys:
+Apply to **all** locales for the domain:
+
+```bash
+php bin/console nowo:translation-yaml:tree --domain=messages
+```
+
+If a leaf/prefix conflict blocks conversion, rename blocking leaves with the configured suffix (default **`index`**) — see [Configuration](CONFIGURATION.md) **`yaml_tree_leaf_prefix_suffix`**:
+
+```bash
+php bin/console nowo:translation-yaml:tree --domain=messages --locale=en --fix-leaf-prefix
+php bin/console nowo:translation-yaml:tree --domain=messages --fix-leaf-prefix --leaf-prefix-suffix=caption
+```
+
+Sort keys (one locale):
 
 ```bash
 php bin/console nowo:translation-yaml:sort --domain=messages --locale=en
+```
+
+Sort **all** locale files for the domain:
+
+```bash
+php bin/console nowo:translation-yaml:sort --domain=messages
 ```
 
 Sort and write **inline (flow) YAML**:
@@ -60,6 +81,12 @@ Flatten nested keys to dot paths at the file root:
 ```bash
 php bin/console nowo:translation-yaml:flatten --domain=messages --locale=en --dry-run
 php bin/console nowo:translation-yaml:flatten --domain=messages --locale=en
+```
+
+Flatten **all** locale files for the domain:
+
+```bash
+php bin/console nowo:translation-yaml:flatten --domain=messages
 ```
 
 Fill missing Spanish keys from English (default locale):
@@ -83,7 +110,7 @@ php bin/console nowo:translation-yaml:fill-missing --domain=messages --target-lo
 
 ## When tree conversion is impossible
 
-If a **leaf key** is also a **prefix** of another key (for example both `a` and `a.b` as distinct leaves after flattening), nested YAML cannot represent the same map unambiguously. The `tree` command (and `fill-missing --tree`) stops and prints which prefix causes the conflict.
+If a **leaf key** is also a **prefix** of another key (for example both `a` and `a.b` as distinct leaves after flattening), nested YAML cannot represent the same map unambiguously. The `tree` command (and `fill-missing --tree`) stops and prints which prefix causes the conflict — unless you pass **`--fix-leaf-prefix`**, which renames those leaves by appending **`.{suffix}`** (default suffix from **`yaml_tree_leaf_prefix_suffix`**, default **`index`**; override with **`--leaf-prefix-suffix=`**). If the target key already exists, the command reports an error.
 
 ## File naming
 

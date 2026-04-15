@@ -4,6 +4,12 @@
 
 This line is **0.3.x** (after **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
 
+## To 0.3.4 (from 0.3.3)
+
+- **No breaking changes.** Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.4**).
+- **`sort`**, **`flatten`**, **`tree`:** if you relied on **non-interactive** mode requiring **`--locale`**, **`--domain` alone** now runs the command for **all** locales of that domain. Pass **`--locale`** when you need a **single** file (same as before).
+- **`tree`:** optional **`--fix-leaf-prefix`** and config **`yaml_tree_leaf_prefix_suffix`** (default **`index`**) — see **`docs/USAGE.md`** and **`docs/CONFIGURATION.md`**.
+
 ## To 0.3.3 (from 0.3.2)
 
 - **No configuration or migration changes** are required. Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.3**).

@@ -160,4 +160,43 @@ final class DotKeyTreeAnalyzerTest extends TestCase
         $out = $method->invoke($analyzer, $dupes);
         self::assertCount(1, $out);
     }
+
+    public function testDisambiguateLeafPrefixConflictsRenamesBlockingLeaf(): void
+    {
+        $analyzer = new DotKeyTreeAnalyzer();
+        $flat     = ['a' => 'leaf', 'a.b' => 'nested'];
+        $result   = $analyzer->disambiguateLeafPrefixConflicts($flat, 'index');
+        self::assertArrayNotHasKey('error', $result);
+        self::assertSame(['a.index' => 'leaf', 'a.b' => 'nested'], $result['flat']);
+        self::assertSame([['from' => 'a', 'to' => 'a.index']], $result['renames']);
+        self::assertNull($analyzer->treeConversionConflict($result['flat']));
+    }
+
+    public function testDisambiguateLeafPrefixConflictsHandlesChainedConflicts(): void
+    {
+        $analyzer = new DotKeyTreeAnalyzer();
+        $flat     = ['a' => 1, 'a.b' => 2, 'a.b.c' => 3];
+        $result   = $analyzer->disambiguateLeafPrefixConflicts($flat, 'index');
+        self::assertArrayNotHasKey('error', $result);
+        self::assertNull($analyzer->treeConversionConflict($result['flat']));
+        self::assertSame(1, $result['flat']['a.index']);
+        self::assertSame(2, $result['flat']['a.b.index']);
+        self::assertSame(3, $result['flat']['a.b.c']);
+    }
+
+    public function testDisambiguateLeafPrefixConflictsFailsWhenTargetKeyExists(): void
+    {
+        $analyzer = new DotKeyTreeAnalyzer();
+        $flat     = ['a' => 'one', 'a.index' => 'two', 'a.b' => 'three'];
+        $result   = $analyzer->disambiguateLeafPrefixConflicts($flat, 'index');
+        self::assertArrayHasKey('error', $result);
+        self::assertStringContainsString('already exists', (string) $result['error']);
+    }
+
+    public function testDisambiguateLeafPrefixConflictsRejectsInvalidSuffix(): void
+    {
+        $analyzer = new DotKeyTreeAnalyzer();
+        $result   = $analyzer->disambiguateLeafPrefixConflicts(['a' => 1, 'a.b' => 2], 'bad.suffix');
+        self::assertArrayHasKey('error', $result);
+    }
 }

@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-04-16
+
+### Added
+
+- **`nowo:translation-yaml:tree`:** **`--fix-leaf-prefix`** renames blocking leaves when a key is both a leaf and a prefix of another (append **`.{suffix}`**); default suffix from **`yaml_tree_leaf_prefix_suffix`** (default **`index`**); override per run with **`--leaf-prefix-suffix=`**.
+- Bundle option **`yaml_tree_leaf_prefix_suffix`**: single final segment (`[a-zA-Z0-9_-]+`, no dots) used by **`--fix-leaf-prefix`** (parameter **`nowo_translation_yaml_tools.yaml_tree_leaf_prefix_suffix`**).
+- **`nowo:translation-yaml:sort`**, **`flatten`**, **`tree`:** omit **`--locale`** to process **every locale file** for the chosen domain (non-interactive scripts need **`--domain` only**). **`--locale`** still limits to one file.
+
+### Changed
+
+- **`AbstractTranslationYamlCommand`:** **`resolveDomain()`**, **`resolveLocalesForDomainOption()`**, **`printLocalesBannerWhenOmittingLocaleOption()`** for shared domain/locale resolution; **`resolveDomainAndLocale()`** unchanged for commands that still prompt for a single locale (e.g. **`fill-missing`**).
+
+### Documentation
+
+- **[USAGE](USAGE.md):** optional **`--locale`**, **`--fix-leaf-prefix`** / **`yaml_tree_leaf_prefix_suffix`**.
+- **[CONFIGURATION](CONFIGURATION.md):** **`yaml_tree_leaf_prefix_suffix`**.
+- **[UPGRADING](UPGRADING.md):** **0.3.3 → 0.3.4**.
+- **[README](README.md):** commands and coverage note.
+
 ## [0.3.3] - 2026-04-15
 
 ### Fixed

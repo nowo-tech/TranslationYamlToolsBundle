@@ -52,6 +52,7 @@ services:
     Nowo\TranslationYamlToolsBundle\Command\TranslationYamlTreeCommand:
         arguments:
             $configuredIndent: '%nowo_translation_yaml_tools.yaml_tree_indent%'
+            $configuredLeafPrefixSuffix: '%nowo_translation_yaml_tools.yaml_tree_leaf_prefix_suffix%'
 
     Nowo\TranslationYamlToolsBundle\Command\TranslationYamlSortCommand:
         arguments:

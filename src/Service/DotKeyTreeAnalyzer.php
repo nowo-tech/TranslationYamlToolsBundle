@@ -8,6 +8,9 @@ use function array_key_exists;
 use function count;
 use function is_array;
 use function sprintf;
+use function str_contains;
+use function substr_count;
+use function trim;
 
 /**
  * Analyses flattened translation keys (dot paths) for safe conversion to a nested YAML tree.
@@ -98,6 +101,77 @@ class DotKeyTreeAnalyzer
     }
 
     public const CONFLICT_LEAF_AND_PREFIX = 'leaf_and_prefix';
+
+    /**
+     * Renames blocking leaf keys by appending a final segment (e.g. segment "index" turns key "a" into "a.index")
+     * until no {@see CONFLICT_LEAF_AND_PREFIX} conflicts remain.
+     *
+     * @param array<string, mixed> $flatLeaves
+     *
+     * @return array{flat: array<string, mixed>, renames: list<array{from: string, to: string}>}|array{error: string}
+     */
+    public function disambiguateLeafPrefixConflicts(array $flatLeaves, string $suffixSegment): array
+    {
+        $suffixSegment = trim($suffixSegment);
+        if ($suffixSegment === '' || str_contains($suffixSegment, '.')) {
+            return ['error' => 'Leaf prefix suffix must be a non-empty segment without dots (e.g. "index").'];
+        }
+
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $suffixSegment)) {
+            return ['error' => 'Leaf prefix suffix must match [a-zA-Z0-9_-]+.'];
+        }
+
+        $flat    = $flatLeaves;
+        $renames = [];
+        $maxPass = count($flat) + 32;
+
+        for ($pass = 0; $pass < $maxPass; ++$pass) {
+            $conflicts = $this->collectTreeConversionConflicts($flat);
+            if ($conflicts === []) {
+                return ['flat' => $flat, 'renames' => $renames];
+            }
+
+            $leafKeys = [];
+            foreach ($conflicts as $c) {
+                $leafKeys[$c['leaf_key']] = true;
+            }
+
+            $sorted = array_keys($leafKeys);
+            usort(
+                $sorted,
+                static fn (string $a, string $b): int => substr_count($b, '.') <=> substr_count($a, '.'),
+            );
+
+            $renamedThisPass = false;
+            foreach ($sorted as $leafKey) {
+                if (!array_key_exists($leafKey, $flat)) {
+                    continue;
+                }
+
+                $newKey = $leafKey . '.' . $suffixSegment;
+                if (array_key_exists($newKey, $flat)) {
+                    return [
+                        'error' => sprintf(
+                            'Cannot disambiguate: leaf key "%s" would become "%s", but that key already exists.',
+                            $leafKey,
+                            $newKey,
+                        ),
+                    ];
+                }
+
+                $flat[$newKey] = $flat[$leafKey];
+                unset($flat[$leafKey]);
+                $renames[] = ['from' => $leafKey, 'to' => $newKey];
+                $renamedThisPass = true;
+            }
+
+            if (!$renamedThisPass) {
+                return ['error' => 'Cannot disambiguate leaf/prefix conflicts (no progress in one pass).'];
+            }
+        }
+
+        return ['error' => sprintf('Cannot disambiguate leaf/prefix conflicts (stopped after %d passes).', $maxPass)];
+    }
 
     /**
      * Expands dot-separated keys into a nested associative array.

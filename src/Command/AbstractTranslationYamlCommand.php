@@ -14,6 +14,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 
+use function implode;
 use function in_array;
 use function sprintf;
 
@@ -30,14 +31,16 @@ abstract class AbstractTranslationYamlCommand extends Command
     }
 
     /**
-     * @return array{domain: string, locale: string}
+     * Resolves the translation domain (interactive pick when missing in interactive mode).
+     *
+     * @throws InvalidArgumentException when the domain is unknown
+     * @throws RuntimeException         when no domains exist or non-interactive without a domain
      */
-    protected function resolveDomainAndLocale(
+    protected function resolveDomain(
         InputInterface $input,
         OutputInterface $output,
         ?string $domainOption,
-        ?string $localeOption,
-    ): array {
+    ): string {
         $domains = $this->catalog->listDomains();
         if ($domains === []) {
             throw new RuntimeException('No translation YAML files found. Check translator paths (translator.default_path, framework.translator.paths) and that files match domain.locale.yaml.');
@@ -50,6 +53,19 @@ abstract class AbstractTranslationYamlCommand extends Command
             throw new InvalidArgumentException(sprintf('Unknown domain "%s". Available: %s', $domain, implode(', ', $domains)));
         }
 
+        return $domain;
+    }
+
+    /**
+     * @return array{domain: string, locale: string}
+     */
+    protected function resolveDomainAndLocale(
+        InputInterface $input,
+        OutputInterface $output,
+        ?string $domainOption,
+        ?string $localeOption,
+    ): array {
+        $domain  = $this->resolveDomain($input, $output, $domainOption);
         $locales = $this->catalog->listLocalesForDomain($domain);
         if ($locales === []) {
             throw new RuntimeException(sprintf('No locale files found for domain "%s".', $domain));
@@ -63,6 +79,62 @@ abstract class AbstractTranslationYamlCommand extends Command
         }
 
         return ['domain' => $domain, 'locale' => $locale];
+    }
+
+    /**
+     * Resolves locales from --locale or, when omitted, every locale known for the domain.
+     *
+     * @return list<string>
+     */
+    protected function resolveLocalesForDomainOption(InputInterface $input, string $domain): array
+    {
+        $localesForDomain = $this->catalog->listLocalesForDomain($domain);
+        if ($localesForDomain === []) {
+            throw new RuntimeException(sprintf('No locale files found for domain "%s".', $domain));
+        }
+
+        $localeOpt = $input->getOption('locale');
+        if ($localeOpt !== null && $localeOpt !== false && $localeOpt !== '') {
+            $locale = (string) $localeOpt;
+            if (!in_array($locale, $localesForDomain, true)) {
+                throw new InvalidArgumentException(sprintf(
+                    'Unknown locale "%s" for domain "%s". Available: %s',
+                    $locale,
+                    $domain,
+                    implode(', ', $localesForDomain),
+                ));
+            }
+
+            return [$locale];
+        }
+
+        return $localesForDomain;
+    }
+
+    /**
+     * Prints which locales will be processed when --locale was not passed.
+     *
+     * @param list<string> $localesToProcess
+     */
+    protected function printLocalesBannerWhenOmittingLocaleOption(
+        InputInterface $input,
+        OutputInterface $output,
+        string $domain,
+        array $localesToProcess,
+        string $actionDescription,
+    ): void {
+        $localeOpt = $input->getOption('locale');
+        if ($localeOpt !== null && $localeOpt !== false && $localeOpt !== '') {
+            return;
+        }
+
+        $output->writeln(sprintf(
+            '<info>Locales for domain "%s" (no --locale; %s):</info> %s',
+            $domain,
+            $actionDescription,
+            implode(', ', $localesToProcess),
+        ));
+        $output->writeln('');
     }
 
     protected function printConfiguredPaths(OutputInterface $output): void
@@ -90,6 +162,6 @@ abstract class AbstractTranslationYamlCommand extends Command
             return (string) $helper->ask($input, $output, $question);
         }
 
-        throw new RuntimeException('Non-interactive mode requires both --domain and --locale (use --no-interaction only with explicit options).');
+        throw new RuntimeException('Non-interactive mode requires explicit options (e.g. --domain; --locale is optional and limits to one file).');
     }
 }

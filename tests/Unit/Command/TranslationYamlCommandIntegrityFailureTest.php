@@ -139,6 +139,7 @@ final class TranslationYamlCommandIntegrityFailureTest extends TestCase
             $analyzer,
             $fileHandler,
             4,
+            'index',
         );
 
         $input = new ArrayInput(['--domain' => 'messages', '--locale' => 'en']);

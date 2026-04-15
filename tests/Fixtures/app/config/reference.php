@@ -693,6 +693,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  * @psalm-type NowoTranslationYamlToolsConfig = array{
  *     default_locale?: scalar|Param|null, // Override default source locale; null uses translator.default_locale if defined, else kernel.default_locale, else en (Symfony 8 may only expose kernel.default_locale) // Default: null
  *     yaml_tree_indent?: int|Param, // Spaces per indentation level when dumping nested YAML // Default: 4
+ *     yaml_tree_leaf_prefix_suffix?: scalar|Param|null, // Final segment appended to a conflicting leaf when using nowo:translation-yaml:tree --fix-leaf-prefix (e.g. "index" renames key "a" to "a.index") // Default: "index"
  *     machine_translator?: "google"|"deepl"|"libretranslate"|Param, // Machine translation backend used by nowo:translation-yaml:fill-missing // Default: "google"
  *     deepl_endpoint?: scalar|Param|null, // DeepL translate URL. Use https://api-free.deepl.com/v2/translate with a Free-plan auth key. // Default: "https://api.deepl.com/v2/translate"
  *     libretranslate_base_url?: scalar|Param|null, // LibreTranslate server origin (no trailing path). Public demo is rate-limited; self-host for production. // Default: "https://libretranslate.com"

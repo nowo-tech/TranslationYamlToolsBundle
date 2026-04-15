@@ -7,7 +7,7 @@
 [![PHP](https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php)](https://php.net)
 [![Symfony](https://img.shields.io/badge/Symfony-6%20%7C%207%20%7C%208-000000?logo=symfony)](https://symfony.com)
 [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/translation-yaml-tools-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/TranslationYamlToolsBundle)
-[![Coverage](https://img.shields.io/badge/Coverage-report-lightgrey)](#tests-and-coverage)
+[![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** Install from [Packagist](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) and consider starring [the repository](https://github.com/nowo-tech/TranslationYamlToolsBundle).
 
@@ -16,13 +16,13 @@ Symfony developer tools for **YAML translation files**: discover configured tran
 ## Features
 
 - Resolves translation paths from **`translator.default_path`** and from **`config/packages/**/translation.yaml`** (`framework.translator.default_path` and `paths`).
-- **Interactive** console flow (arrow keys) to pick **domain** and **locale**, with non-interactive `--domain` / `--locale` flags.
-- **`nowo:translation-yaml:tree`** — validates that dot-keys can be represented as a tree; on failure prints the conflicting prefix.
+- **Interactive** console flow (arrow keys) to pick **domain**; for **`tree`**, **`flatten`**, and **`sort`**, **`--locale` is optional** (omit to process every locale for that domain). Non-interactive: **`--domain`** alone runs all locales; **`--locale`** limits to one file. Other commands (e.g. **`fill-missing`**) keep their own locale / target options.
+- **`nowo:translation-yaml:tree`** — validates that dot-keys can be represented as a nested tree; on failure prints the conflicting prefix. Optional **`--fix-leaf-prefix`** renames blocking leaves (suffix configurable via **`yaml_tree_leaf_prefix_suffix`**, default **`index`**).
 - **`nowo:translation-yaml:flatten`** — writes a one-level map with dot-separated keys (inverse of the tree layout).
 - **`nowo:translation-yaml:sort`** — recursive alphabetical sort of associative keys.
 - **`nowo:translation-yaml:fill-missing`** — merges missing keys into a target locale using the configured machine translator (Google, DeepL, or LibreTranslate); optional `--tree` output with the same validation as the tree command.
 - **`nowo:translation-yaml:audit`** — read-only report: tree-safe YAML, alphabetical key order, missing keys vs source locale; compact **OK** line per domain when everything passes.
-- Configurable **YAML indent** (`yaml_tree_indent`) for dumps.
+- Configurable **YAML indent** (`yaml_tree_indent`) and **leaf-prefix suffix** (`yaml_tree_leaf_prefix_suffix` for `tree --fix-leaf-prefix`) for dumps / renames.
 
 ## Requirements
 
@@ -68,7 +68,7 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 
 ## Tests and coverage
 
-- **PHP:** run `make test-coverage` and read the final `Global PHP coverage (Lines): …` line in the output (releases **0.3.3+** aim for **100%** line coverage on `src/`).
+- **PHP:** run `make test-coverage` and read the final `Global PHP coverage (Lines): …` line in the output (releases **0.3.3+** aim for **100%** line coverage on `src/`; see **`docs/CHANGELOG.md`** for **0.3.4** command and config additions).
 - **TS/JS:** N/A
 - **Python:** N/A
 

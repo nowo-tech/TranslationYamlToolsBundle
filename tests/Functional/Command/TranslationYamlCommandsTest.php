@@ -70,7 +70,7 @@ final class TranslationYamlCommandsTest extends TestCase
         return ['paths' => $paths, 'catalog' => $catalog, 'bag' => $bag];
     }
 
-    private function treeCommand(array $deps, int $indent = 4): TranslationYamlTreeCommand
+    private function treeCommand(array $deps, int $indent = 4, string $leafPrefixSuffix = 'index'): TranslationYamlTreeCommand
     {
         return new TranslationYamlTreeCommand(
             $deps['catalog'],
@@ -78,6 +78,7 @@ final class TranslationYamlCommandsTest extends TestCase
             new DotKeyTreeAnalyzer(),
             new TranslationYamlFileHandler(),
             $indent,
+            $leafPrefixSuffix,
         );
     }
 
@@ -181,6 +182,30 @@ final class TranslationYamlCommandsTest extends TestCase
         self::assertStringContainsString('Cannot convert to tree', $tester->getDisplay());
     }
 
+    public function testTreeCommandFixLeafPrefixResolvesConflictAndWritesNestedYaml(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_tree_fix_' . uniqid();
+        $deps    = $this->createDeps($project, [
+            'messages.en.yaml' => Yaml::dump(['a' => 'leaf', 'a.b' => 'nested'], 2, 4),
+        ]);
+        $path = $project . '/translations/messages.en.yaml';
+        $cmd  = $this->treeCommand($deps, 4, 'idx');
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+        $exit   = $tester->execute([
+            '--domain'         => 'messages',
+            '--locale'         => 'en',
+            '--fix-leaf-prefix' => true,
+            '--leaf-prefix-suffix' => 'idx',
+        ]);
+        self::assertSame(0, $exit);
+        self::assertStringContainsString('Renamed leaf key "a" → "a.idx"', $tester->getDisplay());
+        $loaded = Yaml::parseFile($path);
+        self::assertIsArray($loaded);
+        self::assertSame('leaf', $loaded['a']['idx'] ?? null);
+        self::assertSame('nested', $loaded['a']['b'] ?? null);
+    }
+
     public function testTreeCommandFailsWhenFileMissing(): void
     {
         $project = sys_get_temp_dir() . '/tyt_cmd_tree_m_' . uniqid();
@@ -197,6 +222,7 @@ final class TranslationYamlCommandsTest extends TestCase
             new DotKeyTreeAnalyzer(),
             new TranslationYamlFileHandler(),
             4,
+            'index',
         );
         $this->bind($cmd);
         $tester = new CommandTester($cmd);
@@ -238,9 +264,28 @@ final class TranslationYamlCommandsTest extends TestCase
         $cmd = $this->treeCommand($deps);
         $this->bind($cmd);
         $tester = new CommandTester($cmd);
-        $tester->setInputs(['messages', 'en']);
+        $tester->setInputs(['messages']);
         $exit = $tester->execute(['--dry-run' => true], ['interactive' => true]);
         self::assertSame(0, $exit);
+    }
+
+    public function testTreeCommandProcessesAllLocalesWhenLocaleOmitted(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_tree_all_' . uniqid();
+        $deps    = $this->createDeps($project, [
+            'messages.en.yaml' => Yaml::dump(['app.title' => 'Hi', 'app.body' => 'There'], 2, 4),
+            'messages.fr.yaml' => Yaml::dump(['app.title' => 'Salut', 'app.body' => 'Là'], 2, 4),
+        ]);
+        $enPath = $project . '/translations/messages.en.yaml';
+        $frPath = $project . '/translations/messages.fr.yaml';
+        $cmd    = $this->treeCommand($deps);
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+        $exit   = $tester->execute(['--domain' => 'messages'], ['interactive' => false]);
+        self::assertSame(0, $exit);
+        self::assertStringContainsString('converting all', $tester->getDisplay());
+        self::assertSame('Hi', Yaml::parseFile($enPath)['app']['title'] ?? null);
+        self::assertSame('Salut', Yaml::parseFile($frPath)['app']['title'] ?? null);
     }
 
     public function testAbstractFailsWhenNoLocalesForDomain(): void
@@ -256,6 +301,7 @@ final class TranslationYamlCommandsTest extends TestCase
             new DotKeyTreeAnalyzer(),
             new TranslationYamlFileHandler(),
             4,
+            'index',
         );
         $this->bind($cmd);
         $tester = new CommandTester($cmd);
@@ -291,6 +337,25 @@ final class TranslationYamlCommandsTest extends TestCase
         ]);
         self::assertSame(0, $exit);
         self::assertStringContainsString('Dry-run', $tester->getDisplay());
+    }
+
+    public function testSortCommandProcessesAllLocalesWhenLocaleOmitted(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_sort_all_' . uniqid();
+        $deps    = $this->createDeps($project, [
+            'messages.en.yaml' => Yaml::dump(['z' => 1, 'a' => 2], 2, 4),
+            'messages.fr.yaml' => Yaml::dump(['m' => 1, 'b' => 2], 2, 4),
+        ]);
+        $enPath = $project . '/translations/messages.en.yaml';
+        $frPath = $project . '/translations/messages.fr.yaml';
+        $cmd    = $this->sortCommand($deps);
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+        $exit   = $tester->execute(['--domain' => 'messages'], ['interactive' => false]);
+        self::assertSame(0, $exit);
+        self::assertStringContainsString('sorting all', $tester->getDisplay());
+        self::assertSame(['a', 'z'], array_keys(Yaml::parseFile($enPath)));
+        self::assertSame(['b', 'm'], array_keys(Yaml::parseFile($frPath)));
     }
 
     public function testSortCommandUnknownLocale(): void
@@ -405,6 +470,31 @@ final class TranslationYamlCommandsTest extends TestCase
         self::assertSame(0, $exit);
         self::assertStringContainsString('Dry-run', $tester->getDisplay());
         self::assertStringContainsString('flat dot keys', $tester->getDisplay());
+    }
+
+    public function testFlattenCommandProcessesAllLocalesWhenLocaleOmitted(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_flat_all_' . uniqid();
+        $deps    = $this->createDeps($project, [
+            'messages.en.yaml' => Yaml::dump(['app' => ['z' => 1, 'a' => 2]], 2, 4),
+            'messages.fr.yaml' => Yaml::dump(['app' => ['m' => 1, 'b' => 2]], 2, 4),
+        ]);
+        $enPath = $project . '/translations/messages.en.yaml';
+        $frPath = $project . '/translations/messages.fr.yaml';
+        $cmd    = $this->flattenCommand($deps);
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+        $exit   = $tester->execute(['--domain' => 'messages'], ['interactive' => false]);
+        self::assertSame(0, $exit);
+        self::assertStringContainsString('flattening all', $tester->getDisplay());
+        $enFlat = Yaml::parseFile($enPath);
+        self::assertIsArray($enFlat);
+        self::assertArrayHasKey('app.a', $enFlat);
+        self::assertArrayHasKey('app.z', $enFlat);
+        $frFlat = Yaml::parseFile($frPath);
+        self::assertIsArray($frFlat);
+        self::assertArrayHasKey('app.b', $frFlat);
+        self::assertArrayHasKey('app.m', $frFlat);
     }
 
     public function testFlattenCommandWritesDotKeysAtRootFromNested(): void

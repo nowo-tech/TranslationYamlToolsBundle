@@ -6,6 +6,7 @@
 |--------|------|---------|-------------|
 | `default_locale` | `string\|null` | `null` | When set, used as the default **source** locale for `fill-missing`. When `null`, the bundle uses Symfony parameter **`translator.default_locale`** if defined, then **`kernel.default_locale`**, then **`en`**. On some Symfony versions (e.g. **8.x**), only **`kernel.default_locale`** may be available. |
 | `yaml_tree_indent` | `int` | `4` | Spaces per indentation level when writing nested YAML (`tree`, `sort`, `fill-missing`). Allowed range: 2–12. |
+| `yaml_tree_leaf_prefix_suffix` | `string` | `index` | Final segment appended to a conflicting leaf when using **`nowo:translation-yaml:tree --fix-leaf-prefix`** (e.g. key `a` becomes `a.index`). Single segment: `[a-zA-Z0-9_-]+`, no dots. |
 | `machine_translator` | `string` | `google` | **Default** backend for `fill-missing` when `machine_translator_by_locale` does not match: `google`, `deepl`, or `libretranslate`. |
 | `machine_translator_by_locale` | `array<string, string>` | `{}` | Override the backend **per Symfony locale** (`google`, `deepl`, or `libretranslate`). The **target** locale is checked first, then the **source** locale, then `machine_translator`. Keys match like `machine_translation_locale_map` (`pt_BR` ≡ `pt-br`). |
 | `deepl_endpoint` | `string` | `https://api.deepl.com/v2/translate` | DeepL translate URL. Use `https://api-free.deepl.com/v2/translate` if your key is on the **Free** plan. |
@@ -28,6 +29,7 @@ Example:
 nowo_translation_yaml_tools:
     default_locale: null
     yaml_tree_indent: 4
+    yaml_tree_leaf_prefix_suffix: index
     machine_translator: google
     deepl_endpoint: 'https://api.deepl.com/v2/translate'
     libretranslate_base_url: 'https://libretranslate.com'
