@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **`MissingTranslationLog`:** nullable columns **`request_route`**, **`request_method`**, **`request_path`** for HTTP context when **`record_request_context`** is **`true`** (default). **`MissingTranslationRecordContext`** + **`MissingTranslationLogCallSiteBuilder::buildContext()`** supply values for the decorator / recorder.
+
+### Changed
+
+- **`TranslationCallSiteResolver`:** skips **`MissingTranslationLogCallSiteBuilder`** so **`call_site`** points at the real caller (not the builder frame).
+- **`call_site`** stores only the **backtrace** segment (**`file:line`**); route / method / path are no longer concatenated into that column.
+- **`MissingTranslationLogCallSiteBuilder`** is no longer declared **`final`** so PHPUnit can generate test doubles for **`RecordingTranslatorDecorator`** tests.
+- **`MissingTranslationRecorderInterface::record()`** adds optional **`$requestRoute`**, **`$requestMethod`**, **`$requestPath`** parameters (implementations and async buffer payloads must align).
+- **`persistBuffer`** **`INSERT`/`UPDATE`** includes the new columns when present in the buffer snapshot.
+
+### Documentation
+
+- **[USAGE](USAGE.md)** / **[CONFIGURATION](CONFIGURATION.md)** / **[UPGRADING](UPGRADING.md):** request context columns and schema note.
+
 ## [0.3.4] - 2026-04-16
 
 ### Added

@@ -77,6 +77,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $missingLog = $config['missing_translation_log'];
         $tablePrefix          = 'nowo_translation_';
         $recordCallSite       = true;
+        $recordRequestContext = true;
         $asyncPersist         = false;
         $asyncPersistStrategy = 'messenger';
         $webUiEnabled         = false;
@@ -86,6 +87,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $missingLogEnabled    = (bool) ($missingLog['enabled'] ?? false);
         $tablePrefix          = (string) ($missingLog['table_prefix'] ?? $tablePrefix);
         $recordCallSite       = (bool) ($missingLog['record_call_site'] ?? true);
+        $recordRequestContext = (bool) ($missingLog['record_request_context'] ?? true);
         $asyncPersist         = (bool) ($missingLog['async_persist'] ?? false);
         $asyncPersistStrategy = (string) ($missingLog['async_persist_strategy'] ?? 'messenger');
         $webUi                = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
@@ -96,6 +98,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.enabled', $missingLogEnabled);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.table_prefix', $tablePrefix);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.record_call_site', $recordCallSite);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.record_request_context', $recordRequestContext);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.async_persist', $asyncPersist);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.async_persist_strategy', $asyncPersistStrategy);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled', $webUiEnabled);

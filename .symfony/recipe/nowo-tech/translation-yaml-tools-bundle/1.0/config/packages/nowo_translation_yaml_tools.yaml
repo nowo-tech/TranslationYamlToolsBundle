@@ -4,6 +4,7 @@
 nowo_translation_yaml_tools:
     # default_locale: null   # null = use Symfony translator.default_locale
     yaml_tree_indent: 4
+    yaml_tree_leaf_prefix_suffix: index   # final segment for tree --fix-leaf-prefix (e.g. key a -> a.index)
     machine_translator: google
     # machine_translation_locale_map:
     #     pt_BR: pt-br   # optional: Symfony locale => exact API language code for fill-missing
@@ -13,6 +14,7 @@ nowo_translation_yaml_tools:
     #     enabled: true   # optional: Doctrine table for runtime missing keys (requires doctrine/orm + doctrine-bundle)
     #     table_prefix: nowo_translation_   # table name = prefix + "missing_log"
     #     record_call_site: true   # store caller file:line in call_site (debug_backtrace); false = less overhead
+    #     record_request_context: true   # persist request_route, request_method, request_path when an HTTP Request exists; false = privacy
     #     async_persist: false     # true: delegate flush (see async_persist_strategy)
     #     async_persist_strategy: messenger   # messenger | event_dispatcher (no Messenger; use MissingTranslationBufferEvent + optional stopPropagation)
     #     web_ui:

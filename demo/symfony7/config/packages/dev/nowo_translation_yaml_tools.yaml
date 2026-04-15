@@ -4,6 +4,7 @@ nowo_translation_yaml_tools:
         enabled: true
         table_prefix: demo_translation_
         record_call_site: true
+        record_request_context: true # default; persists request_route, request_method, request_path (schema: doctrine:schema:update)
         async_persist: true
         async_persist_strategy: event_dispatcher
         web_ui:

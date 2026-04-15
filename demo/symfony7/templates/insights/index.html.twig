@@ -100,7 +100,13 @@
 <section>
     <h2>Missing translation log (dev)</h2>
     <p>Runtime missing keys are recorded in SQLite (<code>demo_translation_missing_log</code>) with <strong>async_persist</strong> + <strong>event_dispatcher</strong> (no Messenger). After loading this page, open the UI or run <code>nowo:translation-yaml:missing-log-list</code>.</p>
-    <p><strong>Probe</strong> (key absent from YAML — shows as missing id in UI): <code>{{ 'nowo_demo.missing_log_probe'|trans({}, 'messages') }}</code></p>
+    <p><strong>Probes</strong> (ids intentionally absent from YAML — inspect the Web UI or SQLite: <code>call_site</code> is the backtrace <strong>file:line</strong> only; <code>request_route</code>, <code>request_method</code>, and <code>request_path</code> hold the HTTP context when <code>record_request_context</code> is on, which it is by default in this demo):</p>
+    <ul class="compact">
+        <li><strong>Twig <code>|trans</code> (this template):</strong> <code>{{ 'nowo_demo.missing_log_probe'|trans({}, 'messages') }}</code> — often <code>call_site</code> is under <code>var/cache/.../twig/*.php</code>, not this <code>.twig</code> line.</li>
+        <li><strong>Twig <code>|trans</code> (second key):</strong> <code>{{ 'nowo_demo.missing_from_twig_filter'|trans({}, 'messages') }}</code></li>
+        <li><strong>PHP controller</strong> (same request, before render): <code>nowo_demo.missing_from_controller</code> — <code>call_site</code> should point at <code>TranslationInsightsController.php</code>; the request columns should match this page's route and path.</li>
+    </ul>
+    <p>See <a href="https://github.com/nowo-tech/TranslationYamlToolsBundle/blob/main/docs/USAGE.md#missing-translation-log-coverage-and-call_site">docs/USAGE.md — coverage and call_site</a> for what the log can and cannot capture.</p>
     <p><a href="{{ path('nowo_translation_yaml_tools_missing_log_index') }}">Missing-log Web UI</a> (<code>/_demo/translation-yaml-tools/missing-log</code>)</p>
 </section>
 {% endif %}

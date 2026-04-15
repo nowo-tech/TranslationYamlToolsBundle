@@ -46,7 +46,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
     }
 
     /**
-     * @param array<string, array{hits: int, messageId: string, domain: string, locale: string, callSite?: ?string}> $buffer keyed by stable hash
+     * @param array<string, array{hits: int, messageId: string, domain: string, locale: string, callSite?: ?string, requestRoute?: ?string, requestMethod?: ?string, requestPath?: ?string}> $buffer keyed by stable hash
      */
     public function persistBuffer(array $buffer): void
     {
@@ -71,6 +71,9 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $cStatusChangedAt = $meta->getColumnName('statusChangedAt');
         $cNotes           = $meta->getColumnName('notes');
         $cCallSite        = $meta->getColumnName('callSite');
+        $cRequestRoute    = $meta->getColumnName('requestRoute');
+        $cRequestMethod   = $meta->getColumnName('requestMethod');
+        $cRequestPath     = $meta->getColumnName('requestPath');
 
         $qMessageId       = $connection->quoteIdentifier($cMessageId);
         $qDomain          = $connection->quoteIdentifier($cDomain);
@@ -78,14 +81,20 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $qHitCount        = $connection->quoteIdentifier($cHitCount);
         $qLastSeenAt      = $connection->quoteIdentifier($cLastSeenAt);
         $qCallSite        = $connection->quoteIdentifier($cCallSite);
+        $qRequestRoute    = $connection->quoteIdentifier($cRequestRoute);
+        $qRequestMethod   = $connection->quoteIdentifier($cRequestMethod);
+        $qRequestPath     = $connection->quoteIdentifier($cRequestPath);
 
         foreach ($buffer as $row) {
-            $messageId = $row['messageId'];
-            $domain    = $row['domain'];
-            $locale    = $row['locale'];
-            $hits      = $row['hits'];
-            $callSite  = $this->normalizeCallSite($row['callSite'] ?? null);
-            $seenAt    = $now->format('Y-m-d H:i:s');
+            $messageId     = $row['messageId'];
+            $domain        = $row['domain'];
+            $locale        = $row['locale'];
+            $hits          = $row['hits'];
+            $callSite      = $this->normalizeCallSite($row['callSite'] ?? null);
+            $requestRoute  = $this->normalizeRequestRoute($row['requestRoute'] ?? null);
+            $requestMethod = $this->normalizeRequestMethod($row['requestMethod'] ?? null);
+            $requestPath   = $this->normalizeRequestPath($row['requestPath'] ?? null);
+            $seenAt        = $now->format('Y-m-d H:i:s');
 
             try {
                 $connection->insert($tableName, [
@@ -99,6 +108,9 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
                     $cStatusChangedAt => null,
                     $cNotes           => null,
                     $cCallSite        => $callSite,
+                    $cRequestRoute    => $requestRoute,
+                    $cRequestMethod   => $requestMethod,
+                    $cRequestPath     => $requestPath,
                 ], [
                     $cMessageId       => ParameterType::STRING,
                     $cDomain          => ParameterType::STRING,
@@ -110,6 +122,9 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
                     $cStatusChangedAt => ParameterType::NULL,
                     $cNotes           => ParameterType::NULL,
                     $cCallSite        => $callSite === null ? ParameterType::NULL : ParameterType::STRING,
+                    $cRequestRoute    => $requestRoute === null ? ParameterType::NULL : ParameterType::STRING,
+                    $cRequestMethod   => $requestMethod === null ? ParameterType::NULL : ParameterType::STRING,
+                    $cRequestPath     => $requestPath === null ? ParameterType::NULL : ParameterType::STRING,
                 ]);
             } catch (UniqueConstraintViolationException) {
                 $sql    = "UPDATE {$qTableName} SET {$qHitCount} = {$qHitCount} + :hits, {$qLastSeenAt} = :lastSeenAt";
@@ -133,6 +148,21 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
                     $params['callSite'] = $callSite;
                     $types['callSite']  = ParameterType::STRING;
                 }
+                if ($requestRoute !== null) {
+                    $sql .= ", {$qRequestRoute} = :requestRoute";
+                    $params['requestRoute'] = $requestRoute;
+                    $types['requestRoute']  = ParameterType::STRING;
+                }
+                if ($requestMethod !== null) {
+                    $sql .= ", {$qRequestMethod} = :requestMethod";
+                    $params['requestMethod'] = $requestMethod;
+                    $types['requestMethod']  = ParameterType::STRING;
+                }
+                if ($requestPath !== null) {
+                    $sql .= ", {$qRequestPath} = :requestPath";
+                    $params['requestPath'] = $requestPath;
+                    $types['requestPath']  = ParameterType::STRING;
+                }
 
                 $sql .= " WHERE {$qMessageId} = :messageId AND {$qDomain} = :domain AND {$qLocale} = :locale";
                 $connection->executeStatement($sql, $params, $types);
@@ -147,5 +177,32 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         }
 
         return strlen($callSite) <= 1024 ? $callSite : substr($callSite, 0, 1021) . '...';
+    }
+
+    private function normalizeRequestRoute(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return strlen($value) <= 180 ? $value : substr($value, 0, 177) . '...';
+    }
+
+    private function normalizeRequestMethod(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return strlen($value) <= 8 ? $value : substr($value, 0, 8);
+    }
+
+    private function normalizeRequestPath(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return strlen($value) <= 2048 ? $value : substr($value, 0, 2045) . '...';
     }
 }

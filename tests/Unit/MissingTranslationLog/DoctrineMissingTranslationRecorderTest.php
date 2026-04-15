@@ -135,4 +135,43 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
         $recorder->record('k', 'messages', 'en', '/src/Foo.php:10');
         $recorder->flushBuffer();
     }
+
+    public function testRecordStoresRequestContextWhenNonEmpty(): void
+    {
+        $repository = $this->createMock(MissingTranslationLogRepository::class);
+        $repository->expects(self::once())->method('persistBuffer')->with(self::callback(static function (array $buffer): bool {
+            foreach ($buffer as $row) {
+                if (($row['requestRoute'] ?? null) === 'app_home'
+                    && ($row['requestMethod'] ?? null) === 'GET'
+                    && ($row['requestPath'] ?? null) === '/x') {
+                    return true;
+                }
+            }
+
+            return false;
+        }));
+
+        $recorder = new DoctrineMissingTranslationRecorder($repository);
+        $recorder->record('k', 'messages', 'en', null, 'app_home', 'GET', '/x');
+        $recorder->flushBuffer();
+    }
+
+    public function testFlushSnapshotRowsIncludeRequestBufferKeys(): void
+    {
+        $repository = $this->createMock(MissingTranslationLogRepository::class);
+        $repository->expects(self::once())->method('persistBuffer')->with(self::callback(static function (array $buffer): bool {
+            foreach ($buffer as $row) {
+                return array_key_exists('callSite', $row)
+                    && array_key_exists('requestRoute', $row)
+                    && array_key_exists('requestMethod', $row)
+                    && array_key_exists('requestPath', $row);
+            }
+
+            return false;
+        }));
+
+        $recorder = new DoctrineMissingTranslationRecorder($repository);
+        $recorder->record('k', 'messages', 'en');
+        $recorder->flushBuffer();
+    }
 }

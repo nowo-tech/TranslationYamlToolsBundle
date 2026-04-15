@@ -8,7 +8,7 @@ namespace Nowo\TranslationYamlToolsBundle\MissingTranslationLog;
 final class MissingTranslationBufferMessage
 {
     /**
-     * @param array<string, array{hits: int, messageId: string, domain: string, locale: string, callSite: ?string}> $buffer
+     * @param array<string, array{hits: int, messageId: string, domain: string, locale: string, callSite: ?string, requestRoute: ?string, requestMethod: ?string, requestPath: ?string}> $buffer
      */
     public function __construct(
         public readonly array $buffer,

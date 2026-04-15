@@ -4,6 +4,12 @@
 
 This line is **0.3.x** (after **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
 
+## To 0.3.5 (from 0.3.4)
+
+- **Database:** when **`missing_translation_log.enabled`** is **`true`**, run a migration or **`doctrine:schema:update`** so table **`{table_prefix}missing_log`** gains **`request_route`**, **`request_method`**, and **`request_path`** (nullable strings). Existing rows keep whatever **`call_site`** already contained; new hits store backtrace only in **`call_site`** and HTTP data in the new columns.
+- **PHP:** if you implement **`MissingTranslationRecorderInterface`** yourself, extend **`record()`** with the three new optional parameters (same defaults as the bundle’s **`DoctrineMissingTranslationRecorder`**).
+- **`MissingTranslationBufferMessage` / `MissingTranslationBufferEvent`:** buffered rows include **`requestRoute`**, **`requestMethod`**, and **`requestPath`** keys when async persist is used.
+
 ## To 0.3.4 (from 0.3.3)
 
 - **No breaking changes.** Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.4**).

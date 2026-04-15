@@ -90,6 +90,7 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         self::assertFalse($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.enabled'));
         self::assertSame('nowo_translation_', $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.table_prefix'));
         self::assertTrue($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.record_call_site'));
+        self::assertTrue($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.record_request_context'));
         self::assertFalse($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.async_persist'));
         self::assertSame('messenger', $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.async_persist_strategy'));
         self::assertFalse($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled'));

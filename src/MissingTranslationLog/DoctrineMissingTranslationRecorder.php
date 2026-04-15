@@ -16,7 +16,7 @@ use Symfony\Contracts\Service\ResetInterface;
 final class DoctrineMissingTranslationRecorder implements MissingTranslationRecorderInterface, ResetInterface
 {
     /**
-     * @var array<string, array{hits: int, messageId: string, domain: string, locale: string, callSite: ?string}>
+     * @var array<string, array{hits: int, messageId: string, domain: string, locale: string, callSite: ?string, requestRoute: ?string, requestMethod: ?string, requestPath: ?string}>
      */
     private array $buffer = [];
 
@@ -35,8 +35,15 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
     /**
      * {@inheritdoc}
      */
-    public function record(string $id, string $domain, string $locale, ?string $callSite = null): void
-    {
+    public function record(
+        string $id,
+        string $domain,
+        string $locale,
+        ?string $callSite = null,
+        ?string $requestRoute = null,
+        ?string $requestMethod = null,
+        ?string $requestPath = null,
+    ): void {
         if ($locale === '') {
             return;
         }
@@ -45,16 +52,28 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
 
         if (!isset($this->buffer[$key])) {
             $this->buffer[$key] = [
-                'hits'      => 0,
-                'messageId' => $id,
-                'domain'    => $domain,
-                'locale'    => $locale,
-                'callSite'  => null,
+                'hits'           => 0,
+                'messageId'      => $id,
+                'domain'         => $domain,
+                'locale'         => $locale,
+                'callSite'       => null,
+                'requestRoute'   => null,
+                'requestMethod'  => null,
+                'requestPath'    => null,
             ];
         }
 
         if ($callSite !== null && $callSite !== '') {
             $this->buffer[$key]['callSite'] = $callSite;
+        }
+        if ($requestRoute !== null && $requestRoute !== '') {
+            $this->buffer[$key]['requestRoute'] = $requestRoute;
+        }
+        if ($requestMethod !== null && $requestMethod !== '') {
+            $this->buffer[$key]['requestMethod'] = $requestMethod;
+        }
+        if ($requestPath !== null && $requestPath !== '') {
+            $this->buffer[$key]['requestPath'] = $requestPath;
         }
 
         ++$this->buffer[$key]['hits'];

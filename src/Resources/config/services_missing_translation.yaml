@@ -20,12 +20,15 @@ services:
             $asyncPersistStrategy: '%nowo_translation_yaml_tools.missing_translation_log.async_persist_strategy%'
             $eventDispatcher: '@?event_dispatcher'
 
+    Nowo\TranslationYamlToolsBundle\Translation\MissingTranslationLogCallSiteBuilder: ~
+
     Nowo\TranslationYamlToolsBundle\Translation\RecordingTranslatorDecorator:
         decorates: translator
         arguments:
             $inner: '@.inner'
             $recorder: '@Nowo\TranslationYamlToolsBundle\MissingTranslationLog\DoctrineMissingTranslationRecorder'
             $recordCallSite: '%nowo_translation_yaml_tools.missing_translation_log.record_call_site%'
+            $recordRequestContext: '%nowo_translation_yaml_tools.missing_translation_log.record_request_context%'
         decoration_priority: 20
 
     Nowo\TranslationYamlToolsBundle\Command\MissingTranslationLog\:

@@ -704,6 +704,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         enabled?: bool|Param, // Default: false
  *         table_prefix?: scalar|Param|null, // Physical table name = prefix + "missing_log" (e.g. nowo_translation_ → nowo_translation_missing_log). Allowed: lowercase letters, digits, underscore; max 40 chars. // Default: "nowo_translation_"
  *         record_call_site?: bool|Param, // When true, store the first plausible caller file:line (debug_backtrace) per row; updates on new hits when a path is resolved. Disable to reduce overhead. // Default: true
+ *         record_request_context?: bool|Param, // When true and an HTTP Request exists, persist request_route, request_method, and request_path on the missing_log row (CLI has none). Disable for privacy or shorter rows. // Default: true
  *         async_persist?: bool|Param, // When true, flush delegates persistence (see async_persist_strategy) instead of calling Doctrine immediately in the recorder. With strategy messenger, requires symfony/messenger and a default bus. With event_dispatcher, uses the app event_dispatcher and optional builtin listener. // Default: false
  *         async_persist_strategy?: "messenger"|"event_dispatcher"|Param, // Used when async_persist is true. messenger: dispatch MissingTranslationBufferMessage. event_dispatcher: dispatch MissingTranslationBufferEvent; a builtin listener persists last unless stopPropagation() was called (e.g. you enqueue and persist in a worker). // Default: "messenger"
  *         web_ui?: array{

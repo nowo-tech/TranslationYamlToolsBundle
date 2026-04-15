@@ -22,6 +22,8 @@ final class RecordingTranslatorDecorator implements TranslatorInterface, Transla
         private TranslatorInterface $inner,
         private readonly MissingTranslationRecorderInterface $recorder,
         private readonly bool $recordCallSite = true,
+        private readonly bool $recordRequestContext = true,
+        private readonly MissingTranslationLogCallSiteBuilder $callSiteBuilder,
     ) {
         if (!$inner instanceof TranslatorBagInterface || !$inner instanceof LocaleAwareInterface) {
             throw new InvalidArgumentException(sprintf('The decorated translator must implement %s and %s.', TranslatorBagInterface::class, LocaleAwareInterface::class));
@@ -38,8 +40,16 @@ final class RecordingTranslatorDecorator implements TranslatorInterface, Transla
 
         $catalogue = $this->inner->getCatalogue($effectiveLocale);
         if (!$catalogue->defines($id, $domain)) {
-            $callSite = $this->recordCallSite ? TranslationCallSiteResolver::resolve() : null;
-            $this->recorder->record($id, $domain, $effectiveLocale, $callSite);
+            $ctx = $this->callSiteBuilder->buildContext($this->recordCallSite, $this->recordRequestContext);
+            $this->recorder->record(
+                $id,
+                $domain,
+                $effectiveLocale,
+                $ctx->callSite,
+                $ctx->requestRoute,
+                $ctx->requestMethod,
+                $ctx->requestPath,
+            );
         }
 
         return $this->inner->trans($id, $parameters, $domain, $locale);

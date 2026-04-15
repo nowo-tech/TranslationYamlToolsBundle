@@ -29,6 +29,20 @@ final class MissingTranslationLogEntityTest extends TestCase
         self::assertNull($e->getStatusChangedAt());
         self::assertNull($e->getNotes());
         self::assertSame('/app/Foo.php:10', $e->getCallSite());
+        self::assertNull($e->getRequestRoute());
+        self::assertNull($e->getRequestMethod());
+        self::assertNull($e->getRequestPath());
+    }
+
+    public function testConstructorWithRequestContext(): void
+    {
+        $at = new DateTimeImmutable('2026-01-01 12:00:00');
+        $e  = new MissingTranslationLog('mid', 'messages', 'es', $at, '/x.php:1', 'route_x', 'GET', '/home');
+
+        self::assertSame('/x.php:1', $e->getCallSite());
+        self::assertSame('route_x', $e->getRequestRoute());
+        self::assertSame('GET', $e->getRequestMethod());
+        self::assertSame('/home', $e->getRequestPath());
     }
 
     public function testRegisterAdditionalHitsSkipsWhenHitsBelowOne(): void
@@ -46,10 +60,13 @@ final class MissingTranslationLogEntityTest extends TestCase
         $t1 = new DateTimeImmutable('2026-01-03 15:00:00');
         $e  = new MissingTranslationLog('x', 'd', 'fr', $t0);
 
-        $e->registerAdditionalHits(2, $t1, '/other.php:2');
+        $e->registerAdditionalHits(2, $t1, '/other.php:2', 'api', 'PUT', '/u');
         self::assertSame(3, $e->getHitCount());
         self::assertSame($t1, $e->getLastSeenAt());
         self::assertSame('/other.php:2', $e->getCallSite());
+        self::assertSame('api', $e->getRequestRoute());
+        self::assertSame('PUT', $e->getRequestMethod());
+        self::assertSame('/u', $e->getRequestPath());
 
         $e->setStatus(MissingTranslationLogStatus::Added, $t1);
         self::assertSame(MissingTranslationLogStatus::Added, $e->getStatus());
@@ -68,5 +85,16 @@ final class MissingTranslationLogEntityTest extends TestCase
         $e    = new MissingTranslationLog('k', 'm', 'en', $at, $long);
         self::assertSame(1024, strlen((string) $e->getCallSite()));
         self::assertStringEndsWith('...', (string) $e->getCallSite());
+    }
+
+    public function testConstructorTruncatesLongRequestPath(): void
+    {
+        $longPath = '/' . str_repeat('q', 2100);
+        $at       = new DateTimeImmutable('2026-01-01 00:00:00');
+        $e        = new MissingTranslationLog('k', 'm', 'en', $at, null, null, null, $longPath);
+        $path     = $e->getRequestPath();
+        self::assertNotNull($path);
+        self::assertSame(2048, strlen($path));
+        self::assertStringEndsWith('...', $path);
     }
 }

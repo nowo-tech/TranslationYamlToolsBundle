@@ -2,6 +2,7 @@
 nowo_translation_yaml_tools:
     default_locale: null
     yaml_tree_indent: 4
+    yaml_tree_leaf_prefix_suffix: index
     machine_translator: google
     # Optional: machine_translation_locale_map: { pt_BR: pt-br }
     # Optional: machine_translator_by_locale: { pt_BR: libretranslate }

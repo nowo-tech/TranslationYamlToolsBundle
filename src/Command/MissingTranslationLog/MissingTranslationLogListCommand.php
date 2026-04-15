@@ -70,11 +70,17 @@ final class MissingTranslationLogListCommand extends Command
                 $row->getDomain(),
                 $row->getMessageId(),
                 $row->getCallSite() ?? '—',
+                $row->getRequestRoute() ?? '—',
+                $row->getRequestMethod() ?? '—',
+                $row->getRequestPath() ?? '—',
                 $row->getHitCount(),
                 $row->getLastSeenAt()->format(DateTimeInterface::ATOM),
             ];
         }
-        $io->table(['id', 'locale', 'domain', 'message_id', 'call_site', 'hits', 'last_seen'], $table);
+        $io->table(
+            ['id', 'locale', 'domain', 'message_id', 'call_site', 'request_route', 'request_method', 'request_path', 'hits', 'last_seen'],
+            $table,
+        );
 
         return Command::SUCCESS;
     }

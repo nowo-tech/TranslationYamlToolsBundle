@@ -56,6 +56,7 @@ final class TranslationCallSiteResolver
     {
         foreach ([
             'TranslationCallSiteResolver.php',
+            'MissingTranslationLogCallSiteBuilder.php',
             'RecordingTranslatorDecorator.php',
             'DoctrineMissingTranslationRecorder.php',
         ] as $base) {

@@ -116,4 +116,101 @@ final class MissingTranslationLogRepositoryTest extends TestCase
         self::assertSame(1024, strlen($site));
         self::assertStringEndsWith('...', $site);
     }
+
+    public function testPersistBufferInsertsRequestFieldsAndDuplicateUpdatesThem(): void
+    {
+        $repo = $this->createRepository();
+        $repo->persistBuffer([
+            'a' => [
+                'hits'           => 1,
+                'messageId'      => 'k1',
+                'domain'         => 'messages',
+                'locale'         => 'es',
+                'callSite'       => null,
+                'requestRoute'   => 'r1',
+                'requestMethod'  => 'POST',
+                'requestPath'    => '/a',
+            ],
+        ]);
+        $repo->getEntityManager()->clear();
+        $row = $repo->findByStatus(MissingTranslationLogStatus::Pending, 1)[0];
+        self::assertSame('r1', $row->getRequestRoute());
+        self::assertSame('POST', $row->getRequestMethod());
+        self::assertSame('/a', $row->getRequestPath());
+
+        $repo->persistBuffer([
+            'a' => [
+                'hits'           => 1,
+                'messageId'      => 'k1',
+                'domain'         => 'messages',
+                'locale'         => 'es',
+                'callSite'       => '/f.php:1',
+                'requestRoute'   => 'r2',
+                'requestMethod'  => 'PATCH',
+                'requestPath'    => '/b',
+            ],
+        ]);
+        $repo->getEntityManager()->clear();
+        $row2 = $repo->findByStatus(MissingTranslationLogStatus::Pending, 1)[0];
+        self::assertSame(2, $row2->getHitCount());
+        self::assertSame('/f.php:1', $row2->getCallSite());
+        self::assertSame('r2', $row2->getRequestRoute());
+        self::assertSame('PATCH', $row2->getRequestMethod());
+        self::assertSame('/b', $row2->getRequestPath());
+    }
+
+    public function testPersistBufferDuplicateWithoutRequestFieldsPreservesRequestContext(): void
+    {
+        $repo = $this->createRepository();
+        $repo->persistBuffer([
+            'a' => [
+                'hits'           => 1,
+                'messageId'      => 'k1',
+                'domain'         => 'messages',
+                'locale'         => 'es',
+                'callSite'       => null,
+                'requestRoute'   => 'keep_me',
+                'requestMethod'  => 'GET',
+                'requestPath'    => '/first',
+            ],
+        ]);
+        $repo->persistBuffer([
+            'a' => [
+                'hits'      => 1,
+                'messageId' => 'k1',
+                'domain'    => 'messages',
+                'locale'    => 'es',
+                'callSite'  => '/only.php:9',
+            ],
+        ]);
+
+        $row = $repo->findByStatus(MissingTranslationLogStatus::Pending, 1)[0];
+        self::assertSame(2, $row->getHitCount());
+        self::assertSame('/only.php:9', $row->getCallSite());
+        self::assertSame('keep_me', $row->getRequestRoute());
+        self::assertSame('GET', $row->getRequestMethod());
+        self::assertSame('/first', $row->getRequestPath());
+    }
+
+    public function testPersistBufferTruncatesLongRequestPath(): void
+    {
+        $long = '/' . str_repeat('p', 2100);
+        $repo = $this->createRepository();
+        $repo->persistBuffer([
+            'a' => [
+                'hits'          => 1,
+                'messageId'     => 'k',
+                'domain'        => 'm',
+                'locale'        => 'es',
+                'callSite'      => null,
+                'requestRoute'  => null,
+                'requestMethod' => 'GET',
+                'requestPath'   => $long,
+            ],
+        ]);
+        $path = $repo->findByStatus(MissingTranslationLogStatus::Pending, 1)[0]->getRequestPath();
+        self::assertNotNull($path);
+        self::assertSame(2048, strlen($path));
+        self::assertStringEndsWith('...', $path);
+    }
 }

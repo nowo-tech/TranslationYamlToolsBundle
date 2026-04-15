@@ -7,6 +7,9 @@
             <th scope="col">Domain</th>
             <th scope="col">Message id</th>
             <th scope="col">Call site</th>
+            <th scope="col">Route</th>
+            <th scope="col">Method</th>
+            <th scope="col">Path</th>
             <th scope="col">Hits</th>
             <th scope="col">Last seen</th>
             {% if status == 'pending' %}
@@ -22,6 +25,9 @@
                 <td>{{ row.domain }}</td>
                 <td><code class="small">{{ row.messageId }}</code></td>
                 <td><small class="text-muted">{{ row.callSite ?? '—' }}</small></td>
+                <td><small class="text-muted">{{ row.requestRoute ?? '—' }}</small></td>
+                <td><small class="text-muted">{{ row.requestMethod ?? '—' }}</small></td>
+                <td><small class="text-muted text-break">{{ row.requestPath ?? '—' }}</small></td>
                 <td>{{ row.hitCount }}</td>
                 <td><small>{{ row.lastSeenAt|date('c') }}</small></td>
                 {% if status == 'pending' %}
@@ -35,7 +41,7 @@
             </tr>
         {% else %}
             <tr>
-                <td colspan="{{ status == 'pending' ? 8 : 7 }}" class="text-muted">No rows.</td>
+                <td colspan="{{ status == 'pending' ? 11 : 10 }}" class="text-muted">No rows.</td>
             </tr>
         {% endfor %}
         </tbody>

@@ -49,14 +49,34 @@ class MissingTranslationLog
     #[ORM\Column(name: 'call_site', length: 1024, nullable: true)]
     private ?string $callSite = null;
 
-    public function __construct(string $messageId, string $domain, string $locale, DateTimeImmutable $seenAt, ?string $callSite = null)
-    {
-        $this->messageId   = $messageId;
-        $this->domain      = $domain;
-        $this->locale      = $locale;
-        $this->firstSeenAt = $seenAt;
-        $this->lastSeenAt  = $seenAt;
-        $this->callSite    = $this->normalizeCallSite($callSite);
+    #[ORM\Column(name: 'request_route', length: 180, nullable: true)]
+    private ?string $requestRoute = null;
+
+    #[ORM\Column(name: 'request_method', length: 8, nullable: true)]
+    private ?string $requestMethod = null;
+
+    #[ORM\Column(name: 'request_path', length: 2048, nullable: true)]
+    private ?string $requestPath = null;
+
+    public function __construct(
+        string $messageId,
+        string $domain,
+        string $locale,
+        DateTimeImmutable $seenAt,
+        ?string $callSite = null,
+        ?string $requestRoute = null,
+        ?string $requestMethod = null,
+        ?string $requestPath = null,
+    ) {
+        $this->messageId       = $messageId;
+        $this->domain          = $domain;
+        $this->locale          = $locale;
+        $this->firstSeenAt     = $seenAt;
+        $this->lastSeenAt      = $seenAt;
+        $this->callSite        = $this->normalizeCallSite($callSite);
+        $this->requestRoute    = $this->normalizeRequestRoute($requestRoute);
+        $this->requestMethod   = $this->normalizeRequestMethod($requestMethod);
+        $this->requestPath     = $this->normalizeRequestPath($requestPath);
     }
 
     public function getId(): ?int
@@ -114,16 +134,49 @@ class MissingTranslationLog
         return $this->callSite;
     }
 
-    public function registerAdditionalHits(int $hits, DateTimeImmutable $at, ?string $latestCallSite = null): void
+    public function getRequestRoute(): ?string
     {
+        return $this->requestRoute;
+    }
+
+    public function getRequestMethod(): ?string
+    {
+        return $this->requestMethod;
+    }
+
+    public function getRequestPath(): ?string
+    {
+        return $this->requestPath;
+    }
+
+    public function registerAdditionalHits(
+        int $hits,
+        DateTimeImmutable $at,
+        ?string $latestCallSite = null,
+        ?string $latestRequestRoute = null,
+        ?string $latestRequestMethod = null,
+        ?string $latestRequestPath = null,
+    ): void {
         if ($hits < 1) {
             return;
         }
         $this->hitCount += $hits;
         $this->lastSeenAt = $at;
-        $normalized       = $this->normalizeCallSite($latestCallSite);
+        $normalized = $this->normalizeCallSite($latestCallSite);
         if ($normalized !== null) {
             $this->callSite = $normalized;
+        }
+        $nr = $this->normalizeRequestRoute($latestRequestRoute);
+        if ($nr !== null) {
+            $this->requestRoute = $nr;
+        }
+        $nm = $this->normalizeRequestMethod($latestRequestMethod);
+        if ($nm !== null) {
+            $this->requestMethod = $nm;
+        }
+        $np = $this->normalizeRequestPath($latestRequestPath);
+        if ($np !== null) {
+            $this->requestPath = $np;
         }
     }
 
@@ -134,6 +187,33 @@ class MissingTranslationLog
         }
 
         return strlen($callSite) <= 1024 ? $callSite : substr($callSite, 0, 1021) . '...';
+    }
+
+    private function normalizeRequestRoute(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return strlen($value) <= 180 ? $value : substr($value, 0, 177) . '...';
+    }
+
+    private function normalizeRequestMethod(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return strlen($value) <= 8 ? $value : substr($value, 0, 8);
+    }
+
+    private function normalizeRequestPath(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return strlen($value) <= 2048 ? $value : substr($value, 0, 2045) . '...';
     }
 
     public function setStatus(MissingTranslationLogStatus $status, ?DateTimeImmutable $at = null): void

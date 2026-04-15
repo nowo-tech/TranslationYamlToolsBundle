@@ -31,6 +31,7 @@ final class ConfigurationTest extends TestCase
             'enabled'                => false,
             'table_prefix'           => 'nowo_translation_',
             'record_call_site'       => true,
+            'record_request_context' => true,
             'async_persist'          => false,
             'async_persist_strategy' => 'messenger',
             'web_ui'                 => [

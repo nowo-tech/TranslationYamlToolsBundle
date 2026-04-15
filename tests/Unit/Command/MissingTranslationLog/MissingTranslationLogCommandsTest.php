@@ -93,6 +93,9 @@ final class MissingTranslationLogCommandsTest extends TestCase
         self::assertStringContainsString((string) $id, $tester->getDisplay());
         self::assertStringContainsString('k', $tester->getDisplay());
         self::assertStringContainsString('/path', $tester->getDisplay());
+        self::assertStringContainsString('request_route', $tester->getDisplay());
+        self::assertStringContainsString('request_method', $tester->getDisplay());
+        self::assertStringContainsString('request_path', $tester->getDisplay());
     }
 
     public function testMarkAddedNotFound(): void

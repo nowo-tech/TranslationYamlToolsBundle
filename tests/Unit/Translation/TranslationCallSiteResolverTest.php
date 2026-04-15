@@ -18,6 +18,7 @@ final class TranslationCallSiteResolverTest extends TestCase
         $m->setAccessible(true);
 
         self::assertTrue($m->invoke(null, '/any/path/TranslationCallSiteResolver.php'));
+        self::assertTrue($m->invoke(null, '/any/path/MissingTranslationLogCallSiteBuilder.php'));
         self::assertTrue($m->invoke(null, '/any/path/RecordingTranslatorDecorator.php'));
         self::assertTrue($m->invoke(null, '/any/path/DoctrineMissingTranslationRecorder.php'));
         self::assertTrue($m->invoke(null, '/vendor/symfony/translation/Translator.php'));

@@ -8,6 +8,7 @@
 - [When tree conversion is impossible](#when-tree-conversion-is-impossible)
 - [File naming](#file-naming)
 - [Twig — missing translation log Web UI](#twig--missing-translation-log-web-ui)
+- [Missing translation log: coverage and call_site](#missing-translation-log-coverage-and-call_site)
 - [Overriding templates (REQ-TWIG-001)](#overriding-templates-req-twig-001)
 - [Symfony 7 / 8 demos](#symfony-78-demos)
 
@@ -123,6 +124,32 @@ Files must follow Symfony’s usual pattern:
 When **`missing_translation_log.web_ui.enabled`** is **`true`**, the bundle exposes HTML under the imported route prefix (see [Configuration](CONFIGURATION.md)). The controller renders **`@NowoTranslationYamlToolsBundle/missing_translation_log/index.html.twig`**. Optional layout integration with **NowoDashboardMenuBundle** / **NowoBreadcrumbKitBundle** uses the bridge templates and **`web_ui.layout_template`** (see [Configuration](CONFIGURATION.md)).
 
 The log table enforces one row per **`(message_id, domain, locale)`**; from **0.3.2** onward, flushes use duplicate-safe persistence so parallel traffic does not hit SQL duplicate-key errors (details in [Configuration](CONFIGURATION.md#missing-translation-log-database)).
+
+## Missing translation log: coverage and call_site
+
+### What is recorded (and what is not)
+
+The feature is implemented by decorating Symfony’s **`TranslatorInterface`**: **`RecordingTranslatorDecorator`** runs **before** each **`trans()`** call and, when the active **`MessageCatalogue`** for the **requested locale** does **not** **`define`** the id in that domain, buffers a row for flush on **`kernel.terminate`** (or your async strategy).
+
+**You do get logs for** typical Symfony usage that resolves to **`Translator::trans()`** / **`TranslatorInterface::trans()`**: controllers using **`$this->trans()`**, Twig **`|trans`**, **`{% trans %}`** (they compile down to the same translator), many forms and validators that use the translator service, etc.
+
+**You do not get a complete “every human-visible untranslated string” audit:**
+
+- Code that reads **`MessageCatalogue`** directly, custom wrappers that bypass the decorated translator, or another **`TranslatorInterface`** instance not wired as the app translator, will not hit the decorator.
+- Lookups that never call **`trans()`** (hard-coded strings, client-side only JS, etc.) are invisible to this layer.
+- The row reflects **“missing in catalogue X for locale L”** — Symfony may still **display** a fallback (another locale or the raw id) after the check; the log is still useful as “not defined for L”.
+
+So the log is a **strong signal for runtime `trans()` gaps**, not a static proof that every string in the UI is translated.
+
+### Call site (`call_site`) and Twig
+
+When **`record_call_site`** is **`true`**, **`TranslationCallSiteResolver`** walks **`debug_backtrace()`**, skips this bundle’s decorator/recorder, Symfony’s translation internals, and **`symfony/twig-bridge/Extension/TranslationExtension.php`**, then takes the **first remaining frame**.
+
+That design avoids pointing every hit at the Twig bridge file, but for Twig-rendered pages the “first plausible” frame is often **not** your **`templates/.../*.twig`** path: it is frequently **`var/cache/.../twig/*.php`** (compiled template), **`Twig\Template`**, or another engine frame. **PHP call sites** (e.g. a controller calling **`$this->trans('missing.id')`**) tend to map to the real **`.php`** file and line.
+
+**Yes — it is expected** that **`call_site`** sometimes does not match the Twig source line; improving that would require Twig/source-map style metadata beyond what **`debug_backtrace`** exposes here.
+
+When **`missing_translation_log.record_request_context`** is **`true`** (default), the row stores **`request_route`** (from **`_route`** when set), **`request_method`**, and **`request_path`** (**`Request::getPathInfo()`** when non-empty) for the current HTTP request (see [Configuration](CONFIGURATION.md)). **CLI** commands and other non-HTTP contexts have **no** request, so those columns stay empty. Set **`record_request_context: false`** if you prefer not to store URLs or route names (privacy).
 
 ## Overriding templates (REQ-TWIG-001)
 
