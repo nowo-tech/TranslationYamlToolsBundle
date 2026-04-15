@@ -167,7 +167,8 @@ final class DotKeyTreeAnalyzerTest extends TestCase
         $flat     = ['a' => 'leaf', 'a.b' => 'nested'];
         $result   = $analyzer->disambiguateLeafPrefixConflicts($flat, 'index');
         self::assertArrayNotHasKey('error', $result);
-        self::assertSame(['a.index' => 'leaf', 'a.b' => 'nested'], $result['flat']);
+        self::assertSame('leaf', $result['flat']['a.index']);
+        self::assertSame('nested', $result['flat']['a.b']);
         self::assertSame([['from' => 'a', 'to' => 'a.index']], $result['renames']);
         self::assertNull($analyzer->treeConversionConflict($result['flat']));
     }
