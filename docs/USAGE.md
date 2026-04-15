@@ -143,7 +143,7 @@ So the log is a **strong signal for runtime `trans()` gaps**, not a static proof
 
 ### Call site (`call_site`) and Twig
 
-When **`record_call_site`** is **`true`**, **`TranslationCallSiteResolver`** walks **`debug_backtrace()`**, skips this bundle’s decorator/recorder, Symfony’s translation internals, and **`symfony/twig-bridge/Extension/TranslationExtension.php`**, then takes the **first remaining frame**.
+When **`record_call_site`** is **`true`**, **`TranslationCallSiteResolver`** walks **`debug_backtrace()`**, skips this bundle’s decorator, recorder, **`MissingTranslationLogCallSiteBuilder`**, Symfony’s translation internals, and **`symfony/twig-bridge/Extension/TranslationExtension.php`**, then takes the **first remaining frame**.
 
 That design avoids pointing every hit at the Twig bridge file, but for Twig-rendered pages the “first plausible” frame is often **not** your **`templates/.../*.twig`** path: it is frequently **`var/cache/.../twig/*.php`** (compiled template), **`Twig\Template`**, or another engine frame. **PHP call sites** (e.g. a controller calling **`$this->trans('missing.id')`**) tend to map to the real **`.php`** file and line.
 

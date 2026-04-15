@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-04-15
+
 ### Added
 
 - **`MissingTranslationLog`:** nullable columns **`request_route`**, **`request_method`**, **`request_path`** for HTTP context when **`record_request_context`** is **`true`** (default). **`MissingTranslationRecordContext`** + **`MissingTranslationLogCallSiteBuilder::buildContext()`** supply values for the decorator / recorder.
@@ -16,9 +18,15 @@ All notable changes to this project are documented in this file.
 - **`MissingTranslationRecorderInterface::record()`** adds optional **`$requestRoute`**, **`$requestMethod`**, **`$requestPath`** parameters (implementations and async buffer payloads must align).
 - **`persistBuffer`** **`INSERT`/`UPDATE`** includes the new columns when present in the buffer snapshot.
 
+### Tests
+
+- **`MissingTranslationLogRepositoryTest`:** duplicate flush without request fields preserves existing HTTP columns; truncation of long **`request_path`**; **`EntityManager::clear()`** where needed so assertions read DB state after raw SQL updates.
+- **`DoctrineMissingTranslationRecorderTest`**, **`RecordingTranslatorDecoratorTest`**, **`MissingTranslationLogCallSiteBuilderTest`**, **`TranslationCallSiteResolverTest`**, **`MissingTranslationLogEntityTest`**, **`MissingTranslationLogCommandsTest`**, **`MissingTranslationBufferDtosTest`:** coverage for **`buildContext()`**, buffer shape, and **`record()`** forwarding.
+
 ### Documentation
 
-- **[USAGE](USAGE.md)** / **[CONFIGURATION](CONFIGURATION.md)** / **[UPGRADING](UPGRADING.md):** request context columns and schema note.
+- **[USAGE](USAGE.md)** / **[CONFIGURATION](CONFIGURATION.md)** / **[UPGRADING](UPGRADING.md):** request context columns, **`persistBuffer`** behaviour, and **0.3.4 → 0.3.5** migration notes.
+- **Demos (`demo/README.md`, Symfony 7/8 insights Twig, dev `nowo_translation_yaml_tools.yaml`):** copy aligned with split **`call_site`** vs HTTP columns.
 
 ## [0.3.4] - 2026-04-16
 
