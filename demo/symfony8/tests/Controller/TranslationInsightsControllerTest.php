@@ -18,4 +18,14 @@ final class TranslationInsightsControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'translator.default_locale');
         self::assertSelectorTextContains('body', 'kernel.enabled_locales');
     }
+
+    public function testMissingLogPlaygroundRouteReturns200(): void
+    {
+        $client = static::createClient();
+        $client->request('GET', '/missing-log/probes/twig');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Missing-log playground');
+        self::assertSelectorTextContains('body', 'Demo menu');
+    }
 }

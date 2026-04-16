@@ -58,4 +58,42 @@ final class MissingTranslationLogUiController extends AbstractController
             'status' => MissingTranslationLogStatus::Pending->value,
         ]);
     }
+
+    #[Route('/clear', name: 'nowo_translation_yaml_tools_missing_log_clear', methods: ['POST'])]
+    public function clear(Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
+    {
+        $token = (string) $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('missing_log_clear', $token)) {
+            throw $this->createAccessDeniedException('Invalid CSRF token.');
+        }
+
+        $deleted = $this->repository->clearAll();
+        $this->addFlash('success', sprintf('Cleared %d missing-log row(s).', $deleted));
+
+        $statusParam = (string) $request->request->get('status', MissingTranslationLogStatus::Pending->value);
+        $status      = MissingTranslationLogStatus::tryFrom($statusParam) ?? MissingTranslationLogStatus::Pending;
+
+        return $this->redirectToRoute('nowo_translation_yaml_tools_missing_log_index', [
+            'status' => $status->value,
+        ]);
+    }
+
+    #[Route('/clear-status', name: 'nowo_translation_yaml_tools_missing_log_clear_status', methods: ['POST'])]
+    public function clearStatus(Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
+    {
+        $token = (string) $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('missing_log_clear_status', $token)) {
+            throw $this->createAccessDeniedException('Invalid CSRF token.');
+        }
+
+        $statusParam = (string) $request->request->get('status', MissingTranslationLogStatus::Pending->value);
+        $status      = MissingTranslationLogStatus::tryFrom($statusParam) ?? MissingTranslationLogStatus::Pending;
+
+        $deleted = $this->repository->clearByStatus($status);
+        $this->addFlash('success', sprintf('Cleared %d row(s) with status "%s".', $deleted, $status->value));
+
+        return $this->redirectToRoute('nowo_translation_yaml_tools_missing_log_index', [
+            'status' => $status->value,
+        ]);
+    }
 }

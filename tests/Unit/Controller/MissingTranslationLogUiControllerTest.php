@@ -164,4 +164,151 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $this->expectException(NotFoundHttpException::class);
         $controller->markAdded(99, $request);
     }
+
+    public function testClearDeletesRowsAndRedirects(): void
+    {
+        $repo = $this->createRepository();
+        $repo->persistBuffer([
+            'a' => [
+                'hits'      => 1,
+                'messageId' => 'm.one',
+                'domain'    => 'd',
+                'locale'    => 'en',
+                'callSite'  => null,
+            ],
+            'b' => [
+                'hits'      => 1,
+                'messageId' => 'm.two',
+                'domain'    => 'd',
+                'locale'    => 'en',
+                'callSite'  => null,
+            ],
+        ]);
+        self::assertGreaterThan(0, $repo->count([]));
+
+        $csrf = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrf->method('isTokenValid')->willReturnCallback(static function (CsrfToken $token): bool {
+            return $token->getId() === 'missing_log_clear' && $token->getValue() === 'good';
+        });
+
+        $router = $this->createMock(UrlGeneratorInterface::class);
+        $router->method('generate')->willReturn('/missing-log/');
+
+        $request = Request::create('/clear', 'POST', ['_token' => 'good', 'status' => 'pending']);
+        $request->setSession(new Session(new MockArraySessionStorage()));
+
+        $requestStack = new RequestStack();
+        $requestStack->push($request);
+
+        $container = new Container();
+        $container->set('twig', $this->createMock(Environment::class));
+        $container->set('security.csrf.token_manager', $csrf);
+        $container->set('router', $router);
+        $container->set('request_stack', $requestStack);
+
+        $controller = new MissingTranslationLogUiController($repo);
+        $controller->setContainer($container);
+
+        $response = $controller->clear($request);
+        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(0, $repo->count([]));
+    }
+
+    public function testClearThrowsWhenCsrfInvalid(): void
+    {
+        $repo = $this->createRepository();
+
+        $csrf = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrf->method('isTokenValid')->willReturn(false);
+
+        $container = new Container();
+        $container->set('twig', $this->createMock(Environment::class));
+        $container->set('security.csrf.token_manager', $csrf);
+        $container->set('router', $this->createMock(UrlGeneratorInterface::class));
+        $container->set('request_stack', new RequestStack());
+
+        $controller = new MissingTranslationLogUiController($repo);
+        $controller->setContainer($container);
+
+        $request = Request::create('/clear', 'POST', ['_token' => 'bad']);
+
+        $this->expectException(AccessDeniedException::class);
+        $controller->clear($request);
+    }
+
+    public function testClearStatusDeletesOnlyCurrentStatusAndRedirects(): void
+    {
+        $repo = $this->createRepository();
+        $repo->persistBuffer([
+            'a' => [
+                'hits'      => 1,
+                'messageId' => 'm.pending',
+                'domain'    => 'd',
+                'locale'    => 'en',
+                'callSite'  => null,
+            ],
+            'b' => [
+                'hits'      => 1,
+                'messageId' => 'm.added',
+                'domain'    => 'd',
+                'locale'    => 'en',
+                'callSite'  => null,
+            ],
+        ]);
+        $rows = $repo->findByStatus(MissingTranslationLogStatus::Pending, 10);
+        self::assertCount(2, $rows);
+        $rows[0]->setStatus(MissingTranslationLogStatus::Added);
+        $repo->getEntityManager()->flush();
+        $repo->getEntityManager()->clear();
+
+        $csrf = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrf->method('isTokenValid')->willReturnCallback(static function (CsrfToken $token): bool {
+            return $token->getId() === 'missing_log_clear_status' && $token->getValue() === 'good';
+        });
+
+        $router = $this->createMock(UrlGeneratorInterface::class);
+        $router->method('generate')->willReturn('/missing-log/');
+
+        $request = Request::create('/clear-status', 'POST', ['_token' => 'good', 'status' => 'pending']);
+        $request->setSession(new Session(new MockArraySessionStorage()));
+
+        $requestStack = new RequestStack();
+        $requestStack->push($request);
+
+        $container = new Container();
+        $container->set('twig', $this->createMock(Environment::class));
+        $container->set('security.csrf.token_manager', $csrf);
+        $container->set('router', $router);
+        $container->set('request_stack', $requestStack);
+
+        $controller = new MissingTranslationLogUiController($repo);
+        $controller->setContainer($container);
+
+        $response = $controller->clearStatus($request);
+        self::assertSame(302, $response->getStatusCode());
+        self::assertCount(0, $repo->findByStatus(MissingTranslationLogStatus::Pending, 10));
+        self::assertCount(1, $repo->findByStatus(MissingTranslationLogStatus::Added, 10));
+    }
+
+    public function testClearStatusThrowsWhenCsrfInvalid(): void
+    {
+        $repo = $this->createRepository();
+
+        $csrf = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrf->method('isTokenValid')->willReturn(false);
+
+        $container = new Container();
+        $container->set('twig', $this->createMock(Environment::class));
+        $container->set('security.csrf.token_manager', $csrf);
+        $container->set('router', $this->createMock(UrlGeneratorInterface::class));
+        $container->set('request_stack', new RequestStack());
+
+        $controller = new MissingTranslationLogUiController($repo);
+        $controller->setContainer($container);
+
+        $request = Request::create('/clear-status', 'POST', ['_token' => 'bad', 'status' => 'pending']);
+
+        $this->expectException(AccessDeniedException::class);
+        $controller->clearStatus($request);
+    }
 }

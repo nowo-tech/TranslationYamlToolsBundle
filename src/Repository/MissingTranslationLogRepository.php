@@ -45,6 +45,34 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         return $this->find($id);
     }
 
+    public function clearAll(): int
+    {
+        $em         = $this->getEntityManager();
+        $connection = $em->getConnection();
+        $meta       = $em->getClassMetadata(MissingTranslationLog::class);
+        $tableName  = $meta->getTableName();
+        $qTableName = $connection->quoteIdentifier($tableName);
+
+        return $connection->executeStatement("DELETE FROM {$qTableName}");
+    }
+
+    public function clearByStatus(MissingTranslationLogStatus $status): int
+    {
+        $em         = $this->getEntityManager();
+        $connection = $em->getConnection();
+        $meta       = $em->getClassMetadata(MissingTranslationLog::class);
+        $tableName  = $meta->getTableName();
+        $cStatus    = $meta->getColumnName('status');
+        $qTableName = $connection->quoteIdentifier($tableName);
+        $qStatus    = $connection->quoteIdentifier($cStatus);
+
+        return $connection->executeStatement(
+            "DELETE FROM {$qTableName} WHERE {$qStatus} = :status",
+            ['status' => $status->value],
+            ['status' => ParameterType::STRING],
+        );
+    }
+
     /**
      * @param array<string, array{hits: int, messageId: string, domain: string, locale: string, callSite?: ?string, requestRoute?: ?string, requestMethod?: ?string, requestPath?: ?string}> $buffer keyed by stable hash
      */

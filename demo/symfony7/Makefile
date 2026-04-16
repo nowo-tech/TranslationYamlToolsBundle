@@ -2,7 +2,7 @@
 
 PAUSE ?= 3
 
-.PHONY: help up down build install shell logs test test-coverage cache-clear update-bundle ensure-up verify validate-translations translation-yaml-demos translation-yaml-inline-preview translation-yaml-walkthrough missing-log-schema
+.PHONY: help up down build install shell logs test test-coverage cache-clear update-bundle ensure-up verify validate-translations translation-yaml-demos translation-yaml-inline-preview translation-yaml-walkthrough missing-log-schema reset-db
 
 help:
 	@echo "Translation YAML Tools — Symfony 7.0 demo"
@@ -13,6 +13,7 @@ help:
 	@echo "  make translation-yaml-walkthrough — all bundle commands + pauses (PAUSE=$(PAUSE)s); restores files after"
 	@echo "  make update-bundle"
 	@echo "  make missing-log-schema — doctrine:schema:update (dev missing-log table)"
+	@echo "  make reset-db — delete demo SQLite + recreate schema"
 
 up:
 	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || true; fi
@@ -21,6 +22,8 @@ up:
 	@sleep 5
 	@echo "Installing dependencies..."
 	@docker-compose exec -T -e COMPOSER_MEMORY_LIMIT=-1 php composer install --no-interaction
+	@echo "Resetting demo DB (fresh start)..."
+	@docker-compose exec -T php sh -c 'rm -f /app/var/demo_missing_log.sqlite'
 	@echo "Doctrine schema (missing_translation_log table in dev)..."
 	@docker-compose exec -T php php bin/console doctrine:schema:update --force --no-interaction || true
 	@PORT=$$(grep "^PORT=" .env 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
@@ -61,6 +64,10 @@ cache-clear: ensure-up
 	docker-compose exec php php bin/console cache:clear
 
 missing-log-schema: ensure-up
+	docker-compose exec -T php php bin/console doctrine:schema:update --force --no-interaction
+
+reset-db: ensure-up
+	docker-compose exec -T php sh -c 'rm -f /app/var/demo_missing_log.sqlite'
 	docker-compose exec -T php php bin/console doctrine:schema:update --force --no-interaction
 
 update-bundle: ensure-up

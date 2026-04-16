@@ -75,7 +75,6 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
         if ($requestPath !== null && $requestPath !== '') {
             $this->buffer[$key]['requestPath'] = $requestPath;
         }
-
         ++$this->buffer[$key]['hits'];
     }
 

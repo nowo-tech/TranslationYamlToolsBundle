@@ -908,9 +908,9 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     excluded_ajax_paths?: scalar|Param|null, // Default: "^/((index|app(_[\\w]+)?)\\.php/)?_wdt"
  * }
  * @psalm-type NowoTranslationYamlToolsConfig = array{
- *     default_locale?: scalar|Param|null, // Override default source locale; null uses Symfony translator.default_locale / kernel.default_locale // Default: null
+ *     default_locale?: scalar|Param|null, // Override default source locale; null uses translator.default_locale if defined, else kernel.default_locale, else en (Symfony 8 may only expose kernel.default_locale) // Default: null
  *     yaml_tree_indent?: int|Param, // Spaces per indentation level when dumping nested YAML // Default: 4
- *     yaml_tree_leaf_prefix_suffix?: scalar|Param|null, // Final segment for nowo:translation-yaml:tree --fix-leaf-prefix (e.g. key a -> a.index) // Default: "index"
+ *     yaml_tree_leaf_prefix_suffix?: scalar|Param|null, // Final segment appended to a conflicting leaf when using nowo:translation-yaml:tree --fix-leaf-prefix (e.g. "index" renames key "a" to "a.index") // Default: "index"
  *     machine_translator?: "google"|"deepl"|"libretranslate"|Param, // Machine translation backend used by nowo:translation-yaml:fill-missing // Default: "google"
  *     deepl_endpoint?: scalar|Param|null, // DeepL translate URL. Use https://api-free.deepl.com/v2/translate with a Free-plan auth key. // Default: "https://api.deepl.com/v2/translate"
  *     libretranslate_base_url?: scalar|Param|null, // LibreTranslate server origin (no trailing path). Public demo is rate-limited; self-host for production. // Default: "https://libretranslate.com"
@@ -921,7 +921,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         enabled?: bool|Param, // Default: false
  *         table_prefix?: scalar|Param|null, // Physical table name = prefix + "missing_log" (e.g. nowo_translation_ → nowo_translation_missing_log). Allowed: lowercase letters, digits, underscore; max 40 chars. // Default: "nowo_translation_"
  *         record_call_site?: bool|Param, // When true, store the first plausible caller file:line (debug_backtrace) per row; updates on new hits when a path is resolved. Disable to reduce overhead. // Default: true
- *         record_request_context?: bool|Param, // When true, persist request_route, request_method, request_path when a Request exists. // Default: true
+ *         record_request_context?: bool|Param, // When true and an HTTP Request exists, persist request_route, request_method, and request_path on the missing_log row (CLI has none). Disable for privacy or shorter rows. // Default: true
  *         async_persist?: bool|Param, // When true, flush delegates persistence (see async_persist_strategy) instead of calling Doctrine immediately in the recorder. With strategy messenger, requires symfony/messenger and a default bus. With event_dispatcher, uses the app event_dispatcher and optional builtin listener. // Default: false
  *         async_persist_strategy?: "messenger"|"event_dispatcher"|Param, // Used when async_persist is true. messenger: dispatch MissingTranslationBufferMessage. event_dispatcher: dispatch MissingTranslationBufferEvent; a builtin listener persists last unless stopPropagation() was called (e.g. you enqueue and persist in a worker). // Default: "messenger"
  *         web_ui?: array{

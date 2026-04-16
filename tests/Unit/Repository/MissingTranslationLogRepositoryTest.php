@@ -213,4 +213,60 @@ final class MissingTranslationLogRepositoryTest extends TestCase
         self::assertSame(2048, strlen($path));
         self::assertStringEndsWith('...', $path);
     }
+
+    public function testClearAllDeletesRowsAndReturnsCount(): void
+    {
+        $repo = $this->createRepository();
+        $repo->persistBuffer([
+            'a' => [
+                'hits'      => 1,
+                'messageId' => 'k1',
+                'domain'    => 'messages',
+                'locale'    => 'en',
+                'callSite'  => null,
+            ],
+            'b' => [
+                'hits'      => 1,
+                'messageId' => 'k2',
+                'domain'    => 'messages',
+                'locale'    => 'en',
+                'callSite'  => null,
+            ],
+        ]);
+
+        self::assertSame(2, $repo->count([]));
+        self::assertSame(2, $repo->clearAll());
+        self::assertSame(0, $repo->count([]));
+    }
+
+    public function testClearByStatusDeletesOnlyGivenStatus(): void
+    {
+        $repo = $this->createRepository();
+        $repo->persistBuffer([
+            'a' => [
+                'hits'      => 1,
+                'messageId' => 'k1',
+                'domain'    => 'messages',
+                'locale'    => 'en',
+                'callSite'  => null,
+            ],
+            'b' => [
+                'hits'      => 1,
+                'messageId' => 'k2',
+                'domain'    => 'messages',
+                'locale'    => 'en',
+                'callSite'  => null,
+            ],
+        ]);
+
+        $rows = $repo->findByStatus(MissingTranslationLogStatus::Pending, 10);
+        self::assertCount(2, $rows);
+        $rows[0]->setStatus(MissingTranslationLogStatus::Added);
+        $repo->getEntityManager()->flush();
+        $repo->getEntityManager()->clear();
+
+        self::assertSame(1, $repo->clearByStatus(MissingTranslationLogStatus::Pending));
+        self::assertCount(0, $repo->findByStatus(MissingTranslationLogStatus::Pending, 10));
+        self::assertCount(1, $repo->findByStatus(MissingTranslationLogStatus::Added, 10));
+    }
 }

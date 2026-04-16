@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Missing-log playground</title>
+    <style>
+        :root { color-scheme: light; }
+        body {
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            margin: 0;
+            line-height: 1.55;
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            color: #0f172a;
+        }
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 2rem 1rem 3rem;
+        }
+        h1 { margin: 0 0 .35rem; font-size: 1.75rem; }
+        h2 { margin: 0 0 .8rem; font-size: 1.2rem; }
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem 1.1rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+        }
+        code { background: #e2e8f0; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.88em; }
+        ul.compact { margin: 0.3rem 0; padding-left: 1.25rem; }
+        .hint { color: #334155; margin: 0 0 1rem; }
+        p { margin: .5rem 0; }
+        .demo-menu { margin: 0 0 1rem; display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; }
+        .demo-menu-title { margin-right: .25rem; color: #334155; }
+        .demo-menu-link {
+            text-decoration: none;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            border-radius: 999px;
+            padding: .28rem .7rem;
+            font-size: .9rem;
+        }
+        .demo-menu-link:hover { background: #f1f5f9; }
+        .demo-menu-link.is-active { background: #2563eb; border-color: #2563eb; color: #fff; }
+        .cta-link {
+            display: inline-block;
+            margin-top: 1rem;
+            text-decoration: none;
+            background: #0f172a;
+            color: #fff;
+            border-radius: 8px;
+            padding: .45rem .75rem;
+        }
+    </style>
+</head>
+<body>
+<main class="container">
+<h1>Missing-log playground ({{ demo_label }})</h1>
+{% include 'insights/_demo_menu.html.twig' %}
+<p class="hint">Scenario: <strong>{{ scenario_title }}</strong>. These pages intentionally trigger missing translation keys.</p>
+<section class="card">
+
+{% if scenario == 'twig' %}
+    <h2>Twig probes</h2>
+    <ul class="compact">
+        <li><code>{{ 'nowo_demo.probe_twig.filter_simple'|trans({}, 'messages') }}</code></li>
+        <li><code>{{ 'nowo_demo.probe_twig.filter_with_params'|trans({'%name%': 'Alice'}, 'messages') }}</code></li>
+        <li><code>{{ 'nowo_demo.probe_twig.custom_domain'|trans({}, 'demo_runtime') }}</code></li>
+        <li><code>{{ 'nowo_demo.probe_twig.forced_locale_fr'|trans({}, 'messages', 'fr') }}</code></li>
+        <li>{% trans from 'messages' %}nowo_demo.probe_twig.trans_tag{% endtrans %}</li>
+    </ul>
+{% elseif scenario == 'domain-locale' %}
+    <h2>Domain and locale probes</h2>
+    <ul class="compact">
+        <li><code>{{ 'nowo_demo.probe_domain_locale.twig.messages'|trans({}, 'messages') }}</code></li>
+        <li><code>{{ 'nowo_demo.probe_domain_locale.twig.custom_domain'|trans({}, 'demo_runtime') }}</code></li>
+        <li><code>{{ 'nowo_demo.probe_domain_locale.twig.forced_es'|trans({}, 'messages', 'es') }}</code></li>
+        <li><code>{{ 'nowo_demo.probe_domain_locale.twig.forced_fr'|trans({}, 'messages', 'fr') }}</code></li>
+    </ul>
+    <p>Controller also triggers misses in this scenario (messages/custom domain/forced locale) to compare Twig vs PHP call sites.</p>
+{% else %}
+    <h2>Repeat-hits probes</h2>
+    {% for i in 1..5 %}
+        {{ 'nowo_demo.probe_repeat.twig_key'|trans({}, 'messages') }}
+    {% endfor %}
+    {% for i in 1..3 %}
+        {{ 'nowo_demo.probe_repeat.twig_custom_domain'|trans({}, 'demo_runtime') }}
+    {% endfor %}
+    <p>Reload this page a few times and check how <code>hit_count</code> increases for the same key/domain/locale.</p>
+{% endif %}
+
+<a class="cta-link" href="{{ path('nowo_translation_yaml_tools_missing_log_index') }}">Open missing-log UI</a>
+</section>
+</main>
+</body>
+</html>

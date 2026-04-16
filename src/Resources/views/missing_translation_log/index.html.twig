@@ -14,7 +14,21 @@
 
 {% block missing_log_body %}
     {% block missing_log_page_header %}
-        <h1 class="h3 mb-1">Missing translation log</h1>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+            <h1 class="h3 mb-0">Missing translation log</h1>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <form method="post" action="{{ path('nowo_translation_yaml_tools_missing_log_clear_status') }}" class="d-inline" onsubmit="return confirm('Delete rows with status {{ status }}? This action cannot be undone.');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('missing_log_clear_status') }}">
+                    <input type="hidden" name="status" value="{{ status }}">
+                    <button type="submit" class="btn btn-sm btn-outline-warning">Clear current status</button>
+                </form>
+                <form method="post" action="{{ path('nowo_translation_yaml_tools_missing_log_clear') }}" class="d-inline" onsubmit="return confirm('Delete all missing-log rows? This action cannot be undone.');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('missing_log_clear') }}">
+                    <input type="hidden" name="status" value="{{ status }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Clear all rows</button>
+                </form>
+            </div>
+        </div>
     {% endblock %}
     {% block missing_log_status_filters %}
         {% include '@NowoTranslationYamlToolsBundle/missing_translation_log/_status_filters.html.twig' %}
