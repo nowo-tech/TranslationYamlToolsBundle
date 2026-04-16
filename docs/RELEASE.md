@@ -9,6 +9,15 @@
 
 **Avoid duplicate release jobs:** **`sync-releases.yml`** is intentionally **not** bound to tag pushes (only **`workflow_dispatch`** and a daily **schedule**). It backfills or updates older releases without competing with **`release.yml`** on new tags; running both on the same tag caused GitHub API races (**`already_exists`** on **`tag_name`**).
 
-**Tag message:** keep the first line short (e.g. `0.3.5: missing log HTTP columns, call_site backtrace only`); GitHub Actions can merge it with the matching **`[0.3.5]`** section from `docs/CHANGELOG.md` when publishing the release.
+**Tag message:** keep the first line short (e.g. `0.3.5: missing log HTTP columns, call_site backtrace only`); GitHub Actions can merge it with the matching changelog section when publishing the release.
+
+### Next planned tag
+
+- Suggested tag: **`v0.3.6`**
+- Suggested first line for annotated tag message: **`0.3.6: simplify missing-log runtime path, add clear actions, refresh demos`**
+- Checklist focus for this release:
+  - `docs/CHANGELOG.md` has **`[0.3.6] - 2026-04-16`**
+  - `docs/UPGRADING.md` contains **0.3.5 → 0.3.6**
+  - Demo docs mention fresh DB behaviour on `make up`
 
 See also `docs/SECURITY.md` for the pre-release security checklist.

@@ -4,6 +4,16 @@
 
 This line is **0.3.x** (after **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
 
+## To 0.3.6 (from 0.3.5)
+
+- Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.6**).
+- **Missing-log API:** if you implement **`MissingTranslationRecorderInterface`** yourself, remove the previously introduced optional Twig-template argument from **`record()`** so your signature matches **0.3.6**.
+- **Database:** runtime persistence no longer writes **`twig_template`**. Keeping that nullable column in existing tables is harmless. If you want a fully clean schema, drop it in your migration:
+  - MySQL/MariaDB: `ALTER TABLE <prefix>missing_log DROP COLUMN twig_template;`
+  - PostgreSQL: `ALTER TABLE <prefix>missing_log DROP COLUMN twig_template;`
+  - SQLite: recreate table via migration / Doctrine diff as usual.
+- **UI/ops:** missing-log Web UI now includes two reset actions (**clear all**, **clear current status**) so manual SQL cleanup is usually unnecessary for day-to-day usage.
+
 ## To 0.3.5 (from 0.3.4)
 
 - Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.5**).

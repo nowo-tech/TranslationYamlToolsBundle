@@ -4,6 +4,35 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-04-16
+
+### Changed
+
+- **Missing translation log:** removed the experimental **`twig_template`** capture path and related resolver complexity. Runtime logging now stays focused on **`call_site`** (backtrace) plus optional HTTP context columns (**`request_route`**, **`request_method`**, **`request_path`**).
+- **`TranslationCallSiteResolver`:** restored to a lean call-site resolver (no Twig template inference/reflection/file parsing), reducing per-hit overhead on hot **`trans()`** paths.
+- **`MissingTranslationRecorderInterface::record()`** and buffer payload DTOs: dropped the optional Twig-template parameter/key; signatures and snapshot shapes are aligned again.
+- **Missing-log Web UI:** removed the **Twig template** column; table now shows only fields backed by active persistence.
+
+### Added
+
+- **Missing-log Web UI actions:** new **Clear all rows** and **Clear current status** POST actions (CSRF-protected, with confirmation) to quickly reset test data.
+- **Repository helpers:** **`clearAll()`** and **`clearByStatus()`** for efficient DB cleanup operations.
+- **Demos (Symfony 7/8):** expanded missing-log playground routes and navigation menu for repeatable probe scenarios (Twig, domain/locale, repeat hits).
+
+### Demos
+
+- **`make up`** in both demos now starts from a fresh SQLite missing-log DB (delete file + schema update).
+- New **`reset-db`** target to manually recreate the demo DB.
+
+### Tests
+
+- Updated unit coverage for controller/repository clear actions and for the simplified resolver / missing-log payloads after Twig-template removal.
+
+### Documentation
+
+- **[UPGRADING](UPGRADING.md):** **0.3.5 → 0.3.6** notes for custom recorder implementations and optional DB cleanup of deprecated **`twig_template`** columns.
+- **[demo/README](../demo/README.md):** updated demo behaviour and probe coverage (fresh DB on `make up`, playground scenarios).
+
 ## [0.3.5] - 2026-04-15
 
 ### Added
