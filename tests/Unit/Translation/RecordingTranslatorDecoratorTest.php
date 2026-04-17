@@ -25,7 +25,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
         $builder = $this->createMock(MissingTranslationLogCallSiteBuilder::class);
-        new RecordingTranslatorDecorator($inner, $rec, true, true, $builder);
+        new RecordingTranslatorDecorator($inner, $rec, $builder, true, true);
     }
 
     public function testTransRecordsWhenKeyMissingAndSkipsWhenDefined(): void
@@ -74,13 +74,13 @@ final class RecordingTranslatorDecoratorTest extends TestCase
         $recorder = $this->createMock(MissingTranslationRecorderInterface::class);
         $recorder->expects(self::once())->method('record')->with('missing', 'messages', 'en', null, null, null, null);
 
-        $d = new RecordingTranslatorDecorator($inner, $recorder, false, false, $builder);
+        $d = new RecordingTranslatorDecorator($inner, $recorder, $builder, false, false);
         self::assertSame('missing-t', $d->trans('missing', [], 'messages', 'en'));
         $builder2 = $this->createMock(MissingTranslationLogCallSiteBuilder::class);
         $builder2->expects(self::never())->method('buildContext');
         $recorder = $this->createMock(MissingTranslationRecorderInterface::class);
         $recorder->expects(self::never())->method('record');
-        $d2 = new RecordingTranslatorDecorator($inner, $recorder, false, false, $builder2);
+        $d2 = new RecordingTranslatorDecorator($inner, $recorder, $builder2, false, false);
         self::assertSame('present-t', $d2->trans('present', [], 'messages', 'en'));
     }
 
@@ -120,7 +120,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
         $builder = $this->createMock(MissingTranslationLogCallSiteBuilder::class);
         $builder->expects(self::never())->method('buildContext');
         $rec = $this->createMock(MissingTranslationRecorderInterface::class);
-        $d   = new RecordingTranslatorDecorator($inner, $rec, false, false, $builder);
+        $d   = new RecordingTranslatorDecorator($inner, $rec, $builder, false, false);
 
         self::assertSame('de', $d->getLocale());
         $d->setLocale('fr');
@@ -184,7 +184,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
             '/api/x',
         );
 
-        $d = new RecordingTranslatorDecorator($inner, $recorder, true, true, $builder);
+        $d = new RecordingTranslatorDecorator($inner, $recorder, $builder, true, true);
         self::assertSame('ghost', $d->trans('ghost', [], 'messages', 'en'));
     }
 }

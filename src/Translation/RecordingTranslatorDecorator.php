@@ -21,9 +21,9 @@ final class RecordingTranslatorDecorator implements TranslatorInterface, Transla
     public function __construct(
         private TranslatorInterface $inner,
         private readonly MissingTranslationRecorderInterface $recorder,
+        private readonly MissingTranslationLogCallSiteBuilder $callSiteBuilder,
         private readonly bool $recordCallSite = true,
         private readonly bool $recordRequestContext = true,
-        private readonly MissingTranslationLogCallSiteBuilder $callSiteBuilder,
     ) {
         if (!$inner instanceof TranslatorBagInterface || !$inner instanceof LocaleAwareInterface) {
             throw new InvalidArgumentException(sprintf('The decorated translator must implement %s and %s.', TranslatorBagInterface::class, LocaleAwareInterface::class));
