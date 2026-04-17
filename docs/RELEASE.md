@@ -13,11 +13,10 @@
 
 ### Next planned tag
 
-- Suggested tag: **`v0.3.6`**
-- Suggested first line for annotated tag message: **`0.3.6: simplify missing-log runtime path, add clear actions, refresh demos`**
+- Suggested tag: **`v0.3.7`**
+- Suggested first line for annotated tag message: **`0.3.7: fix constructor deprecation in RecordingTranslatorDecorator`**
 - Checklist focus for this release:
-  - `docs/CHANGELOG.md` has **`[0.3.6] - 2026-04-16`**
-  - `docs/UPGRADING.md` contains **0.3.5 → 0.3.6**
-  - Demo docs mention fresh DB behaviour on `make up`
+  - `docs/CHANGELOG.md` has **`[0.3.7] - 2026-04-16`**
+  - `docs/UPGRADING.md` contains **0.3.6 → 0.3.7**
 
 See also `docs/SECURITY.md` for the pre-release security checklist.

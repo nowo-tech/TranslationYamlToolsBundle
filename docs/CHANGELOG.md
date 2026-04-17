@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-04-16
+
+### Fixed
+
+- **`RecordingTranslatorDecorator::__construct()`**: reordered parameters so the required **`MissingTranslationLogCallSiteBuilder $callSiteBuilder`** argument no longer appears after optional arguments. This removes PHP deprecation warnings (`Optional parameter declared before required parameter`) on recent runtimes.
+
+### Tests
+
+- **`RecordingTranslatorDecoratorTest`**: updated constructor calls to the new parameter order.
+
 ## [0.3.6] - 2026-04-16
 
 ### Changed

@@ -4,6 +4,13 @@
 
 This line is **0.3.x** (after **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
 
+## To 0.3.7 (from 0.3.6)
+
+- Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.7**).
+- **Deprecation fix only:** constructor parameter order in **`RecordingTranslatorDecorator`** was adjusted to avoid PHP runtime deprecations.
+- If you instantiate **`RecordingTranslatorDecorator`** manually with positional arguments in custom code/tests, update calls to:
+  - `new RecordingTranslatorDecorator($inner, $recorder, $callSiteBuilder, $recordCallSite, $recordRequestContext)`
+
 ## To 0.3.6 (from 0.3.5)
 
 - Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.6**).
