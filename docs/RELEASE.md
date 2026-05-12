@@ -13,10 +13,10 @@
 
 ### Next planned tag
 
-- Suggested tag: **`v0.3.7`**
-- Suggested first line for annotated tag message: **`0.3.7: fix constructor deprecation in RecordingTranslatorDecorator`**
+- Suggested tag: **`v0.3.8`**
+- Suggested first line for annotated tag message: **`0.3.8: demo Symfony 7/8 lockfiles and reference.php refresh`**
 - Checklist focus for this release:
-  - `docs/CHANGELOG.md` has **`[0.3.7] - 2026-04-16`**
-  - `docs/UPGRADING.md` contains **0.3.6 → 0.3.7**
+  - `docs/CHANGELOG.md` has **`[0.3.8] - 2026-05-12`**
+  - `docs/UPGRADING.md` contains **0.3.7 → 0.3.8** (optional bump note)
 
 See also `docs/SECURITY.md` for the pre-release security checklist.

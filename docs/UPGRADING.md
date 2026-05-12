@@ -4,6 +4,10 @@
 
 This line is **0.3.x** (after **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
 
+## To 0.3.8 (from 0.3.7)
+
+- **Optional:** tag **0.3.8** only refreshes **demo** lockfiles and **`demo/symfony8/config/reference.php`**. Applications depending on **`nowo-tech/translation-yaml-tools-bundle`** behave the same as **0.3.7**; bump only if you want the tag to match **`main`** after those demo-only commits.
+
 ## To 0.3.7 (from 0.3.6)
 
 - Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.7**).

@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-05-12
+
+### Changed (demos only)
+
+- **Symfony 7 / 8 demo apps:** refreshed **`composer.lock`** (Doctrine ORM / persistence and Symfony contract packages) so `composer install` in **`demo/symfony7`** and **`demo/symfony8`** matches current resolved trees.
+- **Symfony 8 demo:** regenerated **`config/reference.php`** for type consistency with the framework config reference (e.g. HTTP method override flags).
+
+_No PHP changes under **`src/`**; upgrading the Composer package from **0.3.7** is optional and only matters if you track this repository’s demo tree._
+
 ## [0.3.7] - 2026-04-16
 
 ### Fixed
