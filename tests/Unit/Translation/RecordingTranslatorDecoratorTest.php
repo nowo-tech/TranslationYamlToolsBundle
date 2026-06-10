@@ -129,6 +129,137 @@ final class RecordingTranslatorDecoratorTest extends TestCase
         self::assertSame(['en'], $d->getFallbackLocales());
     }
 
+    public function testCallForwardsUnknownMethodsToInner(): void
+    {
+        $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+            public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+            {
+                return 'x';
+            }
+
+            public function getLocale(): string
+            {
+                return 'en';
+            }
+
+            public function setLocale(string $locale): void
+            {
+            }
+
+            public function getCatalogue(?string $locale = null): \Symfony\Component\Translation\MessageCatalogueInterface
+            {
+                return new MessageCatalogue('en');
+            }
+
+            public function getCatalogues(): array
+            {
+                return [];
+            }
+
+            public function getFallbackLocales(): array
+            {
+                return [];
+            }
+
+            /** @return string[] */
+            public function getFormats(): array
+            {
+                return ['yaml', 'xlf'];
+            }
+        };
+
+        $builder = $this->createMock(MissingTranslationLogCallSiteBuilder::class);
+        $rec = $this->createMock(MissingTranslationRecorderInterface::class);
+        $d   = new RecordingTranslatorDecorator($inner, $rec, $builder, false, false);
+
+        self::assertSame(['yaml', 'xlf'], $d->getFormats());
+    }
+
+    public function testWarmUpDelegatesWhenInnerIsWarmable(): void
+    {
+        $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface, \Symfony\Component\HttpKernel\CacheWarmer\WarmableInterface {
+            public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+            {
+                return 'x';
+            }
+
+            public function getLocale(): string
+            {
+                return 'en';
+            }
+
+            public function setLocale(string $locale): void
+            {
+            }
+
+            public function getCatalogue(?string $locale = null): \Symfony\Component\Translation\MessageCatalogueInterface
+            {
+                return new MessageCatalogue('en');
+            }
+
+            public function getCatalogues(): array
+            {
+                return [];
+            }
+
+            public function getFallbackLocales(): array
+            {
+                return [];
+            }
+
+            public function warmUp(string $cacheDir, ?string $buildDir = null): array
+            {
+                return ['/warmed.php'];
+            }
+        };
+
+        $builder = $this->createMock(MissingTranslationLogCallSiteBuilder::class);
+        $rec = $this->createMock(MissingTranslationRecorderInterface::class);
+        $d   = new RecordingTranslatorDecorator($inner, $rec, $builder, false, false);
+
+        self::assertSame(['/warmed.php'], $d->warmUp('/cache', '/build'));
+    }
+
+    public function testWarmUpReturnsEmptyWhenInnerIsNotWarmable(): void
+    {
+        $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+            public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+            {
+                return 'x';
+            }
+
+            public function getLocale(): string
+            {
+                return 'en';
+            }
+
+            public function setLocale(string $locale): void
+            {
+            }
+
+            public function getCatalogue(?string $locale = null): \Symfony\Component\Translation\MessageCatalogueInterface
+            {
+                return new MessageCatalogue('en');
+            }
+
+            public function getCatalogues(): array
+            {
+                return [];
+            }
+
+            public function getFallbackLocales(): array
+            {
+                return [];
+            }
+        };
+
+        $builder = $this->createMock(MissingTranslationLogCallSiteBuilder::class);
+        $rec = $this->createMock(MissingTranslationRecorderInterface::class);
+        $d   = new RecordingTranslatorDecorator($inner, $rec, $builder, false, false);
+
+        self::assertSame([], $d->warmUp('/cache'));
+    }
+
     public function testTransPassesRequestContextFromBuilderToRecorder(): void
     {
         $catalogue = new MessageCatalogue('en', ['messages' => []]);

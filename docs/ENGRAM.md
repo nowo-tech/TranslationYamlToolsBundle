@@ -1,5 +1,7 @@
 # Engram (MCP)
 
+Repository-local **product spec** and **`REQ-*`** traceability (Makefiles, demos) are described in [Spec-driven development](SPEC-DRIVEN-DEVELOPMENT.md).
+
 This repository ships a baseline [Model Context Protocol](https://modelcontextprotocol.io/) configuration for the **Engram** server.
 
 ## Cursor / IDE

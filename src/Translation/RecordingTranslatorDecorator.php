@@ -6,6 +6,7 @@ namespace Nowo\TranslationYamlToolsBundle\Translation;
 
 use InvalidArgumentException;
 use Nowo\TranslationYamlToolsBundle\MissingTranslationLog\MissingTranslationRecorderInterface;
+use Symfony\Component\HttpKernel\CacheWarmer\WarmableInterface;
 use Symfony\Component\Translation\MessageCatalogueInterface;
 use Symfony\Component\Translation\TranslatorBagInterface;
 use Symfony\Contracts\Translation\LocaleAwareInterface;
@@ -16,7 +17,7 @@ use function sprintf;
 /**
  * Wraps the Symfony translator and persists rows when a key is missing from the catalogue for the requested locale.
  */
-final class RecordingTranslatorDecorator implements TranslatorInterface, TranslatorBagInterface, LocaleAwareInterface
+final class RecordingTranslatorDecorator implements TranslatorInterface, TranslatorBagInterface, LocaleAwareInterface, WarmableInterface
 {
     public function __construct(
         private TranslatorInterface $inner,
@@ -93,5 +94,28 @@ final class RecordingTranslatorDecorator implements TranslatorInterface, Transla
     public function getFallbackLocales(): array
     {
         return $this->inner->getFallbackLocales();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function warmUp(string $cacheDir, ?string $buildDir = null): array
+    {
+        if ($this->inner instanceof WarmableInterface) {
+            return $this->inner->warmUp($cacheDir, $buildDir);
+        }
+
+        return [];
+    }
+
+    /**
+     * Forwards calls to methods on the decorated translator implementation
+     * (e.g. LexikTranslationBundle: getFormats(), removeLocalesCacheFiles()).
+     *
+     * @param mixed[] $args
+     */
+    public function __call(string $method, array $args): mixed
+    {
+        return $this->inner->{$method}(...$args);
     }
 }

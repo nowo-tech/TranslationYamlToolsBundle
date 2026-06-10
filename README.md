@@ -60,6 +60,7 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 - [Release](docs/RELEASE.md)
 - [Security](docs/SECURITY.md)
 - [Engram](docs/ENGRAM.md)
+- [Spec-driven development](docs/SPEC-DRIVEN-DEVELOPMENT.md)
 
 ### Additional documentation
 
