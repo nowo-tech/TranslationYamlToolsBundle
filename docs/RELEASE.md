@@ -13,10 +13,10 @@
 
 ### Next planned tag
 
-- Suggested tag: **`v0.3.8`**
-- Suggested first line for annotated tag message: **`0.3.8: demo Symfony 7/8 lockfiles and reference.php refresh`**
+- Suggested tag: **`v0.3.9`**
+- Suggested first line for annotated tag message: **`0.3.9: transparent translator decorator for Lexik and warmUp`**
 - Checklist focus for this release:
-  - `docs/CHANGELOG.md` has **`[0.3.8] - 2026-05-12`**
-  - `docs/UPGRADING.md` contains **0.3.7 → 0.3.8** (optional bump note)
+  - `docs/CHANGELOG.md` has **`[0.3.9] - 2026-06-10`**
+  - `docs/UPGRADING.md` contains **0.3.8 → 0.3.9**
 
 See also `docs/SECURITY.md` for the pre-release security checklist.

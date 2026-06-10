@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.9] - 2026-06-10
+
+### Fixed
+
+- **`RecordingTranslatorDecorator`:** forwards unknown translator methods to the inner service via **`__call()`** (e.g. LexikTranslationBundle **`getFormats()`**, **`removeLocalesCacheFiles()`**). Fixes **`lexik:translations:import`** and similar commands when **`missing_translation_log.enabled`** decorates **`translator`**.
+- **`RecordingTranslatorDecorator`:** implements **`WarmableInterface`** and delegates **`warmUp()`** when the decorated translator supports it, so cache warmup still works through the decorator chain.
+
+### Added
+
+- **`docs/SPEC-DRIVEN-DEVELOPMENT.md`:** spec-driven development guide for product behaviour and traceability; linked from **`README.md`** and **`docs/ENGRAM.md`**.
+
+### Tests
+
+- **`RecordingTranslatorDecoratorTest`:** coverage for **`__call()`** forwarding and **`warmUp()`** delegation.
+
 ## [0.3.8] - 2026-05-12
 
 ### Changed (demos only)

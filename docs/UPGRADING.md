@@ -4,6 +4,11 @@
 
 This line is **0.3.x** (after **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
 
+## To 0.3.9 (from 0.3.8)
+
+- Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.9**).
+- **Recommended** if **`missing_translation_log.enabled`** is **`true`** and you use **LexikTranslationBundle** (or any bundle that calls extra methods on the **`translator`** service, such as **`getFormats()`**): **0.3.9** makes **`RecordingTranslatorDecorator`** transparent for those calls. No YAML or migration changes.
+
 ## To 0.3.8 (from 0.3.7)
 
 - **Optional:** tag **0.3.8** only refreshes **demo** lockfiles and **`demo/symfony8/config/reference.php`**. Applications depending on **`nowo-tech/translation-yaml-tools-bundle`** behave the same as **0.3.7**; bump only if you want the tag to match **`main`** after those demo-only commits.
