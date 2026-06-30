@@ -2,7 +2,14 @@
 
 ## 0.x
 
-This line is **0.3.x** (after **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
+This line is **0.4.x** (after **0.3.x** / **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
+
+## To 0.4.0 (from 0.3.x)
+
+- **Breaking:** requires **PHP 8.2+** and **Symfony 7+** (Symfony **6.x** and PHP **8.1** are no longer supported).
+- In Composer, require **`^0.4`** (or pin **`0.4.x`**) to receive this line; **`^0.3`** does not pull **0.4.0**.
+- Upgrade your application to **PHP 8.2+** and **Symfony 7+** (or **8.x**) before running **`composer update nowo-tech/translation-yaml-tools-bundle`**.
+- No YAML, route, or database migration changes are required beyond the platform bump.
 
 ## To 0.3.10 (from 0.3.9)
 

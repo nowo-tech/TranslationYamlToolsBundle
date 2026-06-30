@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-30
+
+### Changed (breaking)
+
+- **Minimum PHP** raised to **`>=8.2`** (was **`>=8.1`**).
+- **Minimum Symfony** raised to **`^7.0 || ^8.0`** (Symfony **6.x** no longer supported).
+- **CI:** matrix runs PHP **8.2–8.5** with Symfony **7.0**, **7.4**, **8.0**, and **8.1** only.
+
+### Documentation
+
+- **[README](../README.md):** requirements and badges aligned with PHP **8.2+** and Symfony **7+**.
+- **[UPGRADING](UPGRADING.md):** **0.3.x → 0.4.0** migration notes.
+
 ## [0.3.10] - 2026-06-30
 
 ### Changed
