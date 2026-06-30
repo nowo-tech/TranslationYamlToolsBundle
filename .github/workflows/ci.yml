@@ -15,6 +15,16 @@ jobs:
       matrix:
         php: ['8.2', '8.3', '8.4', '8.5']
         symfony: ['7.0', '7.4', '8.0', '8.1']
+        exclude:
+          # Symfony 8.x requires PHP >=8.4 (8.1.x requires PHP >=8.4.1).
+          - php: '8.2'
+            symfony: '8.0'
+          - php: '8.2'
+            symfony: '8.1'
+          - php: '8.3'
+            symfony: '8.0'
+          - php: '8.3'
+            symfony: '8.1'
 
     steps:
       - name: Checkout code
@@ -46,8 +56,32 @@ jobs:
 
       - name: Install dependencies with Symfony ${{ matrix.symfony }}
         run: |
-          composer require symfony/browser-kit:^${{ matrix.symfony }} symfony/config:^${{ matrix.symfony }} symfony/console:^${{ matrix.symfony }} symfony/dependency-injection:^${{ matrix.symfony }} symfony/framework-bundle:^${{ matrix.symfony }} symfony/http-client:^${{ matrix.symfony }} symfony/http-kernel:^${{ matrix.symfony }} symfony/messenger:^${{ matrix.symfony }} symfony/security-csrf:^${{ matrix.symfony }} symfony/translation:^${{ matrix.symfony }} symfony/twig-bundle:^${{ matrix.symfony }} symfony/var-exporter:^${{ matrix.symfony }} symfony/yaml:^${{ matrix.symfony }} --no-interaction --no-update
-          composer update symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
+          composer require \
+            symfony/config:^${{ matrix.symfony }} \
+            symfony/console:^${{ matrix.symfony }} \
+            symfony/dependency-injection:^${{ matrix.symfony }} \
+            symfony/framework-bundle:^${{ matrix.symfony }} \
+            symfony/http-client:^${{ matrix.symfony }} \
+            symfony/http-kernel:^${{ matrix.symfony }} \
+            symfony/translation:^${{ matrix.symfony }} \
+            symfony/yaml:^${{ matrix.symfony }} \
+            --no-interaction --no-update
+          composer require --dev \
+            symfony/browser-kit:^${{ matrix.symfony }} \
+            symfony/messenger:^${{ matrix.symfony }} \
+            symfony/security-csrf:^${{ matrix.symfony }} \
+            symfony/twig-bundle:^${{ matrix.symfony }} \
+            symfony/var-exporter:^${{ matrix.symfony }} \
+            --no-interaction --no-update
+          UPDATE_PKGS='symfony/*'
+          case '${{ matrix.symfony }}' in
+            8.*)
+              # doctrine/doctrine-bundle 2.x does not support Symfony 8; 3.1+ does.
+              composer require --dev doctrine/doctrine-bundle:^3.1 --no-interaction --no-update
+              UPDATE_PKGS="$UPDATE_PKGS doctrine/doctrine-bundle"
+              ;;
+          esac
+          composer update $UPDATE_PKGS --with-all-dependencies --no-interaction --prefer-dist --no-progress
 
       - name: Run tests
         env:

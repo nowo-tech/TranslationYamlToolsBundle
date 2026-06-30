@@ -24,7 +24,7 @@ Symfony developer tools for **YAML translation files**: discover configured tran
 
 ## Requirements
 
-- PHP `>=8.2 <8.6`
+- PHP `>=8.2 <8.6` (Symfony **8.x** apps need **PHP 8.4+**)
 - Symfony `^7.0 || ^8.0` (FrameworkBundle, Console, HttpClient, Yaml, …)
 - For **fill-missing**: enable `framework.http_client: true`, choose `machine_translator` in config, and set `GOOGLE_TRANSLATE_API_KEY` (Google) or `DEEPL_AUTH_KEY` (DeepL) when using those backends; **LibreTranslate** needs no paid key for open instances (see `docs/CONFIGURATION.md`).
 

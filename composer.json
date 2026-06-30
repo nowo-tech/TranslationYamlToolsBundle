@@ -45,7 +45,7 @@
         "symfony/yaml": "^7.0 || ^8.0"
     },
     "require-dev": {
-        "doctrine/doctrine-bundle": "^2.10",
+        "doctrine/doctrine-bundle": "^2.10 || ^3.1",
         "doctrine/orm": "^2.16 || ^3.0",
         "friendsofphp/php-cs-fixer": "^3.0",
         "phpstan/extension-installer": "^1.4",
