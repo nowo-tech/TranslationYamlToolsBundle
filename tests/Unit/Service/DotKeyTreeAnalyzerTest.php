@@ -167,10 +167,13 @@ final class DotKeyTreeAnalyzerTest extends TestCase
         $flat     = ['a' => 'leaf', 'a.b' => 'nested'];
         $result   = $analyzer->disambiguateLeafPrefixConflicts($flat, 'index');
         self::assertArrayNotHasKey('error', $result);
-        self::assertSame('leaf', $result['flat']['a.index']);
-        self::assertSame('nested', $result['flat']['a.b']);
+        self::assertArrayHasKey('flat', $result);
+        /** @var array<string, mixed> $flatResult */
+        $flatResult = $result['flat'];
+        self::assertSame('leaf', $flatResult['a.index']);
+        self::assertSame('nested', $flatResult['a.b']);
         self::assertSame([['from' => 'a', 'to' => 'a.index']], $result['renames']);
-        self::assertNull($analyzer->treeConversionConflict($result['flat']));
+        self::assertNull($analyzer->treeConversionConflict($flatResult));
     }
 
     public function testDisambiguateLeafPrefixConflictsHandlesChainedConflicts(): void
@@ -179,10 +182,13 @@ final class DotKeyTreeAnalyzerTest extends TestCase
         $flat     = ['a' => 1, 'a.b' => 2, 'a.b.c' => 3];
         $result   = $analyzer->disambiguateLeafPrefixConflicts($flat, 'index');
         self::assertArrayNotHasKey('error', $result);
-        self::assertNull($analyzer->treeConversionConflict($result['flat']));
-        self::assertSame(1, $result['flat']['a.index']);
-        self::assertSame(2, $result['flat']['a.b.index']);
-        self::assertSame(3, $result['flat']['a.b.c']);
+        self::assertArrayHasKey('flat', $result);
+        /** @var array<string, mixed> $flatResult */
+        $flatResult = $result['flat'];
+        self::assertNull($analyzer->treeConversionConflict($flatResult));
+        self::assertSame(1, $flatResult['a.index']);
+        self::assertSame(2, $flatResult['a.b.index']);
+        self::assertSame(3, $flatResult['a.b.c']);
     }
 
     public function testDisambiguateLeafPrefixConflictsFailsWhenTargetKeyExists(): void

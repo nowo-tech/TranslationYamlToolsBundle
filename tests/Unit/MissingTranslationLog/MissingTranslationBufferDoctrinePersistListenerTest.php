@@ -17,11 +17,14 @@ final class MissingTranslationBufferDoctrinePersistListenerTest extends TestCase
     {
         $buffer = [
             'h' => [
-                'hits'      => 1,
-                'messageId' => 'key',
-                'domain'    => 'messages',
-                'locale'    => 'en',
-                'callSite'  => null,
+                'hits'          => 1,
+                'messageId'     => 'key',
+                'domain'        => 'messages',
+                'locale'        => 'en',
+                'callSite'      => null,
+                'requestRoute'  => null,
+                'requestMethod' => null,
+                'requestPath'   => null,
             ],
         ];
 

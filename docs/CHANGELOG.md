@@ -4,6 +4,29 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-30
+
+First stable **1.x** release. Requires **PHP 8.2+** and **Symfony 7+** (same platform as **0.4.x**). Semver **`^1.0`**; **`^0.4`** does not receive **1.0.0**.
+
+### Added
+
+- **`MissingTranslationLogRepository::flush()`** and **`clearManaged()`** — public persistence helpers; commands and the missing-log Web UI controller use them instead of calling **`getEntityManager()`** from outside the repository.
+
+### Changed
+
+- **Stability:** **1.0.0** marks the bundle configuration, console commands, and documented extension points as stable for dev-tooling workflows (after the **0.4.0** platform bump).
+- **PHPStan:** analysis at level **8** is clean on **`src/`** and **`tests/`**; **`phpstan.neon.dist`** drops duplicate extension **`includes`** (**`phpstan/extension-installer`** already registers Symfony and PHPUnit extensions).
+- **`RecordingTranslatorDecorator`:** intersection typing for the inner translator, **`non-empty-string`** guards before **`record()`**, safe **`getFallbackLocales()`** delegation, **`@method`** hints for **`__call()`** forwarding (e.g. Lexik **`getFormats()`**).
+
+### Fixed
+
+- **`TranslationYamlAuditCommand`**, **`TranslationYamlFillMissingCommand`**, **`TranslationDefaultLocaleResolver`**, **`TwigPathsPass`**, **`NowoTranslationYamlToolsBundle::getContainerExtension()`** — static-analysis and edge-case hardening (no intended behaviour change for normal usage).
+- **Demos (Symfony 7.4 / 8.1):** refreshed **`composer.lock`**; robust **`ensure-up`**; **`test`** environment (**`framework.test`**, **`KERNEL_CLASS`**, missing-log route import) so **`make release-check-demos`** passes.
+
+### Tests
+
+- PHPUnit fixtures and types aligned with PHPStan level **8**; repository tests use **`flush()`** / **`clearManaged()`**.
+
 ## [0.4.1] - 2026-06-30
 
 ### Fixed

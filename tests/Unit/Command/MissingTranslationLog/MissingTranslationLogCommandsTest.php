@@ -7,7 +7,6 @@ namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\Command\MissingTranslationL
 use Nowo\TranslationYamlToolsBundle\Command\MissingTranslationLog\MissingTranslationLogListCommand;
 use Nowo\TranslationYamlToolsBundle\Command\MissingTranslationLog\MissingTranslationLogMarkAddedCommand;
 use Nowo\TranslationYamlToolsBundle\Command\MissingTranslationLog\MissingTranslationLogValidateCommand;
-use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
 use Nowo\TranslationYamlToolsBundle\Tests\Fixtures\MissingTranslationLogTestEntityManagerFactory;
@@ -123,7 +122,7 @@ final class MissingTranslationLogCommandsTest extends TestCase
                 'callSite'  => null,
             ],
         ]);
-        $rows = $repository->findByStatus(MissingTranslationLogStatus::Pending, 5);
+        $rows  = $repository->findByStatus(MissingTranslationLogStatus::Pending, 5);
         $rowId = $rows[0]->getId();
         self::assertNotNull($rowId);
 

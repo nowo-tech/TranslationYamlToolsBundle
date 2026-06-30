@@ -74,7 +74,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         );
 
         /** @var array<string, mixed> $missingLog */
-        $missingLog = $config['missing_translation_log'];
+        $missingLog           = $config['missing_translation_log'];
         $tablePrefix          = 'nowo_translation_';
         $recordCallSite       = true;
         $recordRequestContext = true;

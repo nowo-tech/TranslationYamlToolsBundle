@@ -1,8 +1,22 @@
 # Upgrading
 
-## 0.x
+## 1.x
 
-This line is **0.4.x** (after **0.3.x** / **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
+This line is **1.0.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
+
+## To 1.0.0 (from 0.4.x)
+
+- In Composer, require **`^1.0`** (or pin **`1.0.x`**) to receive this line; **`^0.4`** does not pull **1.0.0**.
+- **No configuration, route, or database migration** is required if you are already on **0.4.x** with **PHP 8.2+** and **Symfony 7+** (or **8.x**).
+- **1.0.0** is a stability marker plus PHPStan / demo maintenance; runtime behaviour for normal bundle usage matches **0.4.1** unless you relied on calling **`MissingTranslationLogRepository::getEntityManager()`** from custom code — use **`flush()`** / **`clearManaged()`** or your own repository API instead.
+
+## To 1.0.0 (from 0.3.x or earlier)
+
+- Upgrade to **0.4.0** first (**PHP 8.2+**, **Symfony 7+** — see **To 0.4.0** below), then require **`^1.0`** and run **`composer update nowo-tech/translation-yaml-tools-bundle`**.
+
+## 0.x (historical)
+
+The **0.4.x** line ended at **0.4.1**. It required **PHP 8.2+** and **Symfony 7+** from **0.4.0** onward.
 
 ## To 0.4.1 (from 0.4.0)
 

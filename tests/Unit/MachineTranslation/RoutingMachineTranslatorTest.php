@@ -8,13 +8,18 @@ use InvalidArgumentException;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslatorInterface;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\RoutingMachineTranslator;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(RoutingMachineTranslator::class)]
 final class RoutingMachineTranslatorTest extends TestCase
 {
     /**
-     * @return array<string, MachineTranslatorInterface>
+     * @return array{
+     *     google: MachineTranslatorInterface&MockObject,
+     *     deepl: MachineTranslatorInterface&MockObject,
+     *     libretranslate: MachineTranslatorInterface&MockObject
+     * }
      */
     private function stubs(): array
     {

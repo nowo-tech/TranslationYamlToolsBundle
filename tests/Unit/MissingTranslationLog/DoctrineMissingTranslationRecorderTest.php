@@ -14,6 +14,7 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
+use function array_key_exists;
 use function count;
 
 #[CoversClass(DoctrineMissingTranslationRecorder::class)]
@@ -94,6 +95,7 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
         $repository->expects(self::never())->method('persistBuffer');
 
         $recorder = new DoctrineMissingTranslationRecorder($repository);
+        /* @phpstan-ignore argument.type (empty locale is ignored before buffering) */
         $recorder->record('k', 'messages', '');
         $recorder->flushBuffer();
     }

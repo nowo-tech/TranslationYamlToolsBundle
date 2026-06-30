@@ -15,6 +15,7 @@ use Nowo\TranslationYamlToolsBundle\Translation\RecordingTranslatorDecorator;
 use Nowo\TranslationYamlToolsBundle\Twig\MissingTranslationLogExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 #[CoversClass(NowoTranslationYamlToolsExtension::class)]
@@ -222,11 +223,11 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
 
     public function testRawConfigEnablesMissingTranslationLogViaReflection(): void
     {
-        $reflection = new \ReflectionMethod(NowoTranslationYamlToolsExtension::class, 'rawConfigEnablesMissingTranslationLog');
+        $reflection = new ReflectionMethod(NowoTranslationYamlToolsExtension::class, 'rawConfigEnablesMissingTranslationLog');
         $reflection->setAccessible(true);
 
         $container = new ContainerBuilder();
-        $ext1 = new NowoTranslationYamlToolsExtension();
+        $ext1      = new NowoTranslationYamlToolsExtension();
         $container->registerExtension($ext1);
         $container->loadFromExtension('nowo_translation_yaml_tools', [
             'missing_translation_log' => false,
@@ -244,7 +245,7 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
 
     public function testRawConfigEnablesMissingTranslationLogSkipsNonArrayChunks(): void
     {
-        $reflection = new \ReflectionMethod(NowoTranslationYamlToolsExtension::class, 'rawConfigEnablesMissingTranslationLog');
+        $reflection = new ReflectionMethod(NowoTranslationYamlToolsExtension::class, 'rawConfigEnablesMissingTranslationLog');
         $reflection->setAccessible(true);
 
         $container = $this->createMock(ContainerBuilder::class);

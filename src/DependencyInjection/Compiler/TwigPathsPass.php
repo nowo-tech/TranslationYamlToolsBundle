@@ -9,6 +9,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 use function dirname;
 use function is_dir;
+use function is_string;
 use function rtrim;
 
 /**
@@ -45,7 +46,14 @@ final class TwigPathsPass implements CompilerPassInterface
         $definition = $container->getDefinition($loaderId);
 
         if ($container->hasParameter('kernel.project_dir')) {
-            $projectDir   = rtrim((string) $container->getParameter('kernel.project_dir'), '/\\');
+            $projectDirParam = $container->getParameter('kernel.project_dir');
+            if (!is_string($projectDirParam)) {
+                $definition->addMethodCall('addPath', [$viewsPath, self::TWIG_NAMESPACE]);
+
+                return;
+            }
+
+            $projectDir   = rtrim($projectDirParam, '/\\');
             $overridePath = $projectDir . '/templates/bundles/NowoTranslationYamlToolsBundle';
             if (is_dir($overridePath)) {
                 $definition->addMethodCall('prependPath', [$overridePath, self::TWIG_NAMESPACE]);

@@ -67,11 +67,13 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 
 ## Tests and coverage
 
-- **PHP:** run `make test-coverage` and read the final `Global PHP coverage (Lines): …` line in the output (releases **0.3.3+** aim for **100%** line coverage on `src/`; see **`docs/CHANGELOG.md`** for **0.3.5** missing-log HTTP columns and **0.3.4** command additions).
+- **PHP:** run `make test-coverage` and read the final `Global PHP coverage (Lines): …` line in the output (**1.0.0+** maintains **100%** line coverage on `src/` and PHPStan level **8** on **`src/`** + **`tests/`**; see **`docs/CHANGELOG.md`**).
 - **TS/JS:** N/A
 - **Python:** N/A
 
 ## Version information
+
+**1.0.0** is the first stable **1.x** release (PHP **8.2+**, Symfony **7+** / **8.x**). See [UPGRADING](docs/UPGRADING.md) when moving from **0.4.x** or earlier.
 
 See [SECURITY POLICY](https://github.com/nowo-tech/TranslationYamlToolsBundle/security/policy) for supported versions.
 

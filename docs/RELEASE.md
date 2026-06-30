@@ -9,11 +9,11 @@
 
 **Avoid duplicate release jobs:** **`sync-releases.yml`** is intentionally **not** bound to tag pushes (only **`workflow_dispatch`** and a daily **schedule**). It backfills or updates older releases without competing with **`release.yml`** on new tags; running both on the same tag caused GitHub API races (**`already_exists`** on **`tag_name`**).
 
-**Tag message:** keep the first line short (e.g. `0.4.0: PHP 8.2+ and Symfony 7+ minimum`); GitHub Actions can merge it with the matching changelog section when publishing the release.
+**Tag message:** keep the first line short (e.g. `1.0.0: first stable 1.x release`); GitHub Actions can merge it with the matching changelog section when publishing the release.
 
 ### Next planned tag
 
-- Suggested tag: **`v0.4.2`**
+- Suggested tag: **`v1.0.1`** (patch) or **`v1.1.0`** (minor) as needed
 - Checklist focus for the next release:
   - `docs/CHANGELOG.md`: move **`[Unreleased]`** items into a dated **`[X.Y.Z]`** section
   - `docs/UPGRADING.md`: add migration notes when users must change config or code

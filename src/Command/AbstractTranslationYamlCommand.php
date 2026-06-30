@@ -34,7 +34,7 @@ abstract class AbstractTranslationYamlCommand extends Command
      * Resolves the translation domain (interactive pick when missing in interactive mode).
      *
      * @throws InvalidArgumentException when the domain is unknown
-     * @throws RuntimeException         when no domains exist or non-interactive without a domain
+     * @throws RuntimeException when no domains exist or non-interactive without a domain
      */
     protected function resolveDomain(
         InputInterface $input,
@@ -97,12 +97,7 @@ abstract class AbstractTranslationYamlCommand extends Command
         if ($localeOpt !== null && $localeOpt !== false && $localeOpt !== '') {
             $locale = (string) $localeOpt;
             if (!in_array($locale, $localesForDomain, true)) {
-                throw new InvalidArgumentException(sprintf(
-                    'Unknown locale "%s" for domain "%s". Available: %s',
-                    $locale,
-                    $domain,
-                    implode(', ', $localesForDomain),
-                ));
+                throw new InvalidArgumentException(sprintf('Unknown locale "%s" for domain "%s". Available: %s', $locale, $domain, implode(', ', $localesForDomain)));
             }
 
             return [$locale];

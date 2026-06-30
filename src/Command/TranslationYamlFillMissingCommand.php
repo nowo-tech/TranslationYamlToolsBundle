@@ -92,8 +92,9 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
         $output->writeln('<info>Domains found:</info> ' . (count($domains) === 0 ? '(none)' : implode(', ', $domains)));
         $output->writeln('');
 
-        $domain = $input->getOption('domain') ? (string) $input->getOption('domain') : null;
-        if ($domain === null || $domain === '') {
+        $domainOption = $input->getOption('domain');
+        $domain       = is_string($domainOption) && $domainOption !== '' ? $domainOption : null;
+        if ($domain === null) {
             if (!$input->isInteractive()) {
                 throw new RuntimeException('Non-interactive mode requires --domain.');
             }
@@ -107,13 +108,15 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
             throw new InvalidArgumentException(sprintf('Unknown domain "%s". Known domains: %s', $domain, count($knownDomains) === 0 ? '(none)' : implode(', ', $knownDomains)));
         }
 
-        $sourceLocale = $input->getOption('source-locale') ? (string) $input->getOption('source-locale') : null;
-        if ($sourceLocale === null || $sourceLocale === '') {
+        $sourceLocaleOption = $input->getOption('source-locale');
+        $sourceLocale       = is_string($sourceLocaleOption) && $sourceLocaleOption !== '' ? $sourceLocaleOption : null;
+        if ($sourceLocale === null) {
             $sourceLocale = $defaultLocale;
         }
 
-        $targetLocale = $input->getOption('target-locale') ? (string) $input->getOption('target-locale') : null;
-        if ($targetLocale === null || $targetLocale === '') {
+        $targetLocaleOption = $input->getOption('target-locale');
+        $targetLocale       = is_string($targetLocaleOption) && $targetLocaleOption !== '' ? $targetLocaleOption : null;
+        if ($targetLocale === null) {
             if (!$input->isInteractive()) {
                 throw new RuntimeException('Non-interactive mode requires --target-locale.');
             }

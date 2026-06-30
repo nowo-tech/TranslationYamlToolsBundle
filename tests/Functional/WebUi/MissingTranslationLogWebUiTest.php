@@ -12,6 +12,8 @@ use Nowo\TranslationYamlToolsBundle\MissingTranslationLog\DoctrineMissingTransla
 use Nowo\TranslationYamlToolsBundle\Tests\Kernel\MissingTranslationLogTestKernel;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Contracts\Translation\LocaleAwareInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[CoversNothing]
 final class MissingTranslationLogWebUiTest extends WebTestCase
@@ -36,9 +38,13 @@ final class MissingTranslationLogWebUiTest extends WebTestCase
         $this->resetMissingLogTable();
 
         $translator = self::getContainer()->get('translator');
+        self::assertInstanceOf(LocaleAwareInterface::class, $translator);
+        self::assertInstanceOf(TranslatorInterface::class, $translator);
         $translator->setLocale('es');
         $translator->trans('app.body', [], 'messages', 'es');
-        self::getContainer()->get(DoctrineMissingTranslationRecorder::class)->flushBuffer();
+        $recorder = self::getContainer()->get(DoctrineMissingTranslationRecorder::class);
+        self::assertInstanceOf(DoctrineMissingTranslationRecorder::class, $recorder);
+        $recorder->flushBuffer();
 
         $client->request('GET', '/_translation_yaml_tools/missing-log/');
         self::assertResponseIsSuccessful();

@@ -79,7 +79,7 @@ final class LibreTranslateMachineTranslatorTest extends TestCase
     public function testSendsLanguageCodesAndOptionalApiKey(): void
     {
         $body   = json_encode(['translatedText' => 'ok'], JSON_THROW_ON_ERROR);
-        $client = new MockHttpClient(static function ($method, $url, array $options) use ($body): \Symfony\Component\HttpClient\Response\MockResponse {
+        $client = new MockHttpClient(static function ($method, $url, array $options) use ($body): MockResponse {
             self::assertSame('POST', $method);
             self::assertSame('https://lt.example/translate', $url);
             $raw = $options['body'] ?? '';
@@ -101,7 +101,7 @@ final class LibreTranslateMachineTranslatorTest extends TestCase
     public function testOmitsApiKeyWhenEmpty(): void
     {
         $body   = json_encode(['translatedText' => 'ok'], JSON_THROW_ON_ERROR);
-        $client = new MockHttpClient(static function ($method, $url, array $options) use ($body): \Symfony\Component\HttpClient\Response\MockResponse {
+        $client = new MockHttpClient(static function ($method, $url, array $options) use ($body): MockResponse {
             $raw = $options['body'] ?? '';
             if (is_resource($raw)) {
                 $raw = stream_get_contents($raw);
@@ -120,7 +120,7 @@ final class LibreTranslateMachineTranslatorTest extends TestCase
     {
         $body   = json_encode(['translatedText' => 'ok'], JSON_THROW_ON_ERROR);
         $mapper = new MachineTranslationLocaleMapper(['pt_br' => 'pt-br']);
-        $client = new MockHttpClient(static function ($method, $url, array $options) use ($body): \Symfony\Component\HttpClient\Response\MockResponse {
+        $client = new MockHttpClient(static function ($method, $url, array $options) use ($body): MockResponse {
             $raw = $options['body'] ?? '';
             if (is_resource($raw)) {
                 $raw = stream_get_contents($raw);

@@ -35,6 +35,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
         $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
             private string $locale = 'en';
 
+            /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
                 return $id . '-t';
@@ -60,6 +61,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
                 return [$this->getCatalogue()];
             }
 
+            /** @return list<string> */
             public function getFallbackLocales(): array
             {
                 return [];
@@ -87,6 +89,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
     public function testDelegatesLocaleCatalogueAndFallback(): void
     {
         $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+            /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
                 return 'x';
@@ -111,6 +114,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
                 return [new MessageCatalogue('de')];
             }
 
+            /** @return list<string> */
             public function getFallbackLocales(): array
             {
                 return ['en'];
@@ -124,7 +128,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
 
         self::assertSame('de', $d->getLocale());
         $d->setLocale('fr');
-        self::assertInstanceOf(\Symfony\Component\Translation\MessageCatalogueInterface::class, $d->getCatalogue('de'));
+        self::assertSame('de', $d->getCatalogue('de')->getLocale());
         self::assertCount(1, $d->getCatalogues());
         self::assertSame(['en'], $d->getFallbackLocales());
     }
@@ -132,6 +136,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
     public function testCallForwardsUnknownMethodsToInner(): void
     {
         $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+            /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
                 return 'x';
@@ -156,6 +161,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
                 return [];
             }
 
+            /** @return list<string> */
             public function getFallbackLocales(): array
             {
                 return [];
@@ -169,8 +175,8 @@ final class RecordingTranslatorDecoratorTest extends TestCase
         };
 
         $builder = $this->createMock(MissingTranslationLogCallSiteBuilder::class);
-        $rec = $this->createMock(MissingTranslationRecorderInterface::class);
-        $d   = new RecordingTranslatorDecorator($inner, $rec, $builder, false, false);
+        $rec     = $this->createMock(MissingTranslationRecorderInterface::class);
+        $d       = new RecordingTranslatorDecorator($inner, $rec, $builder, false, false);
 
         self::assertSame(['yaml', 'xlf'], $d->getFormats());
     }
@@ -178,6 +184,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
     public function testWarmUpDelegatesWhenInnerIsWarmable(): void
     {
         $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface, \Symfony\Component\HttpKernel\CacheWarmer\WarmableInterface {
+            /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
                 return 'x';
@@ -202,6 +209,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
                 return [];
             }
 
+            /** @return list<string> */
             public function getFallbackLocales(): array
             {
                 return [];
@@ -214,8 +222,8 @@ final class RecordingTranslatorDecoratorTest extends TestCase
         };
 
         $builder = $this->createMock(MissingTranslationLogCallSiteBuilder::class);
-        $rec = $this->createMock(MissingTranslationRecorderInterface::class);
-        $d   = new RecordingTranslatorDecorator($inner, $rec, $builder, false, false);
+        $rec     = $this->createMock(MissingTranslationRecorderInterface::class);
+        $d       = new RecordingTranslatorDecorator($inner, $rec, $builder, false, false);
 
         self::assertSame(['/warmed.php'], $d->warmUp('/cache', '/build'));
     }
@@ -223,6 +231,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
     public function testWarmUpReturnsEmptyWhenInnerIsNotWarmable(): void
     {
         $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+            /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
                 return 'x';
@@ -247,6 +256,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
                 return [];
             }
 
+            /** @return list<string> */
             public function getFallbackLocales(): array
             {
                 return [];
@@ -254,8 +264,8 @@ final class RecordingTranslatorDecoratorTest extends TestCase
         };
 
         $builder = $this->createMock(MissingTranslationLogCallSiteBuilder::class);
-        $rec = $this->createMock(MissingTranslationRecorderInterface::class);
-        $d   = new RecordingTranslatorDecorator($inner, $rec, $builder, false, false);
+        $rec     = $this->createMock(MissingTranslationRecorderInterface::class);
+        $d       = new RecordingTranslatorDecorator($inner, $rec, $builder, false, false);
 
         self::assertSame([], $d->warmUp('/cache'));
     }
@@ -269,6 +279,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
             {
             }
 
+            /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
                 return $id;
@@ -293,6 +304,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
                 return [$this->catalogue];
             }
 
+            /** @return list<string> */
             public function getFallbackLocales(): array
             {
                 return [];

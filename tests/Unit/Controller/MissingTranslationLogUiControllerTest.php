@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\Controller;
 
 use Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController;
-
-use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
 use Nowo\TranslationYamlToolsBundle\Tests\Fixtures\MissingTranslationLogTestEntityManagerFactory;
@@ -18,8 +16,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
@@ -234,8 +232,8 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $rows = $repo->findByStatus(MissingTranslationLogStatus::Pending, 10);
         self::assertCount(2, $rows);
         $rows[0]->setStatus(MissingTranslationLogStatus::Added);
-        $repo->getEntityManager()->flush();
-        $repo->getEntityManager()->clear();
+        $repo->flush();
+        $repo->clearManaged();
 
         $csrf = $this->createMock(CsrfTokenManagerInterface::class);
         $csrf->method('isTokenValid')->willReturnCallback(static function (CsrfToken $token): bool {

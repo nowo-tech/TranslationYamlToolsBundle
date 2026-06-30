@@ -9,6 +9,12 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
+use function dirname;
+use function sprintf;
+use function strlen;
+
+use const PHP_BINARY;
+
 #[CoversClass(TranslationCallSiteResolver::class)]
 final class TranslationCallSiteResolverTest extends TestCase
 {
@@ -79,8 +85,8 @@ final class TranslationCallSiteResolverTest extends TestCase
             self::markTestSkipped('Could not create deep temp directory for long-path test');
         }
 
-        $runner   = $deepDir . 'invoke_resolver.php';
-        $autoload = dirname(__DIR__, 3) . '/vendor/autoload.php';
+        $runner    = $deepDir . 'invoke_resolver.php';
+        $autoload  = dirname(__DIR__, 3) . '/vendor/autoload.php';
         $runnerPhp = "<?php\nrequire " . var_export($autoload, true) . ";\n"
             . "echo \\Nowo\\TranslationYamlToolsBundle\\Translation\\TranslationCallSiteResolver::resolve() ?? '';\n";
         file_put_contents($runner, $runnerPhp);

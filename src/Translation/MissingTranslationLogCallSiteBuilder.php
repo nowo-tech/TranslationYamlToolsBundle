@@ -31,9 +31,9 @@ class MissingTranslationLogCallSiteBuilder
             }
         }
 
-        $requestRoute   = null;
-        $requestMethod  = null;
-        $requestPath    = null;
+        $requestRoute  = null;
+        $requestMethod = null;
+        $requestPath   = null;
         if ($includeRequest) {
             $request = $this->requestStack->getCurrentRequest();
             if ($request !== null) {

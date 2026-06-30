@@ -10,6 +10,8 @@ use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+use function strlen;
+
 #[CoversClass(MissingTranslationLog::class)]
 final class MissingTranslationLogEntityTest extends TestCase
 {
@@ -47,8 +49,8 @@ final class MissingTranslationLogEntityTest extends TestCase
 
     public function testRegisterAdditionalHitsSkipsWhenHitsBelowOne(): void
     {
-        $at = new DateTimeImmutable('2026-01-02 12:00:00');
-        $e  = new MissingTranslationLog('a', 'm', 'en', $at);
+        $at     = new DateTimeImmutable('2026-01-02 12:00:00');
+        $e      = new MissingTranslationLog('a', 'm', 'en', $at);
         $before = $e->getHitCount();
         $e->registerAdditionalHits(0, $at);
         self::assertSame($before, $e->getHitCount());
