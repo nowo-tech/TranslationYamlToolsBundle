@@ -13,7 +13,7 @@
 
 ### Next planned tag
 
-- Suggested tag: **`v0.4.1`**
+- Suggested tag: **`v0.4.2`**
 - Checklist focus for the next release:
   - `docs/CHANGELOG.md`: move **`[Unreleased]`** items into a dated **`[X.Y.Z]`** section
   - `docs/UPGRADING.md`: add migration notes when users must change config or code

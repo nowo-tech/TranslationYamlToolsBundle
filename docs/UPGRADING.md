@@ -4,6 +4,10 @@
 
 This line is **0.4.x** (after **0.3.x** / **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
 
+## To 0.4.1 (from 0.4.0)
+
+- **Optional:** tag **0.4.1** fixes the **Symfony 8** CI matrix (dev-only packages, **`doctrine/doctrine-bundle` ^3.1** on Symfony **8**) and enables Doctrine **native lazy objects** in missing-log unit tests on **PHP 8.4+**. Applications depending on **`nowo-tech/translation-yaml-tools-bundle`** behave the same as **0.4.0**; bump with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.4`** already allows **0.4.1**).
+
 ## To 0.4.0 (from 0.3.x)
 
 - **Breaking:** requires **PHP 8.2+** and **Symfony 7+** (Symfony **6.x** and PHP **8.1** are no longer supported).
