@@ -103,3 +103,8 @@ clean: ensure-up
 
 assets:
 	@echo "No frontend assets in this bundle."
+
+
+# REQ-MAKE-008: update-deps (REQ-MAKE-008)
+BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+include $(BUNDLE_ROOT)/../.scripts/Makefile.update-deps.mk

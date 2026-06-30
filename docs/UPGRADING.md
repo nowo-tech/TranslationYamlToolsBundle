@@ -4,6 +4,10 @@
 
 This line is **0.3.x** (after **0.2.0**). Treat minor and patch releases as potentially containing small command output or behaviour tweaks until a stable **`1.0.0`** is tagged. Always read `docs/CHANGELOG.md` before upgrading.
 
+## To 0.3.10 (from 0.3.9)
+
+- **Optional:** tag **0.3.10** refreshes the **CI Symfony matrix**, **`symfony/var-exporter`** dev constraint, and **demo** lockfiles (**Symfony 7.4** / **8.1**). Applications depending on **`nowo-tech/translation-yaml-tools-bundle`** behave the same as **0.3.9**; bump only if you want the tag to match **`main`** after those maintenance commits.
+
 ## To 0.3.9 (from 0.3.8)
 
 - Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^0.3`** already allows **0.3.9**).

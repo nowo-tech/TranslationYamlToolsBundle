@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.10] - 2026-06-30
+
+### Changed
+
+- **CI:** PHPUnit runs against a Symfony version matrix (**6.4**, **7.0**, **7.4**, **8.0**, **8.1**) in addition to PHP **8.1–8.5**; coverage job pins **PHP 8.2 + Symfony 7.4**.
+- **`composer.json` (require-dev):** **`symfony/var-exporter`** constraint extended to **`^8.0`** (aligned with Symfony 8 test matrix).
+- **Demos:** **`demo/symfony7`** targets Symfony **7.4** (was **7.0**); **`demo/symfony8`** targets Symfony **8.1** (was **8.0**); refreshed lockfiles.
+- **Makefiles:** **`update-deps`** targets (REQ-MAKE-008) for the bundle root and demo apps.
+
+### Documentation
+
+- **[README](../README.md):** Symfony compatibility badge reflects **6.0+ | 7.4+ | 8.0 | 8.1+**.
+- **[demo/README](../demo/README.md):** demo Symfony versions updated to **7.4** / **8.1**.
+
+_No PHP changes under **`src/`**; upgrading the Composer package from **0.3.9** is optional unless you track this repository’s CI/demo tree._
+
 ## [0.3.9] - 2026-06-10
 
 ### Fixed

@@ -13,10 +13,10 @@
 
 ### Next planned tag
 
-- Suggested tag: **`v0.3.9`**
-- Suggested first line for annotated tag message: **`0.3.9: transparent translator decorator for Lexik and warmUp`**
-- Checklist focus for this release:
-  - `docs/CHANGELOG.md` has **`[0.3.9] - 2026-06-10`**
-  - `docs/UPGRADING.md` contains **0.3.8 → 0.3.9**
+- Suggested tag: **`v0.3.11`**
+- Checklist focus for the next release:
+  - `docs/CHANGELOG.md`: move **`[Unreleased]`** items into a dated **`[X.Y.Z]`** section
+  - `docs/UPGRADING.md`: add migration notes when users must change config or code
+  - `make release-check` green before tagging
 
 See also `docs/SECURITY.md` for the pre-release security checklist.
