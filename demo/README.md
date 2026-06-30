@@ -4,8 +4,8 @@ Two FrankenPHP demos:
 
 | Demo       | Symfony | Default PORT (`.env.example`) |
 |-----------|---------|-------------------------------|
-| `symfony7` | 7.0     | 8037                          |
-| `symfony8` | 8.0     | 8038                          |
+| `symfony7` | 7.4     | 8037                          |
+| `symfony8` | 8.1     | 8038                          |
 
 Each demo includes:
 
