@@ -20,12 +20,17 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 
+use function dirname;
+
 #[CoversClass(TranslationYamlFlattenCommand::class)]
 #[CoversClass(TranslationYamlSortCommand::class)]
 #[CoversClass(TranslationYamlTreeCommand::class)]
 #[CoversClass(TranslationYamlFillMissingCommand::class)]
 final class TranslationYamlCommandIntegrityFailureTest extends TestCase
 {
+    /**
+     * @return array{0: \PHPUnit\Framework\MockObject\MockObject&TranslationYamlCatalog, 1: FrameworkTranslationPathsResolver&\PHPUnit\Framework\MockObject\MockObject}
+     */
     private function baseCatalogAndPaths(string $enPath, ?string $frPath = null): array
     {
         $catalog = $this->createMock(TranslationYamlCatalog::class);
@@ -38,7 +43,7 @@ final class TranslationYamlCommandIntegrityFailureTest extends TestCase
         $catalog->method('resolveFileForDomainLocale')->willReturnMap($map);
 
         $paths = $this->createMock(FrameworkTranslationPathsResolver::class);
-        $paths->method('resolveTranslationDirectories')->willReturn([\dirname($enPath)]);
+        $paths->method('resolveTranslationDirectories')->willReturn([dirname($enPath)]);
         $paths->method('describeResolutionSources')->willReturn([]);
 
         return [$catalog, $paths];

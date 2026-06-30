@@ -32,7 +32,7 @@ final class YamlArraySorterTest extends TestCase
     {
         $sorter = new YamlArraySorter();
         $list   = [3, 1, 2];
-        self::assertSame($list, $sorter->sortAssociativeRecursive($list));
+        self::assertSame($list, $sorter->sortAssociativeRecursive($list)); // @phpstan-ignore argument.type (indexed list passthrough)
     }
 
     public function testItSortsEmptyAssociativeArray(): void

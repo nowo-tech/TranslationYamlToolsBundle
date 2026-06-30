@@ -17,6 +17,7 @@ class MissingTranslationLog
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    /** @phpstan-ignore property.unusedType (Doctrine assigns the id on persist) */
     private ?int $id = null;
 
     #[ORM\Column(name: 'message_id', length: 500)]
@@ -68,15 +69,15 @@ class MissingTranslationLog
         ?string $requestMethod = null,
         ?string $requestPath = null,
     ) {
-        $this->messageId       = $messageId;
-        $this->domain          = $domain;
-        $this->locale          = $locale;
-        $this->firstSeenAt     = $seenAt;
-        $this->lastSeenAt      = $seenAt;
-        $this->callSite        = $this->normalizeCallSite($callSite);
-        $this->requestRoute    = $this->normalizeRequestRoute($requestRoute);
-        $this->requestMethod   = $this->normalizeRequestMethod($requestMethod);
-        $this->requestPath     = $this->normalizeRequestPath($requestPath);
+        $this->messageId     = $messageId;
+        $this->domain        = $domain;
+        $this->locale        = $locale;
+        $this->firstSeenAt   = $seenAt;
+        $this->lastSeenAt    = $seenAt;
+        $this->callSite      = $this->normalizeCallSite($callSite);
+        $this->requestRoute  = $this->normalizeRequestRoute($requestRoute);
+        $this->requestMethod = $this->normalizeRequestMethod($requestMethod);
+        $this->requestPath   = $this->normalizeRequestPath($requestPath);
     }
 
     public function getId(): ?int
@@ -162,7 +163,7 @@ class MissingTranslationLog
         }
         $this->hitCount += $hits;
         $this->lastSeenAt = $at;
-        $normalized = $this->normalizeCallSite($latestCallSite);
+        $normalized       = $this->normalizeCallSite($latestCallSite);
         if ($normalized !== null) {
             $this->callSite = $normalized;
         }

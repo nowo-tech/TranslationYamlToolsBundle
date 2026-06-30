@@ -50,7 +50,7 @@ final class MissingTranslationLogUiController extends AbstractController
         }
 
         $row->setStatus(MissingTranslationLogStatus::Added);
-        $this->repository->getEntityManager()->flush();
+        $this->repository->flush();
 
         $this->addFlash('success', sprintf('Row #%d marked as added.', $id));
 

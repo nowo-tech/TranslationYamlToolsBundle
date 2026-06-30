@@ -20,14 +20,13 @@ final class TranslationCallSiteResolver
 {
     public static function resolve(): ?string
     {
-        /** @var list<array{file?: string, line?: int}> $trace */
         $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 48);
 
         return self::pickCallSiteFromTrace($trace);
     }
 
     /**
-     * @param list<array{file?: string, line?: int}> $trace
+     * @param list<array<string, mixed>> $trace
      */
     private static function pickCallSiteFromTrace(array $trace): ?string
     {

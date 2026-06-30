@@ -52,14 +52,14 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
 
         if (!isset($this->buffer[$key])) {
             $this->buffer[$key] = [
-                'hits'           => 0,
-                'messageId'      => $id,
-                'domain'         => $domain,
-                'locale'         => $locale,
-                'callSite'       => null,
-                'requestRoute'   => null,
-                'requestMethod'  => null,
-                'requestPath'    => null,
+                'hits'          => 0,
+                'messageId'     => $id,
+                'domain'        => $domain,
+                'locale'        => $locale,
+                'callSite'      => null,
+                'requestRoute'  => null,
+                'requestMethod' => null,
+                'requestPath'   => null,
             ];
         }
 
@@ -103,7 +103,7 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
                 return;
             }
 
-            if ($this->asyncPersistStrategy === 'event_dispatcher' && $this->eventDispatcher instanceof \Symfony\Contracts\EventDispatcher\EventDispatcherInterface) {
+            if ($this->asyncPersistStrategy === 'event_dispatcher' && $this->eventDispatcher instanceof EventDispatcherInterface) {
                 $this->eventDispatcher->dispatch(new MissingTranslationBufferEvent($snapshot));
 
                 return;

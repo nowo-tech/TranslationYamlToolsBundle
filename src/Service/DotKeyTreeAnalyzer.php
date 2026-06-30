@@ -108,7 +108,7 @@ class DotKeyTreeAnalyzer
      *
      * @param array<string, mixed> $flatLeaves
      *
-     * @return array{flat: array<string, mixed>, renames: list<array{from: string, to: string}>}|array{error: string}
+     * @return array{error: string}|array{flat: array<string, mixed>, renames: list<array{from: string, to: string}>}
      */
     public function disambiguateLeafPrefixConflicts(array $flatLeaves, string $suffixSegment): array
     {
@@ -161,7 +161,7 @@ class DotKeyTreeAnalyzer
 
                 $flat[$newKey] = $flat[$leafKey];
                 unset($flat[$leafKey]);
-                $renames[] = ['from' => $leafKey, 'to' => $newKey];
+                $renames[]       = ['from' => $leafKey, 'to' => $newKey];
                 $renamedThisPass = true;
             }
 

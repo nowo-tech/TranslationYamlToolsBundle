@@ -25,6 +25,8 @@ use Symfony\Component\HttpKernel\KernelInterface;
 final class TranslationYamlAuditCommandTest extends TestCase
 {
     /**
+     * @param array<string, string> $filesUnderTranslations
+     *
      * @return array{catalog: TranslationYamlCatalog, paths: FrameworkTranslationPathsResolver, bag: ParameterBag}
      */
     private function createDeps(string $project, array $filesUnderTranslations): array
@@ -49,6 +51,9 @@ final class TranslationYamlAuditCommandTest extends TestCase
         return ['catalog' => $catalog, 'paths' => $paths, 'bag' => $bag];
     }
 
+    /**
+     * @param array{catalog: TranslationYamlCatalog, paths: FrameworkTranslationPathsResolver, bag: ParameterBag} $deps
+     */
     private function auditCommand(array $deps): TranslationYamlAuditCommand
     {
         return new TranslationYamlAuditCommand(

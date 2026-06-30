@@ -40,6 +40,8 @@ use function is_array;
 final class TranslationYamlCommandsTest extends TestCase
 {
     /**
+     * @param array<string, string> $filesUnderTranslations
+     *
      * @return array{
      *     paths: FrameworkTranslationPathsResolver,
      *     catalog: TranslationYamlCatalog,
@@ -70,6 +72,9 @@ final class TranslationYamlCommandsTest extends TestCase
         return ['paths' => $paths, 'catalog' => $catalog, 'bag' => $bag];
     }
 
+    /**
+     * @param array{paths: FrameworkTranslationPathsResolver, catalog: TranslationYamlCatalog, bag: ParameterBag} $deps
+     */
     private function treeCommand(array $deps, int $indent = 4, string $leafPrefixSuffix = 'index'): TranslationYamlTreeCommand
     {
         return new TranslationYamlTreeCommand(
@@ -82,6 +87,9 @@ final class TranslationYamlCommandsTest extends TestCase
         );
     }
 
+    /**
+     * @param array{paths: FrameworkTranslationPathsResolver, catalog: TranslationYamlCatalog, bag: ParameterBag} $deps
+     */
     private function sortCommand(array $deps, int $indent = 4): TranslationYamlSortCommand
     {
         return new TranslationYamlSortCommand(
@@ -94,6 +102,9 @@ final class TranslationYamlCommandsTest extends TestCase
         );
     }
 
+    /**
+     * @param array{paths: FrameworkTranslationPathsResolver, catalog: TranslationYamlCatalog, bag: ParameterBag} $deps
+     */
     private function flattenCommand(array $deps, int $indent = 4): TranslationYamlFlattenCommand
     {
         return new TranslationYamlFlattenCommand(
@@ -105,6 +116,9 @@ final class TranslationYamlCommandsTest extends TestCase
         );
     }
 
+    /**
+     * @param array{paths: FrameworkTranslationPathsResolver, catalog: TranslationYamlCatalog, bag: ParameterBag} $deps
+     */
     private function fillCommand(
         array $deps,
         StubMachineTranslator $translator,
@@ -193,9 +207,9 @@ final class TranslationYamlCommandsTest extends TestCase
         $this->bind($cmd);
         $tester = new CommandTester($cmd);
         $exit   = $tester->execute([
-            '--domain'         => 'messages',
-            '--locale'         => 'en',
-            '--fix-leaf-prefix' => true,
+            '--domain'             => 'messages',
+            '--locale'             => 'en',
+            '--fix-leaf-prefix'    => true,
             '--leaf-prefix-suffix' => 'idx',
         ]);
         self::assertSame(0, $exit);
@@ -910,7 +924,9 @@ final class TranslationYamlCommandsTest extends TestCase
             $out = $method->invoke($cmd, 'messages', 'de', $project . '/translations/messages.en.yaml');
             self::assertSame($project . '/translations/messages.de.yaml', $out);
         } finally {
-            chdir($previousCwd);
+            if ($previousCwd !== false) {
+                chdir($previousCwd);
+            }
         }
     }
 

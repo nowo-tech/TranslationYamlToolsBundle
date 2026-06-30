@@ -42,15 +42,11 @@ final class MissingTranslationLogIntegrationTest extends KernelTestCase
 
     public function testMissingKeyIsRecordedAfterFlush(): void
     {
-        $translator = self::getContainer()->get('translator');
-        self::assertInstanceOf(LocaleAwareInterface::class, $translator);
-        self::assertInstanceOf(TranslatorBagInterface::class, $translator);
-        self::assertInstanceOf(TranslatorInterface::class, $translator);
-
+        $translator = $this->translator();
         $translator->setLocale('es');
         $translator->trans('app.body', [], 'messages', 'es');
 
-        $recorder = self::getContainer()->get(DoctrineMissingTranslationRecorder::class);
+        $recorder = $this->recorder();
         $recorder->flushBuffer();
 
         $em = self::getContainer()->get('doctrine.orm.entity_manager');
@@ -78,13 +74,11 @@ final class MissingTranslationLogIntegrationTest extends KernelTestCase
 
     public function testExistingKeyIsNotRecorded(): void
     {
-        $translator = self::getContainer()->get('translator');
-        self::assertInstanceOf(LocaleAwareInterface::class, $translator);
+        $translator = $this->translator();
         $translator->setLocale('es');
         $translator->trans('app.title', [], 'messages', 'es');
 
-        $recorder = self::getContainer()->get(DoctrineMissingTranslationRecorder::class);
-        $recorder->flushBuffer();
+        $this->recorder()->flushBuffer();
 
         $em = self::getContainer()->get('doctrine.orm.entity_manager');
         self::assertInstanceOf(EntityManagerInterface::class, $em);
@@ -93,12 +87,11 @@ final class MissingTranslationLogIntegrationTest extends KernelTestCase
 
     public function testSameMissingKeyUpdatesExistingRowInsteadOfInsertingDuplicate(): void
     {
-        $translator = self::getContainer()->get('translator');
-        self::assertInstanceOf(LocaleAwareInterface::class, $translator);
+        $translator = $this->translator();
         $translator->setLocale('es');
         $translator->trans('app.body', [], 'messages', 'es');
 
-        $recorder = self::getContainer()->get(DoctrineMissingTranslationRecorder::class);
+        $recorder = $this->recorder();
         $recorder->flushBuffer();
 
         $translator->trans('app.body', [], 'messages', 'es');
@@ -119,5 +112,26 @@ final class MissingTranslationLogIntegrationTest extends KernelTestCase
         $meta = $em->getClassMetadata(MissingTranslationLog::class);
         $tool->dropSchema([$meta]);
         $tool->createSchema([$meta]);
+    }
+
+    /**
+     * @return LocaleAwareInterface&TranslatorBagInterface&TranslatorInterface
+     */
+    private function translator(): TranslatorInterface
+    {
+        $translator = self::getContainer()->get('translator');
+        self::assertInstanceOf(TranslatorInterface::class, $translator);
+        self::assertInstanceOf(LocaleAwareInterface::class, $translator);
+        self::assertInstanceOf(TranslatorBagInterface::class, $translator);
+
+        return $translator;
+    }
+
+    private function recorder(): DoctrineMissingTranslationRecorder
+    {
+        $recorder = self::getContainer()->get(DoctrineMissingTranslationRecorder::class);
+        self::assertInstanceOf(DoctrineMissingTranslationRecorder::class, $recorder);
+
+        return $recorder;
     }
 }

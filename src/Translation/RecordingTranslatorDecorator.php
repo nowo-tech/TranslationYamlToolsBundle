@@ -16,11 +16,17 @@ use function sprintf;
 
 /**
  * Wraps the Symfony translator and persists rows when a key is missing from the catalogue for the requested locale.
+ *
+ * @method mixed getFormats()
+ * @method mixed removeLocalesCacheFiles(mixed ...$args)
  */
 final class RecordingTranslatorDecorator implements TranslatorInterface, TranslatorBagInterface, LocaleAwareInterface, WarmableInterface
 {
+    /** @var LocaleAwareInterface&TranslatorBagInterface&TranslatorInterface */
+    private TranslatorInterface $inner;
+
     public function __construct(
-        private TranslatorInterface $inner,
+        TranslatorInterface $inner,
         private readonly MissingTranslationRecorderInterface $recorder,
         private readonly MissingTranslationLogCallSiteBuilder $callSiteBuilder,
         private readonly bool $recordCallSite = true,
@@ -29,59 +35,54 @@ final class RecordingTranslatorDecorator implements TranslatorInterface, Transla
         if (!$inner instanceof TranslatorBagInterface || !$inner instanceof LocaleAwareInterface) {
             throw new InvalidArgumentException(sprintf('The decorated translator must implement %s and %s.', TranslatorBagInterface::class, LocaleAwareInterface::class));
         }
+
+        $this->inner = $inner;
     }
 
     /**
-     * {@inheritdoc}
+     * @param array<string, bool|float|int|string|null> $parameters
      */
     public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
     {
         $domain ??= 'messages';
         $effectiveLocale = $locale ?? $this->inner->getLocale();
 
-        $catalogue = $this->inner->getCatalogue($effectiveLocale);
-        if (!$catalogue->defines($id, $domain)) {
-            $ctx = $this->callSiteBuilder->buildContext($this->recordCallSite, $this->recordRequestContext);
-            $this->recorder->record(
-                $id,
-                $domain,
-                $effectiveLocale,
-                $ctx->callSite,
-                $ctx->requestRoute,
-                $ctx->requestMethod,
-                $ctx->requestPath,
-            );
+        if ($id !== '' && $domain !== '' && $effectiveLocale !== '') {
+            $catalogue = $this->inner->getCatalogue($effectiveLocale);
+            if (!$catalogue->defines($id, $domain)) {
+                $ctx = $this->callSiteBuilder->buildContext($this->recordCallSite, $this->recordRequestContext);
+                $this->recorder->record(
+                    $id,
+                    $domain,
+                    $effectiveLocale,
+                    self::nonEmptyOrNull($ctx->callSite),
+                    self::nonEmptyOrNull($ctx->requestRoute),
+                    self::nonEmptyOrNull($ctx->requestMethod),
+                    self::nonEmptyOrNull($ctx->requestPath),
+                );
+            }
         }
 
         return $this->inner->trans($id, $parameters, $domain, $locale);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getLocale(): string
     {
         return $this->inner->getLocale();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function setLocale(string $locale): void
     {
         $this->inner->setLocale($locale);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getCatalogue(?string $locale = null): MessageCatalogueInterface
     {
         return $this->inner->getCatalogue($locale);
     }
 
     /**
-     * {@inheritdoc}
+     * @return array<string, MessageCatalogueInterface>
      */
     public function getCatalogues(): array
     {
@@ -89,11 +90,18 @@ final class RecordingTranslatorDecorator implements TranslatorInterface, Transla
     }
 
     /**
-     * {@inheritdoc}
+     * @return list<string>
      */
     public function getFallbackLocales(): array
     {
-        return $this->inner->getFallbackLocales();
+        if (!method_exists($this->inner, 'getFallbackLocales')) {
+            return [];
+        }
+
+        /** @var list<string> $locales */
+        $locales = $this->inner->getFallbackLocales();
+
+        return $locales;
     }
 
     /**
@@ -117,5 +125,17 @@ final class RecordingTranslatorDecorator implements TranslatorInterface, Transla
     public function __call(string $method, array $args): mixed
     {
         return $this->inner->{$method}(...$args);
+    }
+
+    /**
+     * @return non-empty-string|null
+     */
+    private static function nonEmptyOrNull(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return $value;
     }
 }

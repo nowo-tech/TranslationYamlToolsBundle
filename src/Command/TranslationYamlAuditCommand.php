@@ -17,6 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 use function implode;
 use function in_array;
+use function is_string;
 use function sprintf;
 
 /**
@@ -54,17 +55,18 @@ final class TranslationYamlAuditCommand extends AbstractTranslationYamlCommand
         $output->writeln(sprintf('<info>Source locale (missing keys):</info> %s', $sourceLocale));
         $output->writeln('');
 
-        $domainOpt = $input->getOption('domain') ? (string) $input->getOption('domain') : null;
-        if ($domainOpt !== null && $domainOpt !== '') {
+        $domainOpt    = $input->getOption('domain');
+        $domainFilter = is_string($domainOpt) && $domainOpt !== '' ? $domainOpt : null;
+        if ($domainFilter !== null) {
             $known = $this->catalog->listDomains();
-            if (!in_array($domainOpt, $known, true)) {
-                $output->writeln(sprintf('<error>Unknown domain "%s". Known: %s</error>', $domainOpt, $known === [] ? '(none)' : implode(', ', $known)));
+            if (!in_array($domainFilter, $known, true)) {
+                $output->writeln(sprintf('<error>Unknown domain "%s". Known: %s</error>', $domainFilter, $known === [] ? '(none)' : implode(', ', $known)));
 
                 return Command::FAILURE;
             }
         }
 
-        $reports = $this->auditor->audit($sourceLocale, $domainOpt);
+        $reports = $this->auditor->audit($sourceLocale, $domainFilter);
         if ($reports === []) {
             $output->writeln('<comment>No domains to audit.</comment>');
 

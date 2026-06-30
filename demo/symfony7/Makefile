@@ -40,9 +40,12 @@ build:
 	docker-compose build --no-cache
 
 ensure-up:
-	@if ! docker-compose exec -T php true 2>/dev/null; then \
-		docker-compose up -d; \
-		sleep 3; \
+	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || true; fi
+	@if ! docker-compose ps --status running --services 2>/dev/null | grep -qx php; then \
+		echo "Starting demo container..."; \
+		docker-compose up -d --build; \
+		sleep 8; \
+		docker-compose exec -T -e COMPOSER_MEMORY_LIMIT=-1 php composer install --no-interaction; \
 	fi
 
 install: ensure-up
@@ -55,6 +58,7 @@ logs:
 	docker-compose logs -f
 
 test: ensure-up
+	docker-compose exec -T php rm -rf var/cache/test
 	docker-compose exec -e APP_ENV=test php composer test
 
 test-coverage: ensure-up

@@ -16,11 +16,14 @@ final class PersistMissingTranslationBufferMessageHandlerTest extends TestCase
     public function testInvokeDelegatesToRepository(): void
     {
         $buffer = ['h' => [
-            'hits'      => 1,
-            'messageId' => 'm',
-            'domain'    => 'd',
-            'locale'    => 'en',
-            'callSite'  => null,
+            'hits'          => 1,
+            'messageId'     => 'm',
+            'domain'        => 'd',
+            'locale'        => 'en',
+            'callSite'      => null,
+            'requestRoute'  => null,
+            'requestMethod' => null,
+            'requestPath'   => null,
         ]];
 
         $repository = $this->createMock(MissingTranslationLogRepository::class);

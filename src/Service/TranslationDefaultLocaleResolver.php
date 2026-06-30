@@ -6,6 +6,8 @@ namespace Nowo\TranslationYamlToolsBundle\Service;
 
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
+use function is_string;
+
 /**
  * Resolves the default locale: bundle override, then Symfony translator.default_locale, then fallback.
  */
@@ -26,11 +28,17 @@ class TranslationDefaultLocaleResolver
         }
 
         if ($this->parameterBag->has('translator.default_locale')) {
-            return (string) $this->parameterBag->get('translator.default_locale');
+            $locale = $this->parameterBag->get('translator.default_locale');
+            if (is_string($locale) && $locale !== '') {
+                return $locale;
+            }
         }
 
         if ($this->parameterBag->has('kernel.default_locale')) {
-            return (string) $this->parameterBag->get('kernel.default_locale');
+            $locale = $this->parameterBag->get('kernel.default_locale');
+            if (is_string($locale) && $locale !== '') {
+                return $locale;
+            }
         }
 
         return 'en';

@@ -59,7 +59,7 @@ final class MissingTranslationLogValidateCommand extends Command
         }
 
         $row->setStatus(MissingTranslationLogStatus::Validated);
-        $this->repository->getEntityManager()->flush();
+        $this->repository->flush();
 
         $io->success(sprintf('Row %d marked as validated (%s / %s / %s).', $id, $row->getLocale(), $row->getDomain(), $row->getMessageId()));
 

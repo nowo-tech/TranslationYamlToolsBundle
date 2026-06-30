@@ -10,6 +10,7 @@ use Nowo\TranslationYamlToolsBundle\Doctrine\MissingTranslationLogMetadataListen
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 
 #[CoversClass(MissingTranslationLogMetadataListener::class)]
 final class MissingTranslationLogMetadataListenerTest extends TestCase
@@ -18,7 +19,7 @@ final class MissingTranslationLogMetadataListenerTest extends TestCase
     {
         $listener = new MissingTranslationLogMetadataListener('pfx_');
         $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('getName')->willReturn(\stdClass::class);
+        $metadata->method('getName')->willReturn(stdClass::class);
         $args = new LoadClassMetadataEventArgs($metadata, $this->createMock(\Doctrine\ORM\EntityManagerInterface::class));
 
         $listener->loadClassMetadata($args);

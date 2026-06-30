@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\Repository;
 
-use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
 use Nowo\TranslationYamlToolsBundle\Tests\Fixtures\MissingTranslationLogTestEntityManagerFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+
+use function strlen;
 
 #[CoversClass(MissingTranslationLogRepository::class)]
 final class MissingTranslationLogRepositoryTest extends TestCase
@@ -97,17 +98,17 @@ final class MissingTranslationLogRepositoryTest extends TestCase
         $repo = $this->createRepository();
         $repo->persistBuffer([
             'a' => [
-                'hits'           => 1,
-                'messageId'      => 'k1',
-                'domain'         => 'messages',
-                'locale'         => 'es',
-                'callSite'       => null,
-                'requestRoute'   => 'r1',
-                'requestMethod'  => 'POST',
-                'requestPath'    => '/a',
+                'hits'          => 1,
+                'messageId'     => 'k1',
+                'domain'        => 'messages',
+                'locale'        => 'es',
+                'callSite'      => null,
+                'requestRoute'  => 'r1',
+                'requestMethod' => 'POST',
+                'requestPath'   => '/a',
             ],
         ]);
-        $repo->getEntityManager()->clear();
+        $repo->clearManaged();
         $row = $repo->findByStatus(MissingTranslationLogStatus::Pending, 1)[0];
         self::assertSame('r1', $row->getRequestRoute());
         self::assertSame('POST', $row->getRequestMethod());
@@ -115,17 +116,17 @@ final class MissingTranslationLogRepositoryTest extends TestCase
 
         $repo->persistBuffer([
             'a' => [
-                'hits'           => 1,
-                'messageId'      => 'k1',
-                'domain'         => 'messages',
-                'locale'         => 'es',
-                'callSite'       => '/f.php:1',
-                'requestRoute'   => 'r2',
-                'requestMethod'  => 'PATCH',
-                'requestPath'    => '/b',
+                'hits'          => 1,
+                'messageId'     => 'k1',
+                'domain'        => 'messages',
+                'locale'        => 'es',
+                'callSite'      => '/f.php:1',
+                'requestRoute'  => 'r2',
+                'requestMethod' => 'PATCH',
+                'requestPath'   => '/b',
             ],
         ]);
-        $repo->getEntityManager()->clear();
+        $repo->clearManaged();
         $row2 = $repo->findByStatus(MissingTranslationLogStatus::Pending, 1)[0];
         self::assertSame(2, $row2->getHitCount());
         self::assertSame('/f.php:1', $row2->getCallSite());
@@ -139,14 +140,14 @@ final class MissingTranslationLogRepositoryTest extends TestCase
         $repo = $this->createRepository();
         $repo->persistBuffer([
             'a' => [
-                'hits'           => 1,
-                'messageId'      => 'k1',
-                'domain'         => 'messages',
-                'locale'         => 'es',
-                'callSite'       => null,
-                'requestRoute'   => 'keep_me',
-                'requestMethod'  => 'GET',
-                'requestPath'    => '/first',
+                'hits'          => 1,
+                'messageId'     => 'k1',
+                'domain'        => 'messages',
+                'locale'        => 'es',
+                'callSite'      => null,
+                'requestRoute'  => 'keep_me',
+                'requestMethod' => 'GET',
+                'requestPath'   => '/first',
             ],
         ]);
         $repo->persistBuffer([
@@ -237,8 +238,8 @@ final class MissingTranslationLogRepositoryTest extends TestCase
         $rows = $repo->findByStatus(MissingTranslationLogStatus::Pending, 10);
         self::assertCount(2, $rows);
         $rows[0]->setStatus(MissingTranslationLogStatus::Added);
-        $repo->getEntityManager()->flush();
-        $repo->getEntityManager()->clear();
+        $repo->flush();
+        $repo->clearManaged();
 
         self::assertSame(1, $repo->clearByStatus(MissingTranslationLogStatus::Pending));
         self::assertCount(0, $repo->findByStatus(MissingTranslationLogStatus::Pending, 10));

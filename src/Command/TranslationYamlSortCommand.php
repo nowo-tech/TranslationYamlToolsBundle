@@ -71,10 +71,10 @@ final class TranslationYamlSortCommand extends AbstractTranslationYamlCommand
         $localesToProcess = $this->resolveLocalesForDomainOption($input, $domain);
         $this->printLocalesBannerWhenOmittingLocaleOption($input, $output, $domain, $localesToProcess, 'sorting all');
 
-        $failed       = false;
-        $dryRun       = (bool) $input->getOption('dry-run');
-        $asInline     = (bool) $input->getOption('inline');
-        $localeCount  = count($localesToProcess);
+        $failed      = false;
+        $dryRun      = (bool) $input->getOption('dry-run');
+        $asInline    = (bool) $input->getOption('inline');
+        $localeCount = count($localesToProcess);
         foreach ($localesToProcess as $index => $locale) {
             if ($localeCount > 1 && $index > 0) {
                 $output->writeln('');

@@ -13,14 +13,14 @@ final class MissingTranslationBufferDtosTest extends TestCase
     public function testMessageExposesBuffer(): void
     {
         $b = ['x' => [
-            'hits'           => 1,
-            'messageId'      => 'i',
-            'domain'         => 'm',
-            'locale'         => 'en',
-            'callSite'       => null,
-            'requestRoute'   => null,
-            'requestMethod'  => null,
-            'requestPath'    => null,
+            'hits'          => 1,
+            'messageId'     => 'i',
+            'domain'        => 'm',
+            'locale'        => 'en',
+            'callSite'      => null,
+            'requestRoute'  => null,
+            'requestMethod' => null,
+            'requestPath'   => null,
         ]];
         $m = new MissingTranslationBufferMessage($b);
         self::assertSame($b, $m->buffer);
@@ -29,14 +29,14 @@ final class MissingTranslationBufferDtosTest extends TestCase
     public function testEventExposesBuffer(): void
     {
         $b = ['x' => [
-            'hits'           => 1,
-            'messageId'      => 'i',
-            'domain'         => 'm',
-            'locale'         => 'en',
-            'callSite'       => null,
-            'requestRoute'   => null,
-            'requestMethod'  => null,
-            'requestPath'    => null,
+            'hits'          => 1,
+            'messageId'     => 'i',
+            'domain'        => 'm',
+            'locale'        => 'en',
+            'callSite'      => null,
+            'requestRoute'  => null,
+            'requestMethod' => null,
+            'requestPath'   => null,
         ]];
         $e = new MissingTranslationBufferEvent($b);
         self::assertSame($b, $e->buffer);

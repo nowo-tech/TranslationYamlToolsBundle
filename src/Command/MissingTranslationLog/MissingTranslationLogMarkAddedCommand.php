@@ -51,7 +51,7 @@ final class MissingTranslationLogMarkAddedCommand extends Command
         }
 
         $row->setStatus(MissingTranslationLogStatus::Added);
-        $this->repository->getEntityManager()->flush();
+        $this->repository->flush();
 
         $io->success(sprintf('Row %d marked as added (%s / %s / %s).', $id, $row->getLocale(), $row->getDomain(), $row->getMessageId()));
 

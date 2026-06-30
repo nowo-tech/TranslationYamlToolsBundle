@@ -33,6 +33,7 @@ final class BundleIntegrationTest extends KernelTestCase
     public function testTranslationYamlCommandsAreRegistered(): void
     {
         self::bootKernel();
+        self::assertNotNull(self::$kernel);
         $application = new Application(self::$kernel);
         self::assertTrue($application->has('nowo:translation-yaml:tree'));
         self::assertTrue($application->has('nowo:translation-yaml:sort'));
@@ -43,6 +44,7 @@ final class BundleIntegrationTest extends KernelTestCase
     public function testTreeCommandDryRunAgainstFixtureTranslations(): void
     {
         self::bootKernel();
+        self::assertNotNull(self::$kernel);
         $application = new Application(self::$kernel);
         $command     = $application->find('nowo:translation-yaml:tree');
         $tester      = new CommandTester($command);
