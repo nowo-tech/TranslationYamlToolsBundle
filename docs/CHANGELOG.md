@@ -4,10 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-06-30
+
 ### Fixed
 
 - **CI:** Symfony **8.x** matrix jobs use **`--dev`** for test-only Symfony packages (avoids moving them to **`require`**). Symfony **8** runs only on **PHP 8.4+** (Symfony **8** minimum). Symfony **8** jobs bump **`doctrine/doctrine-bundle`** to **`^3.1`** (2.x does not support Symfony **8**).
 - **Tests:** missing-log unit tests enable Doctrine **native lazy objects** on **PHP 8.4+** so ORM works with Symfony **8**’s **`var-exporter`** (LazyGhost removed).
+
+_No PHP changes under **`src/`**; upgrading from **0.4.0** is optional unless you track this repository’s CI tree._
 
 ## [0.4.0] - 2026-06-30
 
