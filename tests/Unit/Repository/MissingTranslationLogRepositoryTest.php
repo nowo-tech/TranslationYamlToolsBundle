@@ -4,17 +4,10 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\Repository;
 
-use Doctrine\Common\EventManager;
-use Doctrine\DBAL\DriverManager;
-use Doctrine\ORM\EntityManager;
-use Doctrine\ORM\Events;
-use Doctrine\ORM\ORMSetup;
-use Doctrine\ORM\Tools\SchemaTool;
-use Doctrine\Persistence\ManagerRegistry;
-use Nowo\TranslationYamlToolsBundle\Doctrine\MissingTranslationLogMetadataListener;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
+use Nowo\TranslationYamlToolsBundle\Tests\Fixtures\MissingTranslationLogTestEntityManagerFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -23,25 +16,7 @@ final class MissingTranslationLogRepositoryTest extends TestCase
 {
     private function createRepository(): MissingTranslationLogRepository
     {
-        $entityDir = dirname(__DIR__, 3) . '/src/Entity';
-        $config     = ORMSetup::createAttributeMetadataConfiguration([$entityDir], true);
-        $evm        = new EventManager();
-        $evm->addEventListener(Events::loadClassMetadata, new MissingTranslationLogMetadataListener('nowo_translation_'));
-
-        $connection = DriverManager::getConnection([
-            'driver' => 'pdo_sqlite',
-            'path'   => ':memory:',
-        ]);
-        $em = new EntityManager($connection, $config, $evm);
-
-        $tool = new SchemaTool($em);
-        $tool->createSchema([$em->getClassMetadata(MissingTranslationLog::class)]);
-
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->with(MissingTranslationLog::class)->willReturn($em);
-        $registry->method('getManager')->willReturn($em);
-
-        return new MissingTranslationLogRepository($registry);
+        return MissingTranslationLogTestEntityManagerFactory::createRepository();
     }
 
     public function testPersistBufferEmptyIsNoOp(): void
