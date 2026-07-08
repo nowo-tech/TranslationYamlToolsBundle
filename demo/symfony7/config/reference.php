@@ -981,6 +981,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             enabled?: bool|Param, // Expose HTTP routes + Twig UI to list rows and mark pending entries as added (protect with firewall / access_control) // Default: false
  *             path_prefix?: scalar|Param|null, // URL prefix for imported routes (must start with /) // Default: "/_translation_yaml_tools/missing-log"
  *             layout_template?: scalar|Param|null, // Twig layout extended by the missing-log UI (global nowo_translation_yaml_tools_missing_log_layout_template). Use @NowoTranslationYamlToolsBundle/missing_translation_log/layout_integrate_dashboard_menu.html.twig or layout_integrate_breadcrumb_kit.html.twig to match those dashboards. // Default: "@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig"
+ *             required_role?: scalar|Param|null, // Symfony role required to access the Web UI (requires SecurityBundle). Set null to disable bundle-level checks. // Default: "ROLE_ADMIN"
  *         },
  *     },
  * }

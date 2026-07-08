@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-08
+
+### Added
+
+- **`missing_translation_log.web_ui.required_role`** (default **`ROLE_ADMIN`**): when the Web UI is enabled and **`security.authorization_checker`** exists, **`MissingLogUiAccessSubscriber`** denies access to **`nowo_translation_yaml_tools_missing_log_*`** routes unless the user is granted that role. Set **`null`** to disable bundle-level checks.
+- **GitHub Spec Kit** baseline: **`.specify/`**, **`.cursor/skills/speckit-*`**, **`specs/001-baseline/`**, and **[SPEC-KIT.md](SPEC-KIT.md)** (install, structure, Cursor Agent workflow). **[SPEC-DRIVEN-DEVELOPMENT.md](SPEC-DRIVEN-DEVELOPMENT.md)** updated to three-layer model.
+
+### Changed
+
+- **Demos:** FrankenPHP images install **`intl`**; **`make up` / `ensure-up`** remove stray **`.env.dev`**; versioned **`.env.test`** comments; Makefile variables for **`update-deps`** include.
+
+### Documentation
+
+- **[CONFIGURATION.md](CONFIGURATION.md):** **`web_ui.required_role`** row.
+- **[README.md](../README.md):** link to **SPEC-KIT.md**.
+
 ## [1.0.0] - 2026-06-30
 
 First stable **1.x** release. Requires **PHP 8.2+** and **Symfony 7+** (same platform as **0.4.x**). Semver **`^1.0`**; **`^0.4`** does not receive **1.0.0**.

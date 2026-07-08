@@ -7,6 +7,7 @@ namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\DependencyInjection;
 use Doctrine\Bundle\DoctrineBundle\DependencyInjection\DoctrineExtension;
 use Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\NowoTranslationYamlToolsExtension;
+use Nowo\TranslationYamlToolsBundle\EventSubscriber\MissingLogUiAccessSubscriber;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslatorInterface;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\RoutingMachineTranslator;
 use Nowo\TranslationYamlToolsBundle\MissingTranslationLog\MissingTranslationBufferDoctrinePersistListener;
@@ -16,6 +17,7 @@ use Nowo\TranslationYamlToolsBundle\Twig\MissingTranslationLogExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
+use stdClass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 #[CoversClass(NowoTranslationYamlToolsExtension::class)]
@@ -99,6 +101,7 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
             '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig',
             $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template'),
         );
+        self::assertSame('ROLE_ADMIN', $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role'));
         self::assertFalse($container->hasDefinition(RecordingTranslatorDecorator::class));
         self::assertFalse($container->hasDefinition(MissingTranslationLogUiController::class));
     }
@@ -128,6 +131,38 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         self::assertTrue($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled'));
         self::assertTrue($container->hasDefinition(MissingTranslationLogUiController::class));
         self::assertTrue($container->hasDefinition(MissingTranslationLogExtension::class));
+    }
+
+    public function testMissingTranslationLogWebUiRegistersAccessSubscriberWhenSecurityAvailable(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setDefinition('security.authorization_checker', new \Symfony\Component\DependencyInjection\Definition(stdClass::class));
+
+        (new NowoTranslationYamlToolsExtension())->load([[
+            'missing_translation_log' => [
+                'enabled' => true,
+                'web_ui'  => ['enabled' => true, 'required_role' => 'ROLE_ADMIN'],
+            ],
+        ]], $container);
+
+        self::assertTrue($container->hasDefinition(MissingLogUiAccessSubscriber::class));
+        self::assertSame('ROLE_ADMIN', $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role'));
+    }
+
+    public function testMissingTranslationLogWebUiSkipsAccessSubscriberWhenRequiredRoleNull(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setDefinition('security.authorization_checker', new \Symfony\Component\DependencyInjection\Definition(stdClass::class));
+
+        (new NowoTranslationYamlToolsExtension())->load([[
+            'missing_translation_log' => [
+                'enabled' => true,
+                'web_ui'  => ['enabled' => true, 'required_role' => null],
+            ],
+        ]], $container);
+
+        self::assertNull($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role'));
+        self::assertFalse($container->hasDefinition(MissingLogUiAccessSubscriber::class));
     }
 
     public function testMissingTranslationLogAsyncPersistRegistersMessengerHandlerWhenMessengerAvailable(): void

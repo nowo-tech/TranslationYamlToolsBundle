@@ -2,7 +2,7 @@
 FROM dunglas/frankenphp:1-php8.5-alpine
 
 RUN apk add --no-cache git unzip bash
-RUN install-php-extensions zip
+RUN install-php-extensions intl zip
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN git config --global --add safe.directory /app && \
     git config --global --add safe.directory /var/translation-yaml-tools-bundle

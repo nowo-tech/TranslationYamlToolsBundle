@@ -10,9 +10,12 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use Symfony\Component\DependencyInjection\Reference;
 
+use function array_key_exists;
 use function dirname;
 use function is_array;
+use function is_string;
 
 /**
  * Loads services and parameters for Translation YAML Tools.
@@ -94,6 +97,9 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $webUiEnabled         = (bool) ($webUi['enabled'] ?? false);
         $webUiPathPrefix      = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
         $webUiLayoutTemplate  = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
+        $webUiRequiredRole    = array_key_exists('required_role', $webUi)
+            ? (is_string($webUi['required_role']) && $webUi['required_role'] !== '' ? $webUi['required_role'] : null)
+            : 'ROLE_ADMIN';
 
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.enabled', $missingLogEnabled);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.table_prefix', $tablePrefix);
@@ -104,6 +110,14 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled', $webUiEnabled);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.path_prefix', $webUiPathPrefix);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template', $webUiLayoutTemplate);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role', $webUiRequiredRole);
+
+        if ($webUiEnabled && $webUiRequiredRole !== null && $container->has('security.authorization_checker')) {
+            $container->register(\Nowo\TranslationYamlToolsBundle\EventSubscriber\MissingLogUiAccessSubscriber::class)
+                ->setArgument('$requiredRole', $webUiRequiredRole)
+                ->setArgument('$authorizationChecker', new Reference('security.authorization_checker'))
+                ->addTag('kernel.event_subscriber');
+        }
 
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');
