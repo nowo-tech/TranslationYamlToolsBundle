@@ -18,6 +18,7 @@ services:
             - '../../Controller/'
             - '../../Doctrine/'
             - '../../Twig/'
+            - '../../EventSubscriber/'
 
     Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper:
         arguments:

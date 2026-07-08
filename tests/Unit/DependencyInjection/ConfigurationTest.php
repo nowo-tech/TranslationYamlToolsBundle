@@ -38,6 +38,7 @@ final class ConfigurationTest extends TestCase
                 'enabled'         => false,
                 'path_prefix'     => '/_translation_yaml_tools/missing-log',
                 'layout_template' => '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig',
+                'required_role'   => 'ROLE_ADMIN',
             ],
         ], $config['missing_translation_log']);
     }

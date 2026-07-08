@@ -17,11 +17,13 @@ help:
 
 up:
 	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || true; fi
+	@rm -f .env.dev
 	docker-compose up -d
 	@echo "Waiting for container to be ready..."
 	@sleep 5
 	@echo "Installing dependencies..."
 	@docker-compose exec -T -e COMPOSER_MEMORY_LIMIT=-1 php composer install --no-interaction
+	@rm -f .env.dev
 	@echo "Resetting demo DB (fresh start)..."
 	@docker-compose exec -T php sh -c 'rm -f /app/var/demo_missing_log.sqlite'
 	@echo "Doctrine schema (missing_translation_log table in dev)..."
@@ -41,11 +43,13 @@ build:
 
 ensure-up:
 	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || true; fi
+	@rm -f .env.dev
 	@if ! docker-compose ps --status running --services 2>/dev/null | grep -qx php; then \
 		echo "Starting demo container..."; \
 		docker-compose up -d --build; \
 		sleep 8; \
 		docker-compose exec -T -e COMPOSER_MEMORY_LIMIT=-1 php composer install --no-interaction; \
+		rm -f .env.dev; \
 	fi
 
 install: ensure-up
@@ -111,5 +115,7 @@ verify:
 
 
 # REQ-MAKE-008: update-deps (REQ-MAKE-008)
+COMPOSE := docker-compose
+SERVICE_PHP := php
 BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 include $(BUNDLE_ROOT)/../.scripts/Makefile.demo-update-deps.mk

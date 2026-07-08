@@ -2,7 +2,13 @@
 
 ## 1.x
 
-This line is **1.0.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
+This line is **1.1.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
+
+## To 1.1.0 (from 1.0.x)
+
+- Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^1.0`** or **`^1.1`** already allows **1.1.0**).
+- **Missing-log Web UI:** when **`missing_translation_log.web_ui.enabled`** is **`true`** and **SecurityBundle** is installed, the bundle now enforces **`missing_translation_log.web_ui.required_role`** (default **`ROLE_ADMIN`**) on **`nowo_translation_yaml_tools_missing_log_*`** routes. Grant that role to integrators who should open the UI, or set **`required_role: null`** under **`web_ui`** to keep bundle-level checks disabled (same as **1.0.x** when SecurityBundle was present but no subscriber existed).
+- No database migration. Spec Kit files (**.specify/**, **specs/**) are maintainer documentation only; they do not affect runtime in consuming apps.
 
 ## To 1.0.0 (from 0.4.x)
 

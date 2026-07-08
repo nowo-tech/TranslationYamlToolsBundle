@@ -1,9 +1,10 @@
 # Spec-driven development
 
-In this repository, **spec-driven development** has two layers that stay in sync:
+In this repository, **spec-driven development** has three layers that stay in sync:
 
-1. **Product behavior** — what **TranslationYamlToolsBundle** guarantees to applications that integrate it (see [`USAGE.md`](USAGE.md), [`CONFIGURATION.md`](CONFIGURATION.md), [`INSTALLATION.md`](INSTALLATION.md)). **PHPUnit** and **PHPStan** enforce contracts in CI where applicable.
-2. **Traceability anchors** — stable **`REQ-*`** identifiers in Makefiles and demos (when present) so changes to scripts, ports, and demo workflows stay discoverable from issues and PRs.
+1. **GitHub Spec Kit baseline** — [`specs/001-baseline/`](../specs/001-baseline/) ([`spec.md`](../specs/001-baseline/spec.md), [`code-inventory.md`](../specs/001-baseline/code-inventory.md)), initialized with [GitHub Spec Kit](https://github.com/github/spec-kit) (`.specify/`, **Cursor Agent** skills in `.cursor/skills/speckit-*`). The inventory maps **100%** of production code in `src/`. **How to install, initialize, and use Spec Kit:** [`SPEC-KIT.md`](SPEC-KIT.md).
+2. **Product behavior** — what **TranslationYamlToolsBundle** guarantees to applications that integrate it (see [`USAGE.md`](USAGE.md), [`CONFIGURATION.md`](CONFIGURATION.md), [`INSTALLATION.md`](INSTALLATION.md)). **PHPUnit** and **PHPStan** enforce contracts in CI where applicable.
+3. **Traceability anchors** — stable **`REQ-*`** identifiers in Makefiles and demos (when present) so changes to scripts, ports, and demo workflows stay discoverable from issues and PRs.
 
 There is no separate executable spec language (for example Gherkin); tests and static analysis are the mechanical proof alongside this document.
 
@@ -15,11 +16,12 @@ The sections below state **behavior**; this subsection states **intent** in back
 
 | ID | Story |
 | --- | --- |
-| US-01 | **As a** Symfony integrator, **I want** to install and enable this package **so that** I can rely on documented services, configuration, and extension points. |
-| US-02 | **As an** integrator, **I want** stable configuration keys and defaults **so that** upgrades remain predictable (see [`CONFIGURATION.md`](CONFIGURATION.md)). |
-| US-03 | **As an** integrator, **I want** clear usage guidance **so that** I can integrate features without reverse-engineering internals (see [`USAGE.md`](USAGE.md)). |
-| US-04 | **As a** maintainer, **I want** behavior changes covered by automated tests **so that** regressions are caught in CI. |
-| US-05 | **As a** contributor, **I want** `REQ-*` anchors on scripted flows **so that** PRs and issues cite the same identifiers as this document. |
+| US-01 | **As a** translator, **I want** nested YAML flattened/sorted **so that** diffs in translation PRs stay readable. |
+| US-02 | **As a** translator, **I want** machine translation for missing keys **so that** I bootstrap locales via Google/DeepL/LibreTranslate. |
+| US-03 | **As an** integrator, **I want** Symfony console commands **so that** I run tools in CI and locally without custom scripts. |
+| US-04 | **As a** maintainer, **I want** PHPUnit on parsers **so that** YAML round-trips do not corrupt keys. |
+| US-05 | **As a** contributor, **I want** `REQ-*` anchors on scripted flows **so that** PRs cite the same identifiers as this document. |
+| US-06 | **As a** maintainer, **I want** optional runtime missing-key logging and a Web UI **so that** I triage untranslated strings discovered in dev/staging. |
 
 **Out of scope for these stories:** guarantees outside the stated public API and outside dependency limits (PHP, Symfony, third-party libraries).
 
@@ -27,10 +29,13 @@ The sections below state **behavior**; this subsection states **intent** in back
 
 ## Bundle functional scope
 
-**Goal:** Symfony console tools for YAML translations: nested tree conversion, key sorting, and machine translation for missing keys (Google, DeepL, LibreTranslate; pluggable).
+**Goal:** Symfony developer tools for YAML translations: path discovery, nested tree conversion, key sorting, audit reports, machine translation for missing keys (Google, DeepL, LibreTranslate; pluggable), and optional Doctrine-backed **missing translation log** with CLI + Web UI.
 
 **In scope**
 
+- Console commands: `tree`, `flatten`, `sort`, `fill-missing`, `audit`, and missing-log maintenance commands.
+- `MachineTranslatorInterface` backends and locale routing configuration.
+- Optional `missing_translation_log` feature: translator decorator, async flush (Messenger or EventDispatcher), Doctrine entity, CLI, and gated Web UI routes.
 - Documented integration (see root `README.md` and `docs/`).
 - Configuration and runtime behavior described in [`CONFIGURATION.md`](CONFIGURATION.md) and [`USAGE.md`](USAGE.md).
 - Consumer-facing change notes in [`CHANGELOG.md`](CHANGELOG.md) and [`UPGRADING.md`](UPGRADING.md) when applicable.
@@ -68,6 +73,35 @@ When you change scripted behavior, **update the existing `REQ-*` comment** if th
 2. **Implement** with tests and static analysis.
 3. **Anchor scripts and demos** when dev UX changes: add or adjust `REQ-*` comments and this table.
 4. **Ship integrator docs** when behavior or configuration changes: [`USAGE.md`](USAGE.md), [`CONFIGURATION.md`](CONFIGURATION.md), [`CHANGELOG.md`](CHANGELOG.md), and [`UPGRADING.md`](UPGRADING.md) when consumers must change code or config.
+5. **Keep Spec Kit artifacts in sync** when production code under `src/` changes:
+   - Update [`specs/001-baseline/spec.md`](../specs/001-baseline/spec.md) and [`code-inventory.md`](../specs/001-baseline/code-inventory.md).
+   - Follow the maintainer checklist in [`SPEC-KIT.md`](SPEC-KIT.md).
+   - For **new features**, use Cursor Agent skills (`/speckit-specify`, `/speckit-plan`, `/speckit-tasks`) as documented in SPEC-KIT.
+
+---
+
+
+## GitHub Spec Kit (summary)
+
+This repository uses [GitHub Spec Kit](https://github.com/github/spec-kit) with **Cursor Agent** (`cursor-agent` integration).
+
+| Artifact | Path |
+| --- | --- |
+| **Operator manual** (install, init, usage) | [`SPEC-KIT.md`](SPEC-KIT.md) |
+| Baseline spec | [`specs/001-baseline/spec.md`](../specs/001-baseline/spec.md) |
+| Code inventory (100%) | [`specs/001-baseline/code-inventory.md`](../specs/001-baseline/code-inventory.md) |
+| Constitution | [`.specify/memory/constitution.md`](../.specify/memory/constitution.md) |
+| Cursor Agent skills | [`.cursor/skills/`](../.cursor/skills/) (`speckit-*`) |
+
+**Quick start (maintainers):**
+
+```bash
+# Install Specify CLI (once per machine) — see SPEC-KIT.md
+specify init --here --force --integration cursor-agent --script sh
+specify integration list   # Cursor → installed (default)
+```
+
+In Cursor Agent, start a new feature with `/speckit-specify <description>`. For day-to-day tooling details, skills reference, folder layout, and troubleshooting, read **[`SPEC-KIT.md`](SPEC-KIT.md)**.
 
 ---
 
@@ -79,6 +113,7 @@ When you change scripted behavior, **update the existing `REQ-*` comment** if th
 
 ## See also
 
+- [`SPEC-KIT.md`](SPEC-KIT.md) — GitHub Spec Kit manual (install, structure, usage)
 - [`USAGE.md`](USAGE.md)
 - [`CONFIGURATION.md`](CONFIGURATION.md)
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)
