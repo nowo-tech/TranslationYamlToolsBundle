@@ -75,8 +75,7 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $request = Request::create('/' . $id . '/mark-added', 'POST', ['_token' => 'good']);
         $request->setSession(new Session(new MockArraySessionStorage()));
 
-        $requestStack = new RequestStack();
-        $requestStack->push($request);
+        $requestStack = new RequestStack([$request]);
 
         $container = new Container();
         $container->set('twig', $this->createMock(Environment::class));
@@ -171,8 +170,7 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $request = Request::create('/clear', 'POST', ['_token' => 'good', 'status' => 'pending']);
         $request->setSession(new Session(new MockArraySessionStorage()));
 
-        $requestStack = new RequestStack();
-        $requestStack->push($request);
+        $requestStack = new RequestStack([$request]);
 
         $container = new Container();
         $container->set('twig', $this->createMock(Environment::class));
@@ -246,8 +244,7 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $request = Request::create('/clear-status', 'POST', ['_token' => 'good', 'status' => 'pending']);
         $request->setSession(new Session(new MockArraySessionStorage()));
 
-        $requestStack = new RequestStack();
-        $requestStack->push($request);
+        $requestStack = new RequestStack([$request]);
 
         $container = new Container();
         $container->set('twig', $this->createMock(Environment::class));

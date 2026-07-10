@@ -13,7 +13,7 @@
 
 ### Next planned tag
 
-- Suggested tag: **`v1.1.1`** (patch) or **`v1.2.0`** (minor) as needed
+- Suggested tag: **`v1.2.0`** (minor) or **`v1.1.2`** (patch) as needed
 - Checklist focus for the next release:
   - `docs/CHANGELOG.md`: move **`[Unreleased]`** items into a dated **`[X.Y.Z]`** section
   - `docs/UPGRADING.md`: add migration notes when users must change config or code

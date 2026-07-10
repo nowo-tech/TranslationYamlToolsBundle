@@ -15,6 +15,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function count;
+use function in_array;
 use function sprintf;
 
 /**
@@ -120,9 +121,9 @@ final class TranslationYamlTreeCommand extends AbstractTranslationYamlCommand
                 }
 
                 $suffixOpt = $input->getOption('leaf-prefix-suffix');
-                $suffix    = ($suffixOpt !== null && $suffixOpt !== false && $suffixOpt !== '')
-                    ? (string) $suffixOpt
-                    : $this->configuredLeafPrefixSuffix;
+                $suffix    = (in_array($suffixOpt, [null, false, ''], true))
+                    ? $this->configuredLeafPrefixSuffix
+                    : (string) $suffixOpt;
                 $result = $this->dotKeyTreeAnalyzer->disambiguateLeafPrefixConflicts($flat, $suffix);
                 if (isset($result['error'])) {
                     $output->writeln('<error>Cannot disambiguate leaf/prefix keys.</error>');

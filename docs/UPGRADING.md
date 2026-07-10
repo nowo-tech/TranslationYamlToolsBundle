@@ -4,6 +4,11 @@
 
 This line is **1.1.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
 
+## To 1.1.1 (from 1.1.0)
+
+- Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^1.0`** or **`^1.1`** already allows **1.1.1**).
+- **Optional:** patch release for Doctrine DBAL **4.x** compatibility in **`MissingTranslationLogRepository`** (deprecated **`quoteIdentifier()`** replaced with **`quoteSingleIdentifier()`**). No configuration, route, or database migration.
+
 ## To 1.1.0 (from 1.0.x)
 
 - Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^1.0`** or **`^1.1`** already allows **1.1.0**).

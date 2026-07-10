@@ -74,7 +74,7 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 
 ## Version information
 
-**1.1.0** is the current stable **1.x** release (PHP **8.2+**, Symfony **7+** / **8.x**). See [UPGRADING](docs/UPGRADING.md) when moving from **1.0.x** or earlier.
+**1.1.1** is the current stable **1.x** release (PHP **8.2+**, Symfony **7+** / **8.x**). See [UPGRADING](docs/UPGRADING.md) when moving from **1.1.0**, **1.0.x**, or earlier.
 
 See [SECURITY POLICY](https://github.com/nowo-tech/TranslationYamlToolsBundle/security/policy) for supported versions.
 

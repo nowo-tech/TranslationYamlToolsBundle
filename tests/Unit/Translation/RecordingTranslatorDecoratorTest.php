@@ -30,7 +30,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
 
     public function testTransRecordsWhenKeyMissingAndSkipsWhenDefined(): void
     {
-        $catalogue = new MessageCatalogue('en', ['messages' => ['present' => 'ok']]);
+        new MessageCatalogue('en', ['messages' => ['present' => 'ok']]);
 
         $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
             private string $locale = 'en';

@@ -55,10 +55,10 @@ final class RecordingTranslatorDecorator implements TranslatorInterface, Transla
                     $id,
                     $domain,
                     $effectiveLocale,
-                    self::nonEmptyOrNull($ctx->callSite),
-                    self::nonEmptyOrNull($ctx->requestRoute),
-                    self::nonEmptyOrNull($ctx->requestMethod),
-                    self::nonEmptyOrNull($ctx->requestPath),
+                    $this->nonEmptyOrNull($ctx->callSite),
+                    $this->nonEmptyOrNull($ctx->requestRoute),
+                    $this->nonEmptyOrNull($ctx->requestMethod),
+                    $this->nonEmptyOrNull($ctx->requestPath),
                 );
             }
         }
@@ -130,7 +130,7 @@ final class RecordingTranslatorDecorator implements TranslatorInterface, Transla
     /**
      * @return non-empty-string|null
      */
-    private static function nonEmptyOrNull(?string $value): ?string
+    private function nonEmptyOrNull(?string $value): ?string
     {
         if ($value === null || $value === '') {
             return null;
