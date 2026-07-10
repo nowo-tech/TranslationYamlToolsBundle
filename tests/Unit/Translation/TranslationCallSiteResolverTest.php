@@ -74,8 +74,8 @@ final class TranslationCallSiteResolverTest extends TestCase
     {
         $r = TranslationCallSiteResolver::resolve();
         self::assertNotNull($r);
-        self::assertLessThanOrEqual(1024, strlen((string) $r));
-        self::assertStringContainsString('TranslationCallSiteResolverTest.php', (string) $r);
+        self::assertLessThanOrEqual(1024, strlen($r));
+        self::assertStringContainsString('TranslationCallSiteResolverTest.php', $r);
     }
 
     public function testResolveTruncatesWhenSiteExceeds1024Characters(): void

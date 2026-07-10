@@ -27,10 +27,9 @@ final class MissingTranslationLogCallSiteBuilderTest extends TestCase
 
     public function testBuildContextRequestOnlySetsRouteMethodPath(): void
     {
-        $stack   = new RequestStack();
         $request = Request::create('/hello/world', 'PATCH');
         $request->attributes->set('_route', 'api_demo');
-        $stack->push($request);
+        $stack = new RequestStack([$request]);
 
         $builder = new MissingTranslationLogCallSiteBuilder($stack);
         $ctx     = $builder->buildContext(false, true);
@@ -42,8 +41,7 @@ final class MissingTranslationLogCallSiteBuilderTest extends TestCase
 
     public function testBuildContextRequestOmitsEmptyRoute(): void
     {
-        $stack = new RequestStack();
-        $stack->push(Request::create('/only-path', 'GET'));
+        $stack = new RequestStack([Request::create('/only-path', 'GET')]);
 
         $builder = new MissingTranslationLogCallSiteBuilder($stack);
         $ctx     = $builder->buildContext(false, true);
@@ -54,17 +52,16 @@ final class MissingTranslationLogCallSiteBuilderTest extends TestCase
 
     public function testBuildContextTruncatesLongPath(): void
     {
-        $stack    = new RequestStack();
         $longPath = '/' . str_repeat('x', 3000);
         $request  = Request::create($longPath, 'GET');
         $request->attributes->set('_route', 'x');
-        $stack->push($request);
+        $stack = new RequestStack([$request]);
 
         $builder = new MissingTranslationLogCallSiteBuilder($stack);
         $ctx     = $builder->buildContext(false, true);
         self::assertNotNull($ctx->requestPath);
-        self::assertLessThanOrEqual(2048, strlen((string) $ctx->requestPath));
-        self::assertStringEndsWith('...', (string) $ctx->requestPath);
+        self::assertLessThanOrEqual(2048, strlen($ctx->requestPath));
+        self::assertStringEndsWith('...', $ctx->requestPath);
     }
 
     public function testBuildContextBacktraceOnlySetsCallSite(): void

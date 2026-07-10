@@ -36,7 +36,7 @@ class MissingTranslationLogCallSiteBuilder
         $requestPath   = null;
         if ($includeRequest) {
             $request = $this->requestStack->getCurrentRequest();
-            if ($request !== null) {
+            if ($request instanceof \Symfony\Component\HttpFoundation\Request) {
                 $route = $request->attributes->get('_route');
                 if (is_string($route) && $route !== '') {
                     $requestRoute = $this->truncate($route, 180);

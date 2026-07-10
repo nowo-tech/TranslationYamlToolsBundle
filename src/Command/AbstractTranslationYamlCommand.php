@@ -94,7 +94,7 @@ abstract class AbstractTranslationYamlCommand extends Command
         }
 
         $localeOpt = $input->getOption('locale');
-        if ($localeOpt !== null && $localeOpt !== false && $localeOpt !== '') {
+        if (!in_array($localeOpt, [null, false, ''], true)) {
             $locale = (string) $localeOpt;
             if (!in_array($locale, $localesForDomain, true)) {
                 throw new InvalidArgumentException(sprintf('Unknown locale "%s" for domain "%s". Available: %s', $locale, $domain, implode(', ', $localesForDomain)));
@@ -119,7 +119,7 @@ abstract class AbstractTranslationYamlCommand extends Command
         string $actionDescription,
     ): void {
         $localeOpt = $input->getOption('locale');
-        if ($localeOpt !== null && $localeOpt !== false && $localeOpt !== '') {
+        if (!in_array($localeOpt, [null, false, ''], true)) {
             return;
         }
 

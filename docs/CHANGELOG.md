@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-07-10
+
 ### Fixed
 
 - **`MissingTranslationLogRepository`:** replace deprecated **`Connection::quoteIdentifier()`** with **`quoteSingleIdentifier()`** (Doctrine DBAL 4.x; removed in 5.0).
