@@ -51,7 +51,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $connection = $em->getConnection();
         $meta       = $em->getClassMetadata(MissingTranslationLog::class);
         $tableName  = $meta->getTableName();
-        $qTableName = $connection->quoteIdentifier($tableName);
+        $qTableName = $connection->quoteSingleIdentifier($tableName);
 
         return (int) $connection->executeStatement("DELETE FROM {$qTableName}");
     }
@@ -63,8 +63,8 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $meta       = $em->getClassMetadata(MissingTranslationLog::class);
         $tableName  = $meta->getTableName();
         $cStatus    = $meta->getColumnName('status');
-        $qTableName = $connection->quoteIdentifier($tableName);
-        $qStatus    = $connection->quoteIdentifier($cStatus);
+        $qTableName = $connection->quoteSingleIdentifier($tableName);
+        $qStatus    = $connection->quoteSingleIdentifier($cStatus);
 
         return (int) $connection->executeStatement(
             "DELETE FROM {$qTableName} WHERE {$qStatus} = :status",
@@ -97,7 +97,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $now        = new DateTimeImmutable();
         $meta       = $em->getClassMetadata(MissingTranslationLog::class);
         $tableName  = $meta->getTableName();
-        $qTableName = $connection->quoteIdentifier($tableName);
+        $qTableName = $connection->quoteSingleIdentifier($tableName);
 
         $cMessageId       = $meta->getColumnName('messageId');
         $cDomain          = $meta->getColumnName('domain');
@@ -113,15 +113,15 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $cRequestMethod   = $meta->getColumnName('requestMethod');
         $cRequestPath     = $meta->getColumnName('requestPath');
 
-        $qMessageId     = $connection->quoteIdentifier($cMessageId);
-        $qDomain        = $connection->quoteIdentifier($cDomain);
-        $qLocale        = $connection->quoteIdentifier($cLocale);
-        $qHitCount      = $connection->quoteIdentifier($cHitCount);
-        $qLastSeenAt    = $connection->quoteIdentifier($cLastSeenAt);
-        $qCallSite      = $connection->quoteIdentifier($cCallSite);
-        $qRequestRoute  = $connection->quoteIdentifier($cRequestRoute);
-        $qRequestMethod = $connection->quoteIdentifier($cRequestMethod);
-        $qRequestPath   = $connection->quoteIdentifier($cRequestPath);
+        $qMessageId     = $connection->quoteSingleIdentifier($cMessageId);
+        $qDomain        = $connection->quoteSingleIdentifier($cDomain);
+        $qLocale        = $connection->quoteSingleIdentifier($cLocale);
+        $qHitCount      = $connection->quoteSingleIdentifier($cHitCount);
+        $qLastSeenAt    = $connection->quoteSingleIdentifier($cLastSeenAt);
+        $qCallSite      = $connection->quoteSingleIdentifier($cCallSite);
+        $qRequestRoute  = $connection->quoteSingleIdentifier($cRequestRoute);
+        $qRequestMethod = $connection->quoteSingleIdentifier($cRequestMethod);
+        $qRequestPath   = $connection->quoteSingleIdentifier($cRequestPath);
 
         foreach ($buffer as $row) {
             $messageId     = $row['messageId'];
