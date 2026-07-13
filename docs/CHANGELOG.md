@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-06-30
+
+### Fixed
+
+- **Demos:** **`.gitignore`** now ignores **`/.phpunit.result.cache`** (PHPUnit 10+ result cache; previously only **`/.phpunit.cache/`** was excluded, so **`git add demo/…`** could accidentally stage the file after **`make test`**).
+
+### Changed
+
+- **Repository:** root **`.gitignore`** ignores **`.cursor/sandbox.json`** (local Cursor sandbox).
+- **Lockfiles:** refreshed **`composer.lock`** (dev tools) and demo **`composer.lock`** trees (path bundle reference, Twig Inspector patch).
+
+_No runtime or configuration changes under **`src/`**; upgrading from **1.1.1** is optional unless you track this repository’s demo or CI tree._
+
 ## [1.1.1] - 2026-07-10
 
 ### Fixed

@@ -4,6 +4,10 @@
 
 This line is **1.1.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
 
+## To 1.1.2 (from 1.1.1)
+
+- **Optional:** tag **1.1.2** adds demo **`.gitignore`** coverage for **`/.phpunit.result.cache`**, ignores **`.cursor/sandbox.json`** at the repository root, and refreshes maintainer lockfiles. Applications depending on **`nowo-tech/translation-yaml-tools-bundle`** behave the same as **1.1.1**; bump with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^1.1`** already allows **1.1.2**).
+
 ## To 1.1.1 (from 1.1.0)
 
 - Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^1.0`** or **`^1.1`** already allows **1.1.1**).
