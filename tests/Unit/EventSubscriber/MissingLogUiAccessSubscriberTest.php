@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -25,6 +26,12 @@ final class MissingLogUiAccessSubscriberTest extends TestCase
         $event      = $this->controllerEvent('nowo_translation_yaml_tools_missing_log_index');
 
         $subscriber->onKernelController($event);
+    }
+
+    public function testGetSubscribedEvents(): void
+    {
+        self::assertArrayHasKey(KernelEvents::CONTROLLER, MissingLogUiAccessSubscriber::getSubscribedEvents());
+        self::assertSame(['onKernelController', 0], MissingLogUiAccessSubscriber::getSubscribedEvents()[KernelEvents::CONTROLLER]);
     }
 
     public function testSkipsWhenAuthorizationCheckerMissing(): void

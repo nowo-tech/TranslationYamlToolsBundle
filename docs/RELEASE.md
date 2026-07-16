@@ -9,14 +9,16 @@
 
 **Avoid duplicate release jobs:** **`sync-releases.yml`** is intentionally **not** bound to tag pushes (only **`workflow_dispatch`** and a daily **schedule**). It backfills or updates older releases without competing with **`release.yml`** on new tags; running both on the same tag caused GitHub API races (**`already_exists`** on **`tag_name`**).
 
-**Tag message:** keep the first line short (e.g. `1.1.2: demo PHPUnit result cache gitignore`); GitHub Actions can merge it with the matching changelog section when publishing the release.
+**Tag message:** keep the first line short (e.g. `1.1.3: CoC, REQ-GIT-001, tests`); GitHub Actions can merge it with the matching changelog section when publishing the release.
 
 ### Next planned tag
 
-- Suggested tag: **`v1.1.3`** (patch) or **`v1.2.0`** (minor) as needed
+- Suggested tag: **`v1.1.4`** (patch) or **`v1.2.0`** (minor) as needed
 - Checklist focus for the next release:
   - `docs/CHANGELOG.md`: move **`[Unreleased]`** items into a dated **`[X.Y.Z]`** section
   - `docs/UPGRADING.md`: add migration notes when users must change config or code
   - `make release-check` green before tagging
 
 See also `docs/SECURITY.md` for the pre-release security checklist.
+
+After creating the release commit and tag, run `make check-no-cursor-coauthor` again **before** `git push` (REQ-GIT-001). The release commit itself is not covered by an earlier `release-check` run.

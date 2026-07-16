@@ -330,4 +330,43 @@ final class RecordingTranslatorDecoratorTest extends TestCase
         $d = new RecordingTranslatorDecorator($inner, $recorder, $builder, true, true);
         self::assertSame('ghost', $d->trans('ghost', [], 'messages', 'en'));
     }
+
+    public function testGetFallbackLocalesReturnsEmptyWhenInnerHasNoMethod(): void
+    {
+        $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+            public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+            {
+                return $id;
+            }
+
+            public function getLocale(): string
+            {
+                return 'en';
+            }
+
+            public function setLocale(string $locale): void
+            {
+            }
+
+            public function getCatalogue(?string $locale = null): \Symfony\Component\Translation\MessageCatalogueInterface
+            {
+                return new MessageCatalogue('en');
+            }
+
+            public function getCatalogues(): array
+            {
+                return [];
+            }
+        };
+
+        $decorator = new RecordingTranslatorDecorator(
+            $inner,
+            $this->createMock(MissingTranslationRecorderInterface::class),
+            $this->createMock(MissingTranslationLogCallSiteBuilder::class),
+            false,
+            false,
+        );
+
+        self::assertSame([], $decorator->getFallbackLocales());
+    }
 }

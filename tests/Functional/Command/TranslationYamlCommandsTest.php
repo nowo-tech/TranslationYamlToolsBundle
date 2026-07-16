@@ -950,4 +950,92 @@ final class TranslationYamlCommandsTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $tester->execute(['--domain' => 'messages', '--target-locale' => 'es']);
     }
+
+    public function testResolveDomainAndLocaleThrowsWhenNoLocalesExist(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_resolve_' . uniqid();
+        $deps = $this->createDeps($project, []);
+        $catalog = $this->createMock(TranslationYamlCatalog::class);
+        $catalog->method('listDomains')->willReturn(['messages']);
+        $catalog->method('listLocalesForDomain')->with('messages')->willReturn([]);
+
+        $cmd = new TranslationYamlTreeCommand(
+            $catalog,
+            $deps['paths'],
+            new DotKeyTreeAnalyzer(),
+            new TranslationYamlFileHandler(),
+            4,
+            'index',
+        );
+
+        $method = new ReflectionMethod(AbstractTranslationYamlCommand::class, 'resolveDomainAndLocale');
+        $input = $this->createMock(\Symfony\Component\Console\Input\InputInterface::class);
+        $output = $this->createMock(OutputInterface::class);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('No locale files found for domain "messages".');
+
+        $method->invoke($cmd, $input, $output, 'messages', 'en');
+    }
+
+    public function testResolveDomainAndLocaleThrowsForUnknownLocale(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_resolve_u_' . uniqid();
+        $deps = $this->createDeps($project, ['messages.en.yaml' => "a: b\n"]);
+        $cmd = $this->treeCommand($deps);
+
+        $method = new ReflectionMethod(AbstractTranslationYamlCommand::class, 'resolveDomainAndLocale');
+        $input = $this->createMock(\Symfony\Component\Console\Input\InputInterface::class);
+        $output = $this->createMock(OutputInterface::class);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown locale "fr" for domain "messages".');
+
+        $method->invoke($cmd, $input, $output, 'messages', 'fr');
+    }
+
+    public function testResolveDomainAndLocaleSelectsLocaleInteractively(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_resolve_i_' . uniqid();
+        $deps = $this->createDeps($project, [
+            'messages.en.yaml' => "a: b\n",
+            'messages.fr.yaml' => "a: c\n",
+        ]);
+        $cmd = $this->treeCommand($deps);
+        $this->bind($cmd);
+
+        $input = new \Symfony\Component\Console\Input\ArrayInput([], $cmd->getDefinition());
+        $input->setInteractive(true);
+        $output = new \Symfony\Component\Console\Output\BufferedOutput();
+        $stream = fopen('php://memory', 'r+');
+        self::assertNotFalse($stream);
+        fwrite($stream, "fr\n");
+        rewind($stream);
+        $input->setStream($stream);
+
+        $method = new ReflectionMethod(AbstractTranslationYamlCommand::class, 'resolveDomainAndLocale');
+        $result = $method->invoke($cmd, $input, $output, 'messages', null);
+
+        self::assertSame(['domain' => 'messages', 'locale' => 'fr'], $result);
+    }
+
+    public function testTreeCommandReportsDisambiguationFailure(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_tree_fail_' . uniqid();
+        $deps = $this->createDeps($project, [
+            'messages.en.yaml' => Yaml::dump(['a' => 'leaf', 'a.index' => 'exists', 'a.b' => 'nested'], 2, 4),
+        ]);
+        $cmd = $this->treeCommand($deps);
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+        $exit = $tester->execute([
+            '--domain' => 'messages',
+            '--locale' => 'en',
+            '--fix-leaf-prefix' => true,
+        ]);
+
+        self::assertSame(1, $exit);
+        self::assertStringContainsString('Cannot disambiguate leaf/prefix keys.', $tester->getDisplay());
+        self::assertStringContainsString('already exists', $tester->getDisplay());
+    }
 }

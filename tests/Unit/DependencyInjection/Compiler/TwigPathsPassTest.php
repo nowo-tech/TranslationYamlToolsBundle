@@ -172,6 +172,22 @@ final class TwigPathsPassTest extends TestCase
         }
     }
 
+    public function testProcessAddsVendorPathWhenProjectDirParameterIsNotString(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.project_dir', ['invalid']);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled', true);
+        $loaderDef = new Definition();
+        $container->setDefinition('twig.loader.native_filesystem', $loaderDef);
+
+        (new TwigPathsPass())->process($container);
+
+        self::assertSame(
+            [['addPath', $this->expectedVendorAddPathArgs()]],
+            $loaderDef->getMethodCalls(),
+        );
+    }
+
     /**
      * @return array{0: string, 1: string}
      */

@@ -165,6 +165,19 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         self::assertFalse($container->hasDefinition(MissingLogUiAccessSubscriber::class));
     }
 
+    public function testMissingTranslationLogWebUiEmptyRequiredRoleBecomesNull(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoTranslationYamlToolsExtension())->load([[
+            'missing_translation_log' => [
+                'enabled' => true,
+                'web_ui'  => ['enabled' => true, 'required_role' => ''],
+            ],
+        ]], $container);
+
+        self::assertNull($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role'));
+    }
+
     public function testMissingTranslationLogAsyncPersistRegistersMessengerHandlerWhenMessengerAvailable(): void
     {
         if (!interface_exists(\Symfony\Component\Messenger\MessageBusInterface::class)) {

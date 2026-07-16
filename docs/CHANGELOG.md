@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-07-16
+
+### Added
+
+- **Code of Conduct:** Contributor Covenant (**`CODE_OF_CONDUCT.md`**); linked from **`README.md`** and **`docs/CONTRIBUTING.md`**.
+- **REQ-GIT-001:** local Git hooks (**.githooks/commit-msg**), **`.scripts/check-no-cursor-coauthor.sh`** / **`strip-cursor-coauthor-from-history.sh`**, Makefile targets (**`setup-hooks`**, **`check-no-cursor-coauthor`**, **`strip-cursor-coauthor-from-history`**), CI job **`git-hygiene`**, and **[GITHUB_CI.md](GITHUB_CI.md)**.
+- **Tests:** broader coverage for console commands, DI extension / Twig paths, missing-log UI access, **`DotKeyTreeAnalyzer`**, **`RecordingTranslatorDecorator`**, and **`MissingTranslationRecordContext`**.
+
+### Changed
+
+- **`make release-check`** runs **`check-no-cursor-coauthor`** first; **`docs/RELEASE.md`** reminds to re-check before pushing the release tag.
+- **Lockfile:** refreshed **`composer.lock`** (dev tools: PHP-CS-Fixer, Rector).
+
+_No runtime or configuration changes under **`src/`**; upgrading from **1.1.2** is optional unless you track this repository’s CI, hooks, or test tree._
+
 ## [1.1.2] - 2026-06-30
 
 ### Fixed

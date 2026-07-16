@@ -206,4 +206,63 @@ final class DotKeyTreeAnalyzerTest extends TestCase
         $result   = $analyzer->disambiguateLeafPrefixConflicts(['a' => 1, 'a.b' => 2], 'bad.suffix');
         self::assertArrayHasKey('error', $result);
     }
+
+    public function testDisambiguateLeafPrefixConflictsRejectsNonAlphanumericSuffix(): void
+    {
+        $analyzer = new DotKeyTreeAnalyzer();
+        $result   = $analyzer->disambiguateLeafPrefixConflicts(['a' => 1, 'a.b' => 2], 'bad@suffix');
+        self::assertSame(['error' => 'Leaf prefix suffix must match [a-zA-Z0-9_-]+.'], $result);
+    }
+
+    public function testDisambiguateLeafPrefixConflictsReportsWhenNoProgressPossible(): void
+    {
+        $analyzer = new DotKeyTreeAnalyzer();
+        $flat     = ['a' => 1, 'a.b' => 2];
+        $method   = new ReflectionMethod(DotKeyTreeAnalyzer::class, 'collectTreeConversionConflicts');
+        $conflicts = $method->invoke($analyzer, $flat);
+
+        $broken = new class($conflicts) extends DotKeyTreeAnalyzer {
+            /** @param list<array<string, string>> $fixedConflicts */
+            public function __construct(private array $fixedConflicts)
+            {
+            }
+
+            /** @return list<array<string, string>> */
+            public function collectTreeConversionConflicts(array $flatLeaves): array
+            {
+                unset($flatLeaves);
+
+                return $this->fixedConflicts;
+            }
+        };
+
+        $result = $broken->disambiguateLeafPrefixConflicts(['missing' => 1], 'index');
+        self::assertSame(['error' => 'Cannot disambiguate leaf/prefix conflicts (no progress in one pass).'], $result);
+    }
+
+    public function testDisambiguateLeafPrefixConflictsStopsAfterMaxPasses(): void
+    {
+        $analyzer = new class extends DotKeyTreeAnalyzer {
+            /** @return list<array<string, string>> */
+            public function collectTreeConversionConflicts(array $flatLeaves): array
+            {
+                $keys = array_keys($flatLeaves);
+                if ($keys === []) {
+                    return [];
+                }
+
+                $leafKey = (string) $keys[0];
+
+                return [[
+                    'type' => DotKeyTreeAnalyzer::CONFLICT_LEAF_AND_PREFIX,
+                    'leaf_key' => $leafKey,
+                    'blocked_key' => $leafKey . '.child',
+                ]];
+            }
+        };
+
+        $result = $analyzer->disambiguateLeafPrefixConflicts(['k' => 1], 'index');
+        self::assertArrayHasKey('error', $result);
+        self::assertStringContainsString('stopped after', (string) $result['error']);
+    }
 }
