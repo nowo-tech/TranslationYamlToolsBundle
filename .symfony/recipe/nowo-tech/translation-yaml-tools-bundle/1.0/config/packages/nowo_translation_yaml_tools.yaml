@@ -6,6 +6,12 @@ nowo_translation_yaml_tools:
     yaml_tree_indent: 4
     yaml_tree_leaf_prefix_suffix: index   # final segment for tree --fix-leaf-prefix (e.g. key a -> a.index)
     machine_translator: google
+    # machine_translation_min_interval_ms: 0          # e.g. 100–250 for public API pacing
+    # machine_translation_max_requests_per_run: 0     # e.g. 200 to cap fill-missing burns
+    # machine_translation_http_timeout: 30
+    # libretranslate_base_url: 'https://libretranslate.com'
+    # libretranslate_allowed_hosts: [libretranslate.com]   # required host allowlist (SSRF)
+    # libretranslate_allow_http: false
     # machine_translation_locale_map:
     #     pt_BR: pt-br   # optional: Symfony locale => exact API language code for fill-missing
     # machine_translator_by_locale:
@@ -18,5 +24,12 @@ nowo_translation_yaml_tools:
     #     async_persist: false     # true: delegate flush (see async_persist_strategy)
     #     async_persist_strategy: messenger   # messenger | event_dispatcher (no Messenger; use MissingTranslationBufferEvent + optional stopPropagation)
     #     web_ui:
-    #         enabled: true   # requires symfony/twig-bundle; import routes (see recipe config/routes/dev/)
+    #         enabled: true   # requires symfony/twig-bundle + symfony/security-bundle; import routes (see recipe config/routes/dev/)
     #         path_prefix: '/_translation_yaml_tools/missing-log'
+    #         required_role: ROLE_ADMIN
+    #         # allow_unauthenticated: false   # default; never true in production
+    #
+    # Also protect with access_control, e.g.:
+    # security:
+    #     access_control:
+    #         - { path: ^/_translation_yaml_tools, roles: ROLE_ADMIN }

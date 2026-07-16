@@ -87,6 +87,11 @@ class FrameworkTranslationPathsResolver
 
         $extra = [];
         foreach ($this->discoverTranslationConfigFiles($packagesDir) as $configPath) {
+            $size = @filesize($configPath);
+            if ($size === false || $size > TranslationYamlFileHandler::DEFAULT_MAX_FILE_BYTES) {
+                continue;
+            }
+
             try {
                 /** @var array<string, mixed> $parsed */
                 $parsed = Yaml::parseFile($configPath) ?? [];

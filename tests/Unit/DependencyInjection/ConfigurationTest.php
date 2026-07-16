@@ -22,9 +22,14 @@ final class ConfigurationTest extends TestCase
         self::assertSame(4, $config['yaml_tree_indent']);
         self::assertSame('index', $config['yaml_tree_leaf_prefix_suffix']);
         self::assertSame('google', $config['machine_translator']);
+        self::assertSame(0, $config['machine_translation_min_interval_ms']);
+        self::assertSame(0, $config['machine_translation_max_requests_per_run']);
+        self::assertSame(30.0, $config['machine_translation_http_timeout']);
         self::assertSame('https://api.deepl.com/v2/translate', $config['deepl_endpoint']);
         self::assertSame('https://libretranslate.com', $config['libretranslate_base_url']);
         self::assertSame('', $config['libretranslate_api_key']);
+        self::assertSame(['libretranslate.com'], $config['libretranslate_allowed_hosts']);
+        self::assertFalse($config['libretranslate_allow_http']);
         self::assertSame([], $config['machine_translation_locale_map']);
         self::assertSame([], $config['machine_translator_by_locale']);
         self::assertSame([
@@ -35,10 +40,11 @@ final class ConfigurationTest extends TestCase
             'async_persist'          => false,
             'async_persist_strategy' => 'messenger',
             'web_ui'                 => [
-                'enabled'         => false,
-                'path_prefix'     => '/_translation_yaml_tools/missing-log',
-                'layout_template' => '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig',
-                'required_role'   => 'ROLE_ADMIN',
+                'enabled'               => false,
+                'path_prefix'           => '/_translation_yaml_tools/missing-log',
+                'layout_template'       => '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig',
+                'required_role'         => 'ROLE_ADMIN',
+                'allow_unauthenticated' => false,
             ],
         ], $config['missing_translation_log']);
     }
@@ -106,14 +112,17 @@ final class ConfigurationTest extends TestCase
     {
         $processor = new Processor();
         $config    = $processor->processConfiguration(new Configuration(), [[
-            'machine_translator'      => 'libretranslate',
-            'libretranslate_base_url' => 'https://translate.local',
-            'libretranslate_api_key'  => 'k',
+            'machine_translator'             => 'libretranslate',
+            'libretranslate_base_url'        => 'https://translate.local',
+            'libretranslate_api_key'         => 'k',
+            'libretranslate_allowed_hosts'   => ['translate.local'],
+            'libretranslate_allow_http'      => false,
         ]]);
 
         self::assertSame('libretranslate', $config['machine_translator']);
         self::assertSame('https://translate.local', $config['libretranslate_base_url']);
         self::assertSame('k', $config['libretranslate_api_key']);
+        self::assertSame(['translate.local'], $config['libretranslate_allowed_hosts']);
     }
 
     public function testMachineTranslatorByLocale(): void

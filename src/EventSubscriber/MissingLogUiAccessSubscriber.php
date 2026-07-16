@@ -34,13 +34,20 @@ final readonly class MissingLogUiAccessSubscriber implements EventSubscriberInte
 
     public function onKernelController(ControllerEvent $event): void
     {
-        if ($this->requiredRole === null || $this->requiredRole === '' || !$this->authorizationChecker instanceof AuthorizationCheckerInterface) {
+        if ($this->requiredRole === null || $this->requiredRole === '') {
             return;
         }
 
         $route = $event->getRequest()->attributes->get('_route');
         if ($route === null || !str_starts_with((string) $route, self::ROUTE_PREFIX)) {
             return;
+        }
+
+        if (!$this->authorizationChecker instanceof AuthorizationCheckerInterface) {
+            throw new AccessDeniedException(sprintf(
+                'Missing-log UI requires role "%s" but security.authorization_checker is unavailable.',
+                $this->requiredRole,
+            ));
         }
 
         if (!$this->authorizationChecker->isGranted($this->requiredRole)) {

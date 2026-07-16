@@ -26,6 +26,7 @@ final class DeeplMachineTranslator implements MachineTranslatorInterface
         private readonly string $authKey,
         private readonly string $endpointUrl,
         private readonly MachineTranslationLocaleMapper $localeMapper,
+        private readonly float $httpTimeout = 30.0,
     ) {
     }
 
@@ -43,6 +44,7 @@ final class DeeplMachineTranslator implements MachineTranslatorInterface
         }
 
         $response = $this->httpClient->request('POST', $this->endpointUrl, [
+            'timeout' => $this->httpTimeout,
             'headers' => [
                 'Authorization' => 'DeepL-Auth-Key ' . $this->authKey,
                 'Content-Type'  => 'application/json',

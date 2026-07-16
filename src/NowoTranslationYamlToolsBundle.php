@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle;
 
 use LogicException;
+use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\MissingLogWebUiSecurityPass;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\TwigPathsPass;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\NowoTranslationYamlToolsExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -19,6 +20,7 @@ final class NowoTranslationYamlToolsBundle extends Bundle
     public function build(ContainerBuilder $container): void
     {
         $container->addCompilerPass(new TwigPathsPass());
+        $container->addCompilerPass(new MissingLogWebUiSecurityPass());
     }
 
     /**

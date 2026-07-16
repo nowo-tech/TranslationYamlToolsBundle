@@ -3,7 +3,9 @@ services:
         autowire: true
         autoconfigure: true
 
-    Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController: ~
+    Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController:
+        arguments:
+            $requiredRole: '%nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role%'
 
     Nowo\TranslationYamlToolsBundle\Twig\MissingTranslationLogExtension:
         arguments:

@@ -15,17 +15,24 @@ use function sprintf;
 
 /**
  * Web UI for the missing-translation log (enable missing_translation_log.web_ui.enabled and import bundle routes).
+ *
+ * Access is enforced with {@see AbstractController::denyAccessUnlessGranted()} for
+ * {@code missing_translation_log.web_ui.required_role} (default ROLE_ADMIN), in addition to
+ * {@see \Nowo\TranslationYamlToolsBundle\EventSubscriber\MissingLogUiAccessSubscriber}.
  */
 final class MissingTranslationLogUiController extends AbstractController
 {
     public function __construct(
         private readonly MissingTranslationLogRepository $repository,
+        private readonly ?string $requiredRole = 'ROLE_ADMIN',
     ) {
     }
 
     #[Route('', name: 'nowo_translation_yaml_tools_missing_log_index', methods: ['GET'])]
     public function index(Request $request): Response
     {
+        $this->denyUnlessConfiguredRole();
+
         $statusParam = (string) $request->query->get('status', MissingTranslationLogStatus::Pending->value);
         $status      = MissingTranslationLogStatus::tryFrom($statusParam) ?? MissingTranslationLogStatus::Pending;
         $rows        = $this->repository->findByStatus($status, 500);
@@ -39,6 +46,8 @@ final class MissingTranslationLogUiController extends AbstractController
     #[Route('/{id}/mark-added', name: 'nowo_translation_yaml_tools_missing_log_mark_added', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function markAdded(int $id, Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
     {
+        $this->denyUnlessConfiguredRole();
+
         $token = (string) $request->request->get('_token');
         if (!$this->isCsrfTokenValid('missing_log_mark_added', $token)) {
             throw $this->createAccessDeniedException('Invalid CSRF token.');
@@ -62,6 +71,8 @@ final class MissingTranslationLogUiController extends AbstractController
     #[Route('/clear', name: 'nowo_translation_yaml_tools_missing_log_clear', methods: ['POST'])]
     public function clear(Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
     {
+        $this->denyUnlessConfiguredRole();
+
         $token = (string) $request->request->get('_token');
         if (!$this->isCsrfTokenValid('missing_log_clear', $token)) {
             throw $this->createAccessDeniedException('Invalid CSRF token.');
@@ -81,6 +92,8 @@ final class MissingTranslationLogUiController extends AbstractController
     #[Route('/clear-status', name: 'nowo_translation_yaml_tools_missing_log_clear_status', methods: ['POST'])]
     public function clearStatus(Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
     {
+        $this->denyUnlessConfiguredRole();
+
         $token = (string) $request->request->get('_token');
         if (!$this->isCsrfTokenValid('missing_log_clear_status', $token)) {
             throw $this->createAccessDeniedException('Invalid CSRF token.');
@@ -95,5 +108,20 @@ final class MissingTranslationLogUiController extends AbstractController
         return $this->redirectToRoute('nowo_translation_yaml_tools_missing_log_index', [
             'status' => $status->value,
         ]);
+    }
+
+    /**
+     * Enforces {@code web_ui.required_role} when SecurityBundle is present (same effect as {@code #[IsGranted]}).
+     * Skips when role is null/empty or when allow_unauthenticated apps omit the checker.
+     */
+    private function denyUnlessConfiguredRole(): void
+    {
+        if ($this->requiredRole === null || $this->requiredRole === '') {
+            return;
+        }
+        if (!$this->container->has('security.authorization_checker')) {
+            return;
+        }
+        $this->denyAccessUnlessGranted($this->requiredRole);
     }
 }

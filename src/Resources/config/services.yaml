@@ -10,6 +10,7 @@ services:
             - '../../Resources/'
             - '../../NowoTranslationYamlToolsBundle.php'
             - '../../MachineTranslation/RoutingMachineTranslator.php'
+            - '../../MachineTranslation/ThrottledMachineTranslator.php'
             - '../../Entity/'
             - '../../Repository/'
             - '../../Translation/'
@@ -27,16 +28,25 @@ services:
     Nowo\TranslationYamlToolsBundle\MachineTranslation\GoogleTranslateMachineTranslator:
         arguments:
             $apiKey: '%env(string:GOOGLE_TRANSLATE_API_KEY)%'
+            $httpTimeout: '%nowo_translation_yaml_tools.machine_translation_http_timeout%'
 
     Nowo\TranslationYamlToolsBundle\MachineTranslation\DeeplMachineTranslator:
         arguments:
             $authKey: '%env(string:DEEPL_AUTH_KEY)%'
             $endpointUrl: '%nowo_translation_yaml_tools.deepl_endpoint%'
+            $httpTimeout: '%nowo_translation_yaml_tools.machine_translation_http_timeout%'
+
+    Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateBaseUrlGuard:
+        arguments:
+            $allowedHosts: '%nowo_translation_yaml_tools.libretranslate_allowed_hosts%'
+            $allowHttp: '%nowo_translation_yaml_tools.libretranslate_allow_http%'
 
     Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateMachineTranslator:
         arguments:
             $baseUrl: '%nowo_translation_yaml_tools.libretranslate_base_url%'
             $apiKey: '%nowo_translation_yaml_tools.libretranslate_api_key%'
+            $baseUrlGuard: '@Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateBaseUrlGuard'
+            $httpTimeout: '%nowo_translation_yaml_tools.machine_translation_http_timeout%'
 
     Nowo\TranslationYamlToolsBundle\MachineTranslation\RoutingMachineTranslator:
         arguments:
@@ -47,8 +57,13 @@ services:
             $defaultBackend: '%nowo_translation_yaml_tools.machine_translator%'
             $byCanonicalLocale: '%nowo_translation_yaml_tools.machine_translator_by_locale%'
 
+    Nowo\TranslationYamlToolsBundle\MachineTranslation\ThrottledMachineTranslator:
+        arguments:
+            $inner: '@Nowo\TranslationYamlToolsBundle\MachineTranslation\RoutingMachineTranslator'
+            $minIntervalMs: '%nowo_translation_yaml_tools.machine_translation_min_interval_ms%'
+
     Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslatorInterface:
-        alias: Nowo\TranslationYamlToolsBundle\MachineTranslation\RoutingMachineTranslator
+        alias: Nowo\TranslationYamlToolsBundle\MachineTranslation\ThrottledMachineTranslator
 
     Nowo\TranslationYamlToolsBundle\Command\TranslationYamlTreeCommand:
         arguments:
@@ -69,6 +84,7 @@ services:
             $configuredIndent: '%nowo_translation_yaml_tools.yaml_tree_indent%'
             $machineTranslatorBackend: '%nowo_translation_yaml_tools.machine_translator%'
             $machineTranslatorPerLocaleEnabled: '%nowo_translation_yaml_tools.machine_translator_per_locale%'
+            $maxRequestsPerRun: '%nowo_translation_yaml_tools.machine_translation_max_requests_per_run%'
 
     Nowo\TranslationYamlToolsBundle\Command\TranslationYamlAuditCommand:
         arguments:

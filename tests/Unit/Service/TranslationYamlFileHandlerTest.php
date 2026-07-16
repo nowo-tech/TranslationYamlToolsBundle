@@ -113,4 +113,46 @@ final class TranslationYamlFileHandlerTest extends TestCase
             @rmdir($dir);
         }
     }
+
+    public function testLoadFileRejectsOversizedFile(): void
+    {
+        $path = sys_get_temp_dir() . '/tyt_big_' . uniqid() . '.yaml';
+        file_put_contents($path, "a: b\n");
+        $handler = new TranslationYamlFileHandler(maxFileBytes: 1);
+        try {
+            $this->expectException(InvalidArgumentException::class);
+            $this->expectExceptionMessage('exceeds max size');
+            $handler->loadFile($path);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testLoadFileRejectsExcessiveDepth(): void
+    {
+        $path = sys_get_temp_dir() . '/tyt_deep_' . uniqid() . '.yaml';
+        file_put_contents($path, "a:\n  b:\n    c: 1\n");
+        $handler = new TranslationYamlFileHandler(maxDepth: 1);
+        try {
+            $this->expectException(InvalidArgumentException::class);
+            $this->expectExceptionMessage('exceeds max depth');
+            $handler->loadFile($path);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testLoadFileRejectsExcessiveNodes(): void
+    {
+        $path = sys_get_temp_dir() . '/tyt_nodes_' . uniqid() . '.yaml';
+        file_put_contents($path, "a: 1\nb: 2\nc: 3\n");
+        $handler = new TranslationYamlFileHandler(maxNodes: 2);
+        try {
+            $this->expectException(InvalidArgumentException::class);
+            $this->expectExceptionMessage('exceeds max nodes');
+            $handler->loadFile($path);
+        } finally {
+            @unlink($path);
+        }
+    }
 }

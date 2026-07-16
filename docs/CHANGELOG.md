@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Security
+
+- **Web UI deny-by-default:** enabling **`missing_translation_log.web_ui`** without **`security.authorization_checker`** now fails container compilation unless **`allow_unauthenticated: true`** (dev/demo only). Enforced in **`MissingLogWebUiSecurityPass`** (not in Extension::load — isolated merge container). New config key documented in **CONFIGURATION** / **SECURITY** / Flex recipe.
+- **`MissingLogUiAccessSubscriber`:** denies access when a **`required_role`** is set but the authorization checker is unavailable (no silent open UI).
+- **Controller `denyAccessUnlessGranted`:** missing-log UI actions enforce **`web_ui.required_role`** (defense in depth vs subscriber).
+- **YAML bomb caps:** **`TranslationYamlFileHandler`** rejects files &gt; **2 MiB**, depth &gt; **64**, or &gt; **50 000** nodes; framework translation-config discovery skips oversized YAML.
+- **`fill-missing` path hardening:** domain/locale must match **`[a-zA-Z0-9_-]+`**; new files must stay under configured translation directories (`realpath` check).
+- **LibreTranslate SSRF allowlist:** **`libretranslate_allowed_hosts`** (default **`libretranslate.com`**) + optional **`libretranslate_allow_http`**; invalid base URLs fail container compilation.
+- **MT rate limits / timeouts:** **`machine_translation_min_interval_ms`**, **`machine_translation_max_requests_per_run`**, **`machine_translation_http_timeout`** (default 30s); **`ThrottledMachineTranslator`** wraps the router.
+
+### Documentation
+
+- Rewrote **[SECURITY.md](SECURITY.md)** (HTTP UI surface, auth requirements, YAML caps).
+- **[INSTALLATION.md](INSTALLATION.md)** / **[CONFIGURATION.md](CONFIGURATION.md)** / Flex recipe: SecurityBundle + `access_control` guidance.
+
+### Demos
+
+- **Symfony 7 / 8 demos:** require **`symfony/security-bundle`**, in-memory **`admin`/`admin`** (`ROLE_ADMIN`), form login + `access_control` for the missing-log UI; removed **`allow_unauthenticated`**.
+
 ## [1.1.3] - 2026-07-16
 
 ### Added

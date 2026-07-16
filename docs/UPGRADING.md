@@ -4,6 +4,16 @@
 
 This line is **1.1.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
 
+## To Unreleased (from 1.1.3)
+
+- **Breaking for insecure setups:** if **`missing_translation_log.web_ui.enabled: true`** and the app has **no** SecurityBundle (`security.authorization_checker`), the container **will not compile** (enforced by **`MissingLogWebUiSecurityPass`**). Fix by either:
+  1. Installing **`symfony/security-bundle`**, enabling it in **`bundles.php`**, granting **`required_role`** (default **`ROLE_ADMIN`**), plus firewall / **`access_control`**; or
+  2. Setting **`allow_unauthenticated: true`** under **`web_ui`** — **only** for local tests without Security (the Symfony 7/8 demos now use option 1).
+- **YAML parsing:** translation files larger than **2 MiB**, deeper than **64** levels, or with more than **50 000** nodes are rejected. Raise limits only by constructing a custom **`TranslationYamlFileHandler`** if you override the service (defaults are intentional).
+- **LibreTranslate:** if you set a custom **`libretranslate_base_url`**, add its hostname to **`libretranslate_allowed_hosts`** (default only **`libretranslate.com`**). Use **`libretranslate_allow_http: true`** only for local HTTP instances.
+- **`fill-missing`:** `--target-locale` / domain values with characters outside **`[a-zA-Z0-9_-]`** are rejected.
+- **Optional MT limits** (defaults keep previous behaviour): **`machine_translation_min_interval_ms`**, **`machine_translation_max_requests_per_run`**, **`machine_translation_http_timeout`** (30s).
+
 ## To 1.1.3 (from 1.1.2)
 
 - **Optional:** tag **1.1.3** adds Contributor Covenant, REQ-GIT-001 Git hygiene (hooks, CI, docs), expanded tests, and a refreshed **`composer.lock`**. Applications depending on **`nowo-tech/translation-yaml-tools-bundle`** behave the same as **1.1.2**; bump with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^1.1`** already allows **1.1.3**).

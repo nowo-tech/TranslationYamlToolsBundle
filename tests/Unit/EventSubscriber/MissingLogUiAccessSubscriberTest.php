@@ -34,13 +34,15 @@ final class MissingLogUiAccessSubscriberTest extends TestCase
         self::assertSame(['onKernelController', 0], MissingLogUiAccessSubscriber::getSubscribedEvents()[KernelEvents::CONTROLLER]);
     }
 
-    public function testSkipsWhenAuthorizationCheckerMissing(): void
+    public function testDeniesWhenAuthorizationCheckerMissing(): void
     {
         $subscriber = new MissingLogUiAccessSubscriber('ROLE_ADMIN');
         $event      = $this->controllerEvent('nowo_translation_yaml_tools_missing_log_index');
 
+        $this->expectException(AccessDeniedException::class);
+        $this->expectExceptionMessage('security.authorization_checker is unavailable');
+
         $subscriber->onKernelController($event);
-        self::assertSame('nowo_translation_yaml_tools_missing_log_index', $event->getRequest()->attributes->get('_route'));
     }
 
     public function testSkipsForUnrelatedRoutes(): void

@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 
+use Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateBaseUrlGuard;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
-use Symfony\Component\DependencyInjection\Reference;
 
 use function array_key_exists;
 use function dirname;
@@ -56,9 +57,24 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $container->setParameter('nowo_translation_yaml_tools.yaml_tree_indent', $config['yaml_tree_indent']);
         $container->setParameter('nowo_translation_yaml_tools.yaml_tree_leaf_prefix_suffix', $config['yaml_tree_leaf_prefix_suffix']);
         $container->setParameter('nowo_translation_yaml_tools.machine_translator', $config['machine_translator']);
+        $container->setParameter('nowo_translation_yaml_tools.machine_translation_min_interval_ms', (int) $config['machine_translation_min_interval_ms']);
+        $container->setParameter('nowo_translation_yaml_tools.machine_translation_max_requests_per_run', (int) $config['machine_translation_max_requests_per_run']);
+        $container->setParameter('nowo_translation_yaml_tools.machine_translation_http_timeout', (float) $config['machine_translation_http_timeout']);
         $container->setParameter('nowo_translation_yaml_tools.deepl_endpoint', $config['deepl_endpoint']);
         $container->setParameter('nowo_translation_yaml_tools.libretranslate_base_url', $config['libretranslate_base_url']);
         $container->setParameter('nowo_translation_yaml_tools.libretranslate_api_key', $config['libretranslate_api_key']);
+        /** @var list<string> $ltAllowedHosts */
+        $ltAllowedHosts = array_values(array_map('strval', $config['libretranslate_allowed_hosts']));
+        $ltAllowHttp    = (bool) $config['libretranslate_allow_http'];
+        $container->setParameter('nowo_translation_yaml_tools.libretranslate_allowed_hosts', $ltAllowedHosts);
+        $container->setParameter('nowo_translation_yaml_tools.libretranslate_allow_http', $ltAllowHttp);
+
+        try {
+            (new LibreTranslateBaseUrlGuard($ltAllowedHosts, $ltAllowHttp))
+                ->assertAllowed((string) $config['libretranslate_base_url']);
+        } catch (\InvalidArgumentException $e) {
+            throw new InvalidConfigurationException($e->getMessage(), 0, $e);
+        }
 
         $localeMap = [];
         foreach ($config['machine_translation_locale_map'] as $symfonyLocale => $apiCode) {
@@ -93,11 +109,12 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $recordRequestContext = (bool) ($missingLog['record_request_context'] ?? true);
         $asyncPersist         = (bool) ($missingLog['async_persist'] ?? false);
         $asyncPersistStrategy = (string) ($missingLog['async_persist_strategy'] ?? 'messenger');
-        $webUi                = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
-        $webUiEnabled         = (bool) ($webUi['enabled'] ?? false);
-        $webUiPathPrefix      = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
-        $webUiLayoutTemplate  = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
-        $webUiRequiredRole    = array_key_exists('required_role', $webUi)
+        $webUi                   = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
+        $webUiEnabled            = (bool) ($webUi['enabled'] ?? false);
+        $webUiPathPrefix         = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
+        $webUiLayoutTemplate     = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
+        $webUiAllowUnauthenticated = (bool) ($webUi['allow_unauthenticated'] ?? false);
+        $webUiRequiredRole       = array_key_exists('required_role', $webUi)
             ? (is_string($webUi['required_role']) && $webUi['required_role'] !== '' ? $webUi['required_role'] : null)
             : 'ROLE_ADMIN';
 
@@ -111,13 +128,10 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.path_prefix', $webUiPathPrefix);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template', $webUiLayoutTemplate);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role', $webUiRequiredRole);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.allow_unauthenticated', $webUiAllowUnauthenticated);
 
-        if ($webUiEnabled && $webUiRequiredRole !== null && $container->has('security.authorization_checker')) {
-            $container->register(\Nowo\TranslationYamlToolsBundle\EventSubscriber\MissingLogUiAccessSubscriber::class)
-                ->setArgument('$requiredRole', $webUiRequiredRole)
-                ->setArgument('$authorizationChecker', new Reference('security.authorization_checker'))
-                ->addTag('kernel.event_subscriber');
-        }
+        // SecurityBundle presence + MissingLogUiAccessSubscriber: MissingLogWebUiSecurityPass
+        // (Extension::load runs in an isolated container where other bundles are invisible).
 
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');

@@ -9,7 +9,7 @@ use Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\NowoTranslationYamlToolsExtension;
 use Nowo\TranslationYamlToolsBundle\EventSubscriber\MissingLogUiAccessSubscriber;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslatorInterface;
-use Nowo\TranslationYamlToolsBundle\MachineTranslation\RoutingMachineTranslator;
+use Nowo\TranslationYamlToolsBundle\MachineTranslation\ThrottledMachineTranslator;
 use Nowo\TranslationYamlToolsBundle\MissingTranslationLog\MissingTranslationBufferDoctrinePersistListener;
 use Nowo\TranslationYamlToolsBundle\MissingTranslationLog\PersistMissingTranslationBufferMessageHandler;
 use Nowo\TranslationYamlToolsBundle\Translation\RecordingTranslatorDecorator;
@@ -17,22 +17,25 @@ use Nowo\TranslationYamlToolsBundle\Twig\MissingTranslationLogExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
-use stdClass;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 #[CoversClass(NowoTranslationYamlToolsExtension::class)]
 final class NowoTranslationYamlToolsExtensionTest extends TestCase
 {
-    public function testMachineTranslatorAliasPointsToRouter(): void
+    public function testMachineTranslatorAliasPointsToThrottledRouter(): void
     {
         $container = new ContainerBuilder();
         (new NowoTranslationYamlToolsExtension())->load([[]], $container);
 
         self::assertTrue($container->hasAlias(MachineTranslatorInterface::class));
         self::assertSame(
-            RoutingMachineTranslator::class,
+            ThrottledMachineTranslator::class,
             (string) $container->getAlias(MachineTranslatorInterface::class),
         );
+        self::assertSame(0, $container->getParameter('nowo_translation_yaml_tools.machine_translation_min_interval_ms'));
+        self::assertSame(0, $container->getParameter('nowo_translation_yaml_tools.machine_translation_max_requests_per_run'));
+        self::assertSame(30.0, $container->getParameter('nowo_translation_yaml_tools.machine_translation_http_timeout'));
     }
 
     public function testYamlTreeLeafPrefixSuffixParameters(): void
@@ -85,6 +88,27 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         self::assertSame('nowo_translation_yaml_tools', $extension->getAlias());
     }
 
+    public function testLibreTranslateBaseUrlMustBeAllowlisted(): void
+    {
+        $container = new ContainerBuilder();
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('not in libretranslate_allowed_hosts');
+        (new NowoTranslationYamlToolsExtension())->load([[
+            'libretranslate_base_url' => 'https://evil.example',
+        ]], $container);
+    }
+
+    public function testLibreTranslateCustomHostWithAllowlist(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoTranslationYamlToolsExtension())->load([[
+            'libretranslate_base_url'      => 'https://lt.internal.example',
+            'libretranslate_allowed_hosts' => ['lt.internal.example'],
+        ]], $container);
+        self::assertSame('https://lt.internal.example', $container->getParameter('nowo_translation_yaml_tools.libretranslate_base_url'));
+        self::assertSame(['lt.internal.example'], $container->getParameter('nowo_translation_yaml_tools.libretranslate_allowed_hosts'));
+    }
+
     public function testMissingTranslationLogParameterDefaultsToDisabled(): void
     {
         $container = new ContainerBuilder();
@@ -102,6 +126,7 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
             $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template'),
         );
         self::assertSame('ROLE_ADMIN', $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role'));
+        self::assertFalse($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.allow_unauthenticated'));
         self::assertFalse($container->hasDefinition(RecordingTranslatorDecorator::class));
         self::assertFalse($container->hasDefinition(MissingTranslationLogUiController::class));
     }
@@ -129,15 +154,33 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         ]], $container);
 
         self::assertTrue($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled'));
+        self::assertFalse($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.allow_unauthenticated'));
         self::assertTrue($container->hasDefinition(MissingTranslationLogUiController::class));
         self::assertTrue($container->hasDefinition(MissingTranslationLogExtension::class));
+        // Subscriber is registered by MissingLogWebUiSecurityPass after extensions merge.
+        self::assertFalse($container->hasDefinition(MissingLogUiAccessSubscriber::class));
     }
 
-    public function testMissingTranslationLogWebUiRegistersAccessSubscriberWhenSecurityAvailable(): void
+    public function testMissingTranslationLogWebUiAllowUnauthenticatedParameter(): void
     {
         $container = new ContainerBuilder();
-        $container->setDefinition('security.authorization_checker', new \Symfony\Component\DependencyInjection\Definition(stdClass::class));
+        (new NowoTranslationYamlToolsExtension())->load([[
+            'missing_translation_log' => [
+                'enabled' => true,
+                'web_ui'  => [
+                    'enabled'               => true,
+                    'allow_unauthenticated' => true,
+                ],
+            ],
+        ]], $container);
 
+        self::assertTrue($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.allow_unauthenticated'));
+        self::assertTrue($container->hasDefinition(MissingTranslationLogUiController::class));
+    }
+
+    public function testMissingTranslationLogWebUiRequiredRoleParameter(): void
+    {
+        $container = new ContainerBuilder();
         (new NowoTranslationYamlToolsExtension())->load([[
             'missing_translation_log' => [
                 'enabled' => true,
@@ -145,15 +188,12 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
             ],
         ]], $container);
 
-        self::assertTrue($container->hasDefinition(MissingLogUiAccessSubscriber::class));
         self::assertSame('ROLE_ADMIN', $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role'));
     }
 
     public function testMissingTranslationLogWebUiSkipsAccessSubscriberWhenRequiredRoleNull(): void
     {
         $container = new ContainerBuilder();
-        $container->setDefinition('security.authorization_checker', new \Symfony\Component\DependencyInjection\Definition(stdClass::class));
-
         (new NowoTranslationYamlToolsExtension())->load([[
             'missing_translation_log' => [
                 'enabled' => true,

@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Login — Translation YAML Tools demo{% endblock %}
+
+{% block body %}
+    <main style="max-width: 28rem; margin: 2rem auto; font-family: system-ui, sans-serif;">
+        <h1>Demo login</h1>
+        <p>Required for the <strong>missing-log Web UI</strong> (<code>ROLE_ADMIN</code>).</p>
+        <p style="color: #555;">Credentials: <code>admin</code> / <code>admin</code> (local demos only).</p>
+
+        {% if error %}
+            <p style="color: #b00020;" role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
+        {% endif %}
+
+        <form method="post" action="{{ path('app_login') }}">
+            <p>
+                <label for="username">Username</label><br>
+                <input type="text" id="username" name="_username" value="{{ last_username }}" required autocomplete="username">
+            </p>
+            <p>
+                <label for="password">Password</label><br>
+                <input type="password" id="password" name="_password" required autocomplete="current-password">
+            </p>
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+            <button type="submit">Sign in</button>
+        </form>
+
+        <p style="margin-top: 1.5rem;"><a href="{{ path('demo_home') }}">← Back to home</a></p>
+    </main>
+{% endblock %}

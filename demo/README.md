@@ -13,6 +13,7 @@ Each demo includes:
 - **Translation** setup with `framework.default_locale`, `framework.enabled_locales` (`en`, `es`, `fr`), `translator.paths` for a second directory (`translations_extra/`)
 - A **web insights** page at `/` showing default locale, enabled locales, YAML paths, missing locale files, and missing keys vs the default locale
 - **Dev-only** **`missing_translation_log`**: Doctrine + SQLite, **Web UI** at `/_demo/translation-yaml-tools/missing-log`, **`async_persist_strategy: event_dispatcher`** (no `symfony/messenger`); `make up` starts from a fresh DB (removes `var/demo_missing_log.sqlite`) and recreates schema. You can also run `make reset-db` inside each demo.
+- **SecurityBundle** (required for the Web UI): form login at `/login`, firewall + `access_control` for `/_demo/translation-yaml-tools`, bundle `required_role: ROLE_ADMIN`. Demo credentials: **`admin` / `admin`** (in-memory, plaintext hasher — local demos only). No `allow_unauthenticated`.
 - Missing-log playground routes under `/missing-log/probes/{scenario}` with a menu for repeatable scenarios:
   - `twig`
   - `domain-locale`

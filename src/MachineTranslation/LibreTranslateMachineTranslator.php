@@ -25,7 +25,10 @@ final class LibreTranslateMachineTranslator implements MachineTranslatorInterfac
         private readonly string $baseUrl,
         private readonly string $apiKey,
         private readonly MachineTranslationLocaleMapper $localeMapper,
+        private readonly ?LibreTranslateBaseUrlGuard $baseUrlGuard = null,
+        private readonly float $httpTimeout = 30.0,
     ) {
+        $this->baseUrlGuard?->assertAllowed($this->baseUrl);
     }
 
     /**
@@ -49,6 +52,7 @@ final class LibreTranslateMachineTranslator implements MachineTranslatorInterfac
         }
 
         $response = $this->httpClient->request('POST', $url, [
+            'timeout' => $this->httpTimeout,
             'headers' => ['Content-Type' => 'application/json'],
             'json'    => $payload,
         ]);

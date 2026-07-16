@@ -1,0 +1,9 @@
+# Align test with demo Web UI path + SecurityBundle requirements (no allow_unauthenticated).
+nowo_translation_yaml_tools:
+    missing_translation_log:
+        enabled: true
+        table_prefix: demo_translation_
+        web_ui:
+            enabled: true
+            path_prefix: '/_demo/translation-yaml-tools/missing-log'
+            required_role: ROLE_ADMIN

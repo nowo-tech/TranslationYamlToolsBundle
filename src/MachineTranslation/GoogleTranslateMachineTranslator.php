@@ -26,6 +26,7 @@ final class GoogleTranslateMachineTranslator implements MachineTranslatorInterfa
         private readonly HttpClientInterface $httpClient,
         private readonly string $apiKey,
         private readonly MachineTranslationLocaleMapper $localeMapper,
+        private readonly float $httpTimeout = 30.0,
     ) {
     }
 
@@ -39,6 +40,7 @@ final class GoogleTranslateMachineTranslator implements MachineTranslatorInterfa
         }
 
         $response = $this->httpClient->request('POST', self::ENDPOINT, [
+            'timeout' => $this->httpTimeout,
             'query'   => ['key' => $this->apiKey],
             'headers' => ['Content-Type' => 'application/json'],
             'json'    => [

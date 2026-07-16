@@ -26,9 +26,17 @@ use Throwable;
 use function array_key_exists;
 use function count;
 use function in_array;
+use function is_dir;
 use function is_string;
+use function mkdir;
+use function preg_match;
+use function realpath;
+use function rtrim;
 use function sprintf;
+use function str_starts_with;
+use function strtolower;
 
+use const DIRECTORY_SEPARATOR;
 use const PATHINFO_EXTENSION;
 use const SORT_STRING;
 
@@ -53,6 +61,7 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
         private readonly int $configuredIndent,
         private readonly string $machineTranslatorBackend,
         private readonly bool $machineTranslatorPerLocaleEnabled,
+        private readonly int $maxRequestsPerRun = 0,
     ) {
         parent::__construct($catalog, $pathsResolver);
     }
@@ -132,6 +141,10 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
             return Command::FAILURE;
         }
 
+        $this->assertSafeTranslationSegment($domain, 'domain');
+        $this->assertSafeTranslationSegment($sourceLocale, 'source-locale');
+        $this->assertSafeTranslationSegment($targetLocale, 'target-locale');
+
         $sourcePath = $this->catalog->resolveFileForDomainLocale($domain, $sourceLocale);
         if ($sourcePath === null) {
             $output->writeln(sprintf('<error>Source file not found for domain "%s" and locale "%s".</error>', $domain, $sourceLocale));
@@ -181,6 +194,16 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
             if (is_string($value)) {
                 ++$stringCount;
             }
+        }
+
+        if ($this->maxRequestsPerRun > 0 && $stringCount > $this->maxRequestsPerRun) {
+            $output->writeln(sprintf(
+                '<error>Refusing to translate %d string(s): machine_translation_max_requests_per_run is %d. Narrow the domain/locale or raise the limit.</error>',
+                $stringCount,
+                $this->maxRequestsPerRun,
+            ));
+
+            return Command::FAILURE;
         }
 
         $progress = null;
@@ -267,13 +290,82 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
 
     private function guessTargetPathForNewFile(string $domain, string $locale, string $sourcePath): string
     {
+        $this->assertSafeTranslationSegment($domain, 'domain');
+        $this->assertSafeTranslationSegment($locale, 'locale');
+
         $dirs = $this->pathsResolver->resolveTranslationDirectories();
         $base = $dirs[0] ?? rtrim(getcwd() ?: '.', '/') . '/translations';
         $ext  = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
-        if ($ext === '') {
+        if ($ext === '' || !preg_match('/^[a-z0-9]+$/', $ext)) {
             $ext = 'yaml';
         }
 
-        return sprintf('%s/%s.%s.%s', $base, $domain, $locale, $ext);
+        $path = sprintf('%s/%s.%s.%s', rtrim($base, '/'), $domain, $locale, $ext);
+        $this->assertPathUnderTranslationDirectories($path, $dirs);
+
+        return $path;
+    }
+
+    private function assertSafeTranslationSegment(string $value, string $label): void
+    {
+        if ($value === '' || !preg_match('/^[a-zA-Z0-9_-]+$/', $value)) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid %s "%s": must match [a-zA-Z0-9_-]+.',
+                $label,
+                $value,
+            ));
+        }
+    }
+
+    /**
+     * @param list<string> $translationDirs
+     */
+    private function assertPathUnderTranslationDirectories(string $path, array $translationDirs): void
+    {
+        $allowedRoots = [];
+        foreach ($translationDirs as $dir) {
+            if ($dir === '') {
+                continue;
+            }
+            if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+                continue;
+            }
+            $real = realpath($dir);
+            if ($real !== false) {
+                $allowedRoots[] = $real;
+            }
+        }
+        if ($allowedRoots === []) {
+            $fallback = rtrim(getcwd() ?: '.', '/') . '/translations';
+            if (!is_dir($fallback)) {
+                mkdir($fallback, 0775, true);
+            }
+            $real = realpath($fallback);
+            if ($real !== false) {
+                $allowedRoots[] = $real;
+            }
+        }
+
+        $parent = dirname($path);
+        if (!is_dir($parent)) {
+            if (!mkdir($parent, 0775, true) && !is_dir($parent)) {
+                throw new RuntimeException(sprintf('Cannot create translation directory: %s', $parent));
+            }
+        }
+        $realParent = realpath($parent);
+        if ($realParent === false) {
+            throw new RuntimeException(sprintf('Cannot resolve translation directory for: %s', $path));
+        }
+
+        foreach ($allowedRoots as $root) {
+            if ($realParent === $root || str_starts_with($realParent, $root . DIRECTORY_SEPARATOR)) {
+                return;
+            }
+        }
+
+        throw new InvalidArgumentException(sprintf(
+            'Refusing to write translation file outside configured translation directories: %s',
+            $path,
+        ));
     }
 }

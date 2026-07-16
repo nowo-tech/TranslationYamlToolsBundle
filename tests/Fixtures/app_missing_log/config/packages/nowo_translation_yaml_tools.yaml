@@ -3,3 +3,5 @@ nowo_translation_yaml_tools:
         enabled: true
         web_ui:
             enabled: true
+            # Test kernel has no SecurityBundle; opt-in only for fixtures/demos.
+            allow_unauthenticated: true

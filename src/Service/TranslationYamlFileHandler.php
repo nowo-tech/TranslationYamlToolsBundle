@@ -18,6 +18,17 @@ use function sprintf;
  */
 final class TranslationYamlFileHandler
 {
+    public const DEFAULT_MAX_FILE_BYTES = 2_097_152; // 2 MiB
+    public const DEFAULT_MAX_DEPTH = 64;
+    public const DEFAULT_MAX_NODES = 50_000;
+
+    public function __construct(
+        private readonly int $maxFileBytes = self::DEFAULT_MAX_FILE_BYTES,
+        private readonly int $maxDepth = self::DEFAULT_MAX_DEPTH,
+        private readonly int $maxNodes = self::DEFAULT_MAX_NODES,
+    ) {
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -25,6 +36,19 @@ final class TranslationYamlFileHandler
     {
         if (!is_file($path)) {
             throw new InvalidArgumentException(sprintf('Translation file not found: %s', $path));
+        }
+
+        $size = filesize($path);
+        if ($size === false) {
+            throw new InvalidArgumentException(sprintf('Cannot read file size: %s', $path));
+        }
+        if ($size > $this->maxFileBytes) {
+            throw new InvalidArgumentException(sprintf(
+                'Translation YAML exceeds max size (%d bytes > %d): %s',
+                $size,
+                $this->maxFileBytes,
+                $path,
+            ));
         }
 
         try {
@@ -36,6 +60,8 @@ final class TranslationYamlFileHandler
         if (!is_array($parsed)) {
             return [];
         }
+
+        $this->assertTreeBounds($parsed, $path);
 
         /* @var array<string, mixed> $parsed */
         return $parsed;
@@ -69,6 +95,43 @@ final class TranslationYamlFileHandler
 
         if (file_put_contents($path, $yaml) === false) {
             throw new RuntimeException(sprintf('Cannot write file: %s', $path));
+        }
+    }
+
+    /**
+     * @param array<mixed> $tree
+     */
+    private function assertTreeBounds(array $tree, string $path): void
+    {
+        $nodes = 0;
+        $this->walkTree($tree, 0, $nodes, $path);
+    }
+
+    /**
+     * @param array<mixed> $node
+     */
+    private function walkTree(array $node, int $depth, int &$nodes, string $path): void
+    {
+        if ($depth > $this->maxDepth) {
+            throw new InvalidArgumentException(sprintf(
+                'Translation YAML exceeds max depth (%d) in %s',
+                $this->maxDepth,
+                $path,
+            ));
+        }
+
+        foreach ($node as $value) {
+            ++$nodes;
+            if ($nodes > $this->maxNodes) {
+                throw new InvalidArgumentException(sprintf(
+                    'Translation YAML exceeds max nodes (%d) in %s',
+                    $this->maxNodes,
+                    $path,
+                ));
+            }
+            if (is_array($value)) {
+                $this->walkTree($value, $depth + 1, $nodes, $path);
+            }
         }
     }
 }

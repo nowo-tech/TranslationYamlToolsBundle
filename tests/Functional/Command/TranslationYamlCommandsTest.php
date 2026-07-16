@@ -877,6 +877,51 @@ final class TranslationYamlCommandsTest extends TestCase
         ]);
     }
 
+    public function testFillMissingRejectsUnsafeTargetLocale(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_fm_badloc_' . uniqid();
+        $deps    = $this->createDeps($project, ['messages.en.yaml' => "a: b\n"]);
+        $cmd     = $this->fillCommand($deps, new StubMachineTranslator());
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid target-locale');
+        $tester->execute([
+            '--domain'        => 'messages',
+            '--target-locale' => '../evil',
+        ]);
+    }
+
+    public function testFillMissingRespectsMaxRequestsPerRun(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_cmd_fm_maxreq_' . uniqid();
+        $deps    = $this->createDeps($project, [
+            'messages.en.yaml' => "a: one\nb: two\nc: three\n",
+        ]);
+        $cmd = new TranslationYamlFillMissingCommand(
+            $deps['catalog'],
+            $deps['paths'],
+            new TranslationYamlFileHandler(),
+            new TranslationDefaultLocaleResolver($deps['bag']),
+            new DotKeyTreeAnalyzer(),
+            new YamlArraySorter(),
+            new StubMachineTranslator(),
+            null,
+            4,
+            'google',
+            false,
+            2,
+        );
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+        $exit   = $tester->execute([
+            '--domain'        => 'messages',
+            '--target-locale' => 'es',
+        ], ['decorated' => false]);
+        self::assertSame(1, $exit);
+        self::assertStringContainsString('machine_translation_max_requests_per_run', $tester->getDisplay());
+    }
+
     public function testDomainsFoundLineShowsNone(): void
     {
         $project = sys_get_temp_dir() . '/tyt_cmd_none_' . uniqid();

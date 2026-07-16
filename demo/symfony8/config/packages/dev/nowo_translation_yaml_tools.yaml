@@ -1,4 +1,5 @@
 # Dev-only: runtime missing-key log (Doctrine + Web UI). No symfony/messenger: flush uses EventDispatcher.
+# Web UI requires SecurityBundle (see config/packages/security.yaml) — ROLE_ADMIN via login admin/admin.
 nowo_translation_yaml_tools:
     missing_translation_log:
         enabled: true
@@ -10,3 +11,4 @@ nowo_translation_yaml_tools:
         web_ui:
             enabled: true
             path_prefix: '/_demo/translation-yaml-tools/missing-log'
+            required_role: ROLE_ADMIN

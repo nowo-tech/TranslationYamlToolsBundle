@@ -8,10 +8,15 @@
 | `yaml_tree_indent` | `int` | `4` | Spaces per indentation level when writing nested YAML (`tree`, `sort`, `fill-missing`). Allowed range: 2–12. |
 | `yaml_tree_leaf_prefix_suffix` | `string` | `index` | Final segment appended to a conflicting leaf when using **`nowo:translation-yaml:tree --fix-leaf-prefix`** (e.g. key `a` becomes `a.index`). Single segment: `[a-zA-Z0-9_-]+`, no dots. |
 | `machine_translator` | `string` | `google` | **Default** backend for `fill-missing` when `machine_translator_by_locale` does not match: `google`, `deepl`, or `libretranslate`. |
+| `machine_translation_min_interval_ms` | `int` | `0` | Minimum delay between MT HTTP calls (`0` = no pacing). Use e.g. `100`–`250` for public LibreTranslate quotas. |
+| `machine_translation_max_requests_per_run` | `int` | `0` | Max string translations per `fill-missing` run (`0` = unlimited). |
+| `machine_translation_http_timeout` | `float` | `30` | HTTP timeout (seconds) for Google / DeepL / LibreTranslate requests. |
 | `machine_translator_by_locale` | `array<string, string>` | `{}` | Override the backend **per Symfony locale** (`google`, `deepl`, or `libretranslate`). The **target** locale is checked first, then the **source** locale, then `machine_translator`. Keys match like `machine_translation_locale_map` (`pt_BR` ≡ `pt-br`). |
 | `deepl_endpoint` | `string` | `https://api.deepl.com/v2/translate` | DeepL translate URL. Use `https://api-free.deepl.com/v2/translate` if your key is on the **Free** plan. |
-| `libretranslate_base_url` | `string` | `https://libretranslate.com` | Origin of the LibreTranslate server (no `/translate` path). Prefer **self-hosting** for reliability; the public demo enforces strict limits. |
+| `libretranslate_base_url` | `string` | `https://libretranslate.com` | Origin of the LibreTranslate server (no `/translate` path). Host must appear in **`libretranslate_allowed_hosts`**. Prefer **self-hosting** for reliability; the public demo enforces strict limits. |
 | `libretranslate_api_key` | `string` | `''` | Optional API key when your LibreTranslate instance requires one; leave empty for open public endpoints. |
+| `libretranslate_allowed_hosts` | `list<string>` | `[libretranslate.com]` | Hostname allowlist for **`libretranslate_base_url`** (SSRF mitigation). Subdomains of a listed host are allowed. |
+| `libretranslate_allow_http` | `bool` | `false` | When **`true`**, allows `http://` LibreTranslate URLs (local/dev only). Default is HTTPS-only. |
 | `machine_translation_locale_map` | `array<string, string>` | `{}` | Map **Symfony locale** identifiers to the **exact** `source` / `target` language code sent to the active backend (Google, DeepL, LibreTranslate). Keys are matched after normalizing case and `-` / `_` (e.g. `pt_BR`, `pt-br`, `PT_BR` share one entry). Values are sent **as-is**—use the format your provider expects (e.g. LibreTranslate `pt-br`, DeepL `PT-BR`, Google `pt-BR`). |
 | `missing_translation_log` | `array` | see below | Runtime missing-key log (Doctrine). Use `missing_translation_log: false` to disable the subtree explicitly. |
 | `missing_translation_log.enabled` | `bool` | `false` | When **`true`**, decorates **`translator`**, records missing keys per request, flushes on **`kernel.terminate`**. In the usual **`index.php`** flow, **`terminate`** runs **after** **`$response->send()`**, so the client has already received the response body; the process may still run DB or Messenger work during terminate. Requires **`doctrine/orm`** and **`doctrine/doctrine-bundle`**; the bundle **prepends** ORM mapping for **`MissingTranslationLog`**. |
@@ -20,10 +25,11 @@
 | `missing_translation_log.record_request_context` | `bool` | `true` | When **`true`** and an HTTP **`Request`** exists, the row also stores **`request_route`** (from **`_route`** when set), **`request_method`**, and **`request_path`** (**`getPathInfo()`** when non-empty). CLI / workers have no request, so those columns stay **`NULL`**. Set **`false`** if you do not want route or path persisted (privacy). |
 | `missing_translation_log.async_persist` | `bool` | `false` | When **`true`**, flush uses **`async_persist_strategy`** instead of calling **`persistBuffer`** directly in the recorder. If the chosen strategy is unavailable (no bus, no **`event_dispatcher`**), the recorder **falls back** to synchronous **`persistBuffer`**. |
 | `missing_translation_log.async_persist_strategy` | `string` | `messenger` | Only when **`async_persist`** is **`true`**: **`messenger`** dispatches **`MissingTranslationBufferMessage`** (needs **`symfony/messenger`** + **`messenger.default_bus`**; route the message to an async transport for workers). **`event_dispatcher`** dispatches **`MissingTranslationBufferEvent`** on the app **`event_dispatcher`**; the bundle registers **`MissingTranslationBufferDoctrinePersistListener`** at priority **-1024** to call **`persistBuffer`** unless a listener with higher priority called **`stopPropagation()`** (use that to enqueue the buffer and persist later without Messenger). |
-| `missing_translation_log.web_ui.enabled` | `bool` | `false` | When **`true`** (and the log is enabled), registers **`MissingTranslationLogUiController`** and runs **`TwigPathsPass`**: if **`templates/bundles/NowoTranslationYamlToolsBundle/`** exists, that path is prepended on the native Twig loader with namespace **`NowoTranslationYamlToolsBundle`**, then the bundle **`src/Resources/views`** path is appended with the same namespace so overrides win without **`twig.paths`** (see [USAGE](USAGE.md#overriding-templates-req-twig-001)). Requires **`symfony/twig-bundle`**. |
+| `missing_translation_log.web_ui.enabled` | `bool` | `false` | When **`true`** (and the log is enabled), registers **`MissingTranslationLogUiController`** and runs **`TwigPathsPass`**: if **`templates/bundles/NowoTranslationYamlToolsBundle/`** exists, that path is prepended on the native Twig loader with namespace **`NowoTranslationYamlToolsBundle`**, then the bundle **`src/Resources/views`** path is appended with the same namespace so overrides win without **`twig.paths`** (see [USAGE](USAGE.md#overriding-templates-req-twig-001)). Requires **`symfony/twig-bundle`**. Also requires **`symfony/security-bundle`** unless **`allow_unauthenticated: true`**. |
 | `missing_translation_log.web_ui.path_prefix` | `string` | `/_translation_yaml_tools/missing-log` | URL prefix for the routes you import (must start with **`/`**). Use a **trailing slash** on the list URL if your router enforces strict trailing slashes. |
 | `missing_translation_log.web_ui.layout_template` | `string` | `@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig` | Twig layout extended by **`missing_translation_log/base.html.twig`**. Exposed as Twig global **`nowo_translation_yaml_tools_missing_log_layout_template`**. Use **`.../layout_integrate_dashboard_menu.html.twig`** or **`.../layout_integrate_breadcrumb_kit.html.twig`** to align with those dashboards. |
-| `missing_translation_log.web_ui.required_role` | `string\|null` | `ROLE_ADMIN` | When the Web UI is enabled and **`security.authorization_checker`** is available, **`MissingLogUiAccessSubscriber`** requires this role for routes named **`nowo_translation_yaml_tools_missing_log_*`**. Set **`null`** to skip bundle-level checks (rely on your firewall / **`access_control`** only). No subscriber is registered when **`null`** or when SecurityBundle is absent. |
+| `missing_translation_log.web_ui.required_role` | `string\|null` | `ROLE_ADMIN` | When the Web UI is enabled and **`security.authorization_checker`** is available, **`MissingLogUiAccessSubscriber`** requires this role for routes named **`nowo_translation_yaml_tools_missing_log_*`**. Set **`null`** to skip bundle-level checks (rely on your firewall / **`access_control`** only). |
+| `missing_translation_log.web_ui.allow_unauthenticated` | `bool` | `false` | **Dev/demo only.** When **`false`** (default), enabling the Web UI without **`security.authorization_checker`** fails container compilation. Set **`true`** only for local demos/tests that intentionally omit SecurityBundle — **never in production**. |
 
 Example:
 
@@ -62,6 +68,8 @@ nowo_translation_yaml_tools:
         web_ui:
             enabled: true
             path_prefix: '/_translation_yaml_tools/missing-log'
+            required_role: ROLE_ADMIN
+            # allow_unauthenticated: false   # default; never true in production
 ```
 
 3. Create the table (migrations / `doctrine:schema:update` in dev only). Entity: **`Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog`**; table name follows **`{table_prefix}missing_log`**. The bundle metadata adds a **unique** constraint on **`message_id`**, **`domain`**, and **`locale`**. From **0.3.2** onward, **`persistBuffer`** uses **`INSERT`** and, if that row already exists, **`UPDATE`**s **`hit_count`**, **`last_seen_at`**, and optional context columns (**`call_site`**, **`request_route`**, **`request_method`**, **`request_path`**), so concurrent flushes do not raise duplicate-key SQL errors. From **0.3.3** onward, those statements resolve **physical column names** from Doctrine class metadata (so ORM field names such as **`hitCount`** map correctly when the naming strategy does not simply snake-case them).
@@ -87,11 +95,20 @@ framework:
 
 Also install **`symfony/security-csrf`** (and enable **`session`** if you do not already) so the **`csrf_token()`** Twig function is available.
 
-6. **Optional deferred flush** (the response is usually already sent before **`kernel.terminate`**; this further decouples *how* you persist):
+6. **SecurityBundle (required for the Web UI in real apps):** install **`symfony/security-bundle`**. Without it, container compilation fails unless you explicitly set **`allow_unauthenticated: true`** (demos/tests only). Recommended **`access_control`**:
+
+```yaml
+# config/packages/security.yaml (fragment)
+security:
+    access_control:
+        - { path: ^/_translation_yaml_tools, roles: ROLE_ADMIN }
+```
+
+Adjust the path to match **`web_ui.path_prefix`**. Bundle-level **`required_role`** (default **`ROLE_ADMIN`**) is enforced by **`MissingLogUiAccessSubscriber`** in addition to your firewall.
+
+7. **Optional deferred flush** (the response is usually already sent before **`kernel.terminate`**; this further decouples *how* you persist):
    - **`async_persist_strategy: messenger`** (default when **`async_persist: true`**): install **`symfony/messenger`**, route **`MissingTranslationBufferMessage`** to an async transport; the bundle registers **`PersistMissingTranslationBufferMessageHandler`** when Messenger is available.
    - **`async_persist_strategy: event_dispatcher`**: no Messenger required. Set **`async_persist: true`** and **`async_persist_strategy: event_dispatcher`**. Subscribe to **`MissingTranslationBufferEvent`**; to **only** enqueue and persist in your own worker, call **`$event->stopPropagation()`** after enqueueing so the builtin Doctrine listener (priority **-1024**) does not run.
-
-7. **Protect** the URL in production (`access_control`, firewall, VPN, etc.).
 
 8. **Routes** (fixed names): **`nowo_translation_yaml_tools_missing_log_index`** (GET list + `?status=pending|added|validated`), **`nowo_translation_yaml_tools_missing_log_mark_added`** (POST, CSRF id **`missing_log_mark_added`**).
 
