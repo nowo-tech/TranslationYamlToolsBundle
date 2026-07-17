@@ -1,3 +1,0 @@
-demo_validation:
-    not_blank: Este valor no debe estar vacío
-    # email key omitted on purpose

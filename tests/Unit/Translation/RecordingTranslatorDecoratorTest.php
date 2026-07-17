@@ -334,6 +334,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
     public function testGetFallbackLocalesReturnsEmptyWhenInnerHasNoMethod(): void
     {
         $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+            /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
                 return $id;

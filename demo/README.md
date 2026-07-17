@@ -1,10 +1,9 @@
 # Demos — Translation YAML Tools Bundle
 
-Two FrankenPHP demos:
+FrankenPHP demo:
 
 | Demo       | Symfony | Default PORT (`.env.example`) |
 |-----------|---------|-------------------------------|
-| `symfony7` | 7.4     | 8037                          |
 | `symfony8` | 8.1     | 8038                          |
 
 Each demo includes:
@@ -25,7 +24,7 @@ Each demo includes:
 
 ```bash
 make -C demo help
-make -C demo up-symfony7
+make -C demo up-symfony8
 make -C demo test-all
 make -C demo validate-translations
 make -C demo release-check

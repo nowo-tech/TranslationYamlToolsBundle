@@ -216,9 +216,9 @@ final class DotKeyTreeAnalyzerTest extends TestCase
 
     public function testDisambiguateLeafPrefixConflictsReportsWhenNoProgressPossible(): void
     {
-        $analyzer = new DotKeyTreeAnalyzer();
-        $flat     = ['a' => 1, 'a.b' => 2];
-        $method   = new ReflectionMethod(DotKeyTreeAnalyzer::class, 'collectTreeConversionConflicts');
+        $analyzer  = new DotKeyTreeAnalyzer();
+        $flat      = ['a' => 1, 'a.b' => 2];
+        $method    = new ReflectionMethod(DotKeyTreeAnalyzer::class, 'collectTreeConversionConflicts');
         $conflicts = $method->invoke($analyzer, $flat);
 
         $broken = new class($conflicts) extends DotKeyTreeAnalyzer {
@@ -251,11 +251,11 @@ final class DotKeyTreeAnalyzerTest extends TestCase
                     return [];
                 }
 
-                $leafKey = (string) $keys[0];
+                $leafKey = $keys[0];
 
                 return [[
-                    'type' => DotKeyTreeAnalyzer::CONFLICT_LEAF_AND_PREFIX,
-                    'leaf_key' => $leafKey,
+                    'type'        => DotKeyTreeAnalyzer::CONFLICT_LEAF_AND_PREFIX,
+                    'leaf_key'    => $leafKey,
                     'blocked_key' => $leafKey . '.child',
                 ]];
             }

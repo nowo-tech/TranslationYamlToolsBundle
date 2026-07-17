@@ -21,7 +21,7 @@ help:
 	@echo "  cs-check / cs-fix / rector / rector-dry / phpstan"
 	@echo "  qa             cs-check + test"
 	@echo "  release-check  ensure-up, composer-sync, cs-fix, cs-check, rector-dry, phpstan, test-coverage, release-check-demos"
-	@echo "  release-check-demos  demo verify (Symfony 7 & 8 Docker)"
+	@echo "  release-check-demos  demo verify (Symfony 8 Docker)"
 	@echo "  validate-translations  lint YAML in demo translation dirs (requires demo containers)"
 	@echo "  composer-sync  validate + composer update --no-install"
 	@echo "  clean          remove vendor, caches, coverage"

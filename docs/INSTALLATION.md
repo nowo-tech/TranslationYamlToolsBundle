@@ -56,4 +56,4 @@ GOOGLE_TRANSLATE_API_KEY=
 
 ## Demos
 
-Optional **Symfony 7 / 8** FrankenPHP demos (Twig Inspector + translation playground) are in [`demo/`](../demo/README.md). They mount this repository at `/var/translation-yaml-tools-bundle` for the Composer path repository.
+Optional **Symfony 8** FrankenPHP demo (Twig Inspector + translation playground) is in [`demo/`](../demo/README.md). It mounts this repository at `/var/translation-yaml-tools-bundle` for the Composer path repository.

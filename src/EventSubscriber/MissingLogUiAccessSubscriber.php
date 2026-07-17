@@ -44,10 +44,7 @@ final readonly class MissingLogUiAccessSubscriber implements EventSubscriberInte
         }
 
         if (!$this->authorizationChecker instanceof AuthorizationCheckerInterface) {
-            throw new AccessDeniedException(sprintf(
-                'Missing-log UI requires role "%s" but security.authorization_checker is unavailable.',
-                $this->requiredRole,
-            ));
+            throw new AccessDeniedException(sprintf('Missing-log UI requires role "%s" but security.authorization_checker is unavailable.', $this->requiredRole));
         }
 
         if (!$this->authorizationChecker->isGranted($this->requiredRole)) {

@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 # Run all Translation YAML Tools console examples with pauses so you can watch files change.
-# Usage (from demo/symfony7 or demo/symfony8): DEMO_ROOT=$PWD PAUSE=3 sh ../scripts/translation-yaml-walkthrough.sh
+# Usage (from demo/symfony8): DEMO_ROOT=$PWD PAUSE=3 sh ../scripts/translation-yaml-walkthrough.sh
 set -e
-: "${DEMO_ROOT:?Set DEMO_ROOT to the demo directory (e.g. symfony7)}"
+: "${DEMO_ROOT:?Set DEMO_ROOT to the demo directory (e.g. symfony8)}"
 cd "$DEMO_ROOT" || exit 1
 
 PAUSE="${PAUSE:-3}"

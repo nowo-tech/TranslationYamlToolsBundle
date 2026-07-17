@@ -35,17 +35,13 @@ final class LibreTranslateBaseUrlGuard
             throw new InvalidArgumentException(sprintf('Invalid LibreTranslate base URL: %s', $baseUrl));
         }
 
-        $scheme = strtolower((string) $parts['scheme']);
+        $scheme = strtolower($parts['scheme']);
         if ($scheme === 'https') {
             // ok
         } elseif ($scheme === 'http' && $this->allowHttp) {
             // ok for local/dev when explicitly enabled
         } else {
-            throw new InvalidArgumentException(sprintf(
-                'LibreTranslate base URL must use https%s: %s',
-                $this->allowHttp ? ' (or http when libretranslate_allow_http is true)' : '',
-                $baseUrl,
-            ));
+            throw new InvalidArgumentException(sprintf('LibreTranslate base URL must use https%s: %s', $this->allowHttp ? ' (or http when libretranslate_allow_http is true)' : '', $baseUrl));
         }
 
         if (isset($parts['user']) || isset($parts['pass'])) {
@@ -58,9 +54,7 @@ final class LibreTranslateBaseUrlGuard
         }
 
         if ($this->allowedHosts === []) {
-            throw new InvalidArgumentException(
-                'libretranslate_allowed_hosts is empty; add at least one hostname (e.g. libretranslate.com).',
-            );
+            throw new InvalidArgumentException('libretranslate_allowed_hosts is empty; add at least one hostname (e.g. libretranslate.com).');
         }
 
         foreach ($this->allowedHosts as $allowed) {
@@ -70,10 +64,6 @@ final class LibreTranslateBaseUrlGuard
             }
         }
 
-        throw new InvalidArgumentException(sprintf(
-            'LibreTranslate host "%s" is not in libretranslate_allowed_hosts (%s).',
-            $host,
-            implode(', ', $this->allowedHosts),
-        ));
+        throw new InvalidArgumentException(sprintf('LibreTranslate host "%s" is not in libretranslate_allowed_hosts (%s).', $host, implode(', ', $this->allowedHosts)));
     }
 }

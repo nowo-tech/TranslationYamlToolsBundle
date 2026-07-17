@@ -10,7 +10,7 @@
 - [Twig — missing translation log Web UI](#twig--missing-translation-log-web-ui)
 - [Missing translation log: coverage and call_site](#missing-translation-log-coverage-and-call_site)
 - [Overriding templates (REQ-TWIG-001)](#overriding-templates-req-twig-001)
-- [Symfony 7 / 8 demos](#symfony-78-demos)
+- [Symfony 8 demo](#symfony-8-demo)
 
 ## Commands overview
 
@@ -181,11 +181,11 @@ templates/bundles/NowoTranslationYamlToolsBundle/missing_translation_log/index.h
 
 **Layout without copying files:** set **`missing_translation_log.web_ui.layout_template`** to your app layout or to one of the bridge templates above; the Twig global **`nowo_translation_yaml_tools_missing_log_layout_template`** mirrors that value for use in custom templates.
 
-## Symfony 7 / 8 demos
+## Symfony 8 demo
 
-From `demo/symfony7` or `demo/symfony8` (with the stack up): **`make translation-yaml-demos`** runs `tree`, `sort`, `flatten`, and `fill-missing` in **dry-run** on sample domains; **`make translation-yaml-inline-preview`** applies `sort --inline` to `messages.en.yaml`, prints the file, then restores it; **`make translation-yaml-walkthrough`** also exercises **`flatten`**. The aggregate `demo/Makefile` exposes the matching `*-all` targets.
+From `demo/symfony8` (with the stack up): **`make translation-yaml-demos`** runs `tree`, `sort`, `flatten`, and `fill-missing` in **dry-run** on sample domains; **`make translation-yaml-inline-preview`** applies `sort --inline` to `messages.en.yaml`, prints the file, then restores it; **`make translation-yaml-walkthrough`** also exercises **`flatten`**. The aggregate `demo/Makefile` exposes the matching `*-all` targets.
 
-The repository includes **FrankenPHP** demos under `demo/symfony7` and `demo/symfony8` with:
+The repository includes a **FrankenPHP** demo under `demo/symfony8` with:
 
 - `nowo-tech/twig-inspector-bundle` (dev/test)
 - `framework.enabled_locales`, `framework.default_locale`, and `framework.translator.paths` configured so you can **see** resolved directories, domains, and intentional gaps on the home page

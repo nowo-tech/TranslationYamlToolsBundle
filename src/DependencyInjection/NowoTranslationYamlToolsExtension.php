@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 
+use InvalidArgumentException;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateBaseUrlGuard;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -72,7 +73,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         try {
             (new LibreTranslateBaseUrlGuard($ltAllowedHosts, $ltAllowHttp))
                 ->assertAllowed((string) $config['libretranslate_base_url']);
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             throw new InvalidConfigurationException($e->getMessage(), 0, $e);
         }
 
@@ -103,18 +104,18 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $webUiPathPrefix      = '/_translation_yaml_tools/missing-log';
         $webUiLayoutTemplate  = '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig';
 
-        $missingLogEnabled    = (bool) ($missingLog['enabled'] ?? false);
-        $tablePrefix          = (string) ($missingLog['table_prefix'] ?? $tablePrefix);
-        $recordCallSite       = (bool) ($missingLog['record_call_site'] ?? true);
-        $recordRequestContext = (bool) ($missingLog['record_request_context'] ?? true);
-        $asyncPersist         = (bool) ($missingLog['async_persist'] ?? false);
-        $asyncPersistStrategy = (string) ($missingLog['async_persist_strategy'] ?? 'messenger');
-        $webUi                   = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
-        $webUiEnabled            = (bool) ($webUi['enabled'] ?? false);
-        $webUiPathPrefix         = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
-        $webUiLayoutTemplate     = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
+        $missingLogEnabled         = (bool) ($missingLog['enabled'] ?? false);
+        $tablePrefix               = (string) ($missingLog['table_prefix'] ?? $tablePrefix);
+        $recordCallSite            = (bool) ($missingLog['record_call_site'] ?? true);
+        $recordRequestContext      = (bool) ($missingLog['record_request_context'] ?? true);
+        $asyncPersist              = (bool) ($missingLog['async_persist'] ?? false);
+        $asyncPersistStrategy      = (string) ($missingLog['async_persist_strategy'] ?? 'messenger');
+        $webUi                     = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
+        $webUiEnabled              = (bool) ($webUi['enabled'] ?? false);
+        $webUiPathPrefix           = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
+        $webUiLayoutTemplate       = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
         $webUiAllowUnauthenticated = (bool) ($webUi['allow_unauthenticated'] ?? false);
-        $webUiRequiredRole       = array_key_exists('required_role', $webUi)
+        $webUiRequiredRole         = array_key_exists('required_role', $webUi)
             ? (is_string($webUi['required_role']) && $webUi['required_role'] !== '' ? $webUi['required_role'] : null)
             : 'ROLE_ADMIN';
 

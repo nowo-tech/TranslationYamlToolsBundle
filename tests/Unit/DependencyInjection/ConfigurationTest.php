@@ -112,11 +112,11 @@ final class ConfigurationTest extends TestCase
     {
         $processor = new Processor();
         $config    = $processor->processConfiguration(new Configuration(), [[
-            'machine_translator'             => 'libretranslate',
-            'libretranslate_base_url'        => 'https://translate.local',
-            'libretranslate_api_key'         => 'k',
-            'libretranslate_allowed_hosts'   => ['translate.local'],
-            'libretranslate_allow_http'      => false,
+            'machine_translator'           => 'libretranslate',
+            'libretranslate_base_url'      => 'https://translate.local',
+            'libretranslate_api_key'       => 'k',
+            'libretranslate_allowed_hosts' => ['translate.local'],
+            'libretranslate_allow_http'    => false,
         ]]);
 
         self::assertSame('libretranslate', $config['machine_translator']);

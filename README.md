@@ -36,13 +36,12 @@ composer require --dev nowo-tech/translation-yaml-tools-bundle
 
 Register the bundle in `config/bundles.php` for `dev` (Flex recipe does this). See [Installation](docs/INSTALLATION.md).
 
-## Demos (Symfony 7 & 8)
+## Demos (Symfony 8)
 
-FrankenPHP sample apps live under [`demo/`](demo/README.md): Web Profiler, **Twig Inspector** (`nowo-tech/twig-inspector-bundle`), explicit `framework.enabled_locales` / `translator` configuration, two translation directories (`translations/` + `translations_extra/`), and a **web page** at `/` that summarizes default locale, enabled locales, YAML paths, missing files per domain, and missing keys vs the default locale. In **dev**, the demos also enable **`missing_translation_log`** (SQLite, **`event_dispatcher`** flush strategy, optional Web UI) — see [`demo/README.md`](demo/README.md).
+FrankenPHP sample app under [`demo/`](demo/README.md): Web Profiler, **Twig Inspector** (`nowo-tech/twig-inspector-bundle`), explicit `framework.enabled_locales` / `translator` configuration, two translation directories (`translations/` + `translations_extra/`), and a **web page** at `/` that summarizes default locale, enabled locales, YAML paths, missing files per domain, and missing keys vs the default locale. In **dev**, the demo also enables **`missing_translation_log`** (SQLite, **`event_dispatcher`** flush strategy, optional Web UI) — see [`demo/README.md`](demo/README.md).
 
 ```bash
-make -C demo up-symfony7   # default PORT 8037 — see demo/symfony7/.env.example
-make -C demo up-symfony8   # default PORT 8038
+make -C demo up-symfony8   # default PORT 8038 — see demo/symfony8/.env.example
 ```
 
 FrankenPHP worker mode: Supported in production Caddyfile; development uses `Caddyfile.dev` without worker (see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md)).
@@ -77,7 +76,7 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 
 ## Version information
 
-**1.1.3** is the current stable **1.x** release (PHP **8.2+**, Symfony **7+** / **8.x**). See [UPGRADING](docs/UPGRADING.md) when moving from **1.1.2**, **1.1.1**, **1.0.x**, or earlier.
+**1.2.0** is the current stable **1.x** release (PHP **8.2+**, Symfony **7+** / **8.x**). See [UPGRADING](docs/UPGRADING.md) when moving from **1.1.3**, **1.1.x**, **1.0.x**, or earlier.
 
 See [SECURITY POLICY](https://github.com/nowo-tech/TranslationYamlToolsBundle/security/policy) for supported versions.
 

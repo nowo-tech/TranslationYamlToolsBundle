@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-17
+
 ### Security
 
 - **Web UI deny-by-default:** enabling **`missing_translation_log.web_ui`** without **`security.authorization_checker`** now fails container compilation unless **`allow_unauthenticated: true`** (dev/demo only). Enforced in **`MissingLogWebUiSecurityPass`** (not in Extension::load — isolated merge container). New config key documented in **CONFIGURATION** / **SECURITY** / Flex recipe.
@@ -21,7 +23,8 @@ All notable changes to this project are documented in this file.
 
 ### Demos
 
-- **Symfony 7 / 8 demos:** require **`symfony/security-bundle`**, in-memory **`admin`/`admin`** (`ROLE_ADMIN`), form login + `access_control` for the missing-log UI; removed **`allow_unauthenticated`**.
+- **Removed `demo/symfony7`:** only the **Symfony 8** FrankenPHP demo remains (`demo/symfony8`). Aggregate Makefile / docs updated accordingly.
+- **Symfony 8 demo:** requires **`symfony/security-bundle`**, in-memory **`admin`/`admin`** (`ROLE_ADMIN`), form login + `access_control` for the missing-log UI; removed **`allow_unauthenticated`**.
 
 ## [1.1.3] - 2026-07-16
 

@@ -35,11 +35,7 @@ final class MissingLogWebUiSecurityPass implements CompilerPassInterface
         $hasSecurity = $container->has('security.authorization_checker');
 
         if (!$hasSecurity && !$allowUnauthenticated) {
-            throw new InvalidConfigurationException(
-                'missing_translation_log.web_ui.enabled requires symfony/security-bundle '
-                . '(security.authorization_checker), or set missing_translation_log.web_ui.allow_unauthenticated: true '
-                . '(dev/demo only — never in production).',
-            );
+            throw new InvalidConfigurationException('missing_translation_log.web_ui.enabled requires symfony/security-bundle (security.authorization_checker), or set missing_translation_log.web_ui.allow_unauthenticated: true (dev/demo only — never in production).');
         }
 
         $requiredRole = $container->getParameter(

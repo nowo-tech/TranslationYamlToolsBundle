@@ -1,10 +1,10 @@
 # Symfony 8.0 demo — Translation YAML Tools Bundle
 
-Same setup as the Symfony 7 demo: FrankenPHP, Web Profiler, **Twig Inspector**, dual translation paths, and deliberate gaps for `en` / `es` / `fr`.
+FrankenPHP sample app with Web Profiler, **Twig Inspector**, dual translation paths, and deliberate gaps for `en` / `es` / `fr`.
 
 Default **PORT** in `.env.example`: **8038**.
 
-**Missing translation log (dev):** same as the Symfony 7 demo — SQLite **`demo_translation_missing_log`**, **`async_persist` + `event_dispatcher`** (no Messenger), Web UI at **`/_demo/translation-yaml-tools/missing-log`**; `make up` runs `doctrine:schema:update`.
+**Missing translation log (dev):** SQLite **`demo_translation_missing_log`**, **`async_persist` + `event_dispatcher`** (no Messenger), Web UI at **`/_demo/translation-yaml-tools/missing-log`**; `make up` runs `doctrine:schema:update`.
 
 ## Quick start
 

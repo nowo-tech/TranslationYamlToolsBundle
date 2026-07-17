@@ -1,6 +1,6 @@
-# FrankenPHP demos (Symfony 7 & 8)
+# FrankenPHP demos (Symfony 8)
 
-The `demo/symfony7` and `demo/symfony8` apps run on **FrankenPHP** (Caddy + PHP).
+The `demo/symfony8` app runs on **FrankenPHP** (Caddy + PHP).
 
 ## Development
 

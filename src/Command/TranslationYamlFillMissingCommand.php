@@ -25,6 +25,7 @@ use Throwable;
 
 use function array_key_exists;
 use function count;
+use function dirname;
 use function in_array;
 use function is_dir;
 use function is_string;
@@ -309,11 +310,7 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
     private function assertSafeTranslationSegment(string $value, string $label): void
     {
         if ($value === '' || !preg_match('/^[a-zA-Z0-9_-]+$/', $value)) {
-            throw new InvalidArgumentException(sprintf(
-                'Invalid %s "%s": must match [a-zA-Z0-9_-]+.',
-                $label,
-                $value,
-            ));
+            throw new InvalidArgumentException(sprintf('Invalid %s "%s": must match [a-zA-Z0-9_-]+.', $label, $value));
         }
     }
 
@@ -347,10 +344,8 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
         }
 
         $parent = dirname($path);
-        if (!is_dir($parent)) {
-            if (!mkdir($parent, 0775, true) && !is_dir($parent)) {
-                throw new RuntimeException(sprintf('Cannot create translation directory: %s', $parent));
-            }
+        if (!is_dir($parent) && (!mkdir($parent, 0775, true) && !is_dir($parent))) {
+            throw new RuntimeException(sprintf('Cannot create translation directory: %s', $parent));
         }
         $realParent = realpath($parent);
         if ($realParent === false) {
@@ -363,9 +358,6 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
             }
         }
 
-        throw new InvalidArgumentException(sprintf(
-            'Refusing to write translation file outside configured translation directories: %s',
-            $path,
-        ));
+        throw new InvalidArgumentException(sprintf('Refusing to write translation file outside configured translation directories: %s', $path));
     }
 }

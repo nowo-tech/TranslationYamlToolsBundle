@@ -19,8 +19,8 @@ use function sprintf;
 final class TranslationYamlFileHandler
 {
     public const DEFAULT_MAX_FILE_BYTES = 2_097_152; // 2 MiB
-    public const DEFAULT_MAX_DEPTH = 64;
-    public const DEFAULT_MAX_NODES = 50_000;
+    public const DEFAULT_MAX_DEPTH      = 64;
+    public const DEFAULT_MAX_NODES      = 50_000;
 
     public function __construct(
         private readonly int $maxFileBytes = self::DEFAULT_MAX_FILE_BYTES,
@@ -43,12 +43,7 @@ final class TranslationYamlFileHandler
             throw new InvalidArgumentException(sprintf('Cannot read file size: %s', $path));
         }
         if ($size > $this->maxFileBytes) {
-            throw new InvalidArgumentException(sprintf(
-                'Translation YAML exceeds max size (%d bytes > %d): %s',
-                $size,
-                $this->maxFileBytes,
-                $path,
-            ));
+            throw new InvalidArgumentException(sprintf('Translation YAML exceeds max size (%d bytes > %d): %s', $size, $this->maxFileBytes, $path));
         }
 
         try {
@@ -113,21 +108,13 @@ final class TranslationYamlFileHandler
     private function walkTree(array $node, int $depth, int &$nodes, string $path): void
     {
         if ($depth > $this->maxDepth) {
-            throw new InvalidArgumentException(sprintf(
-                'Translation YAML exceeds max depth (%d) in %s',
-                $this->maxDepth,
-                $path,
-            ));
+            throw new InvalidArgumentException(sprintf('Translation YAML exceeds max depth (%d) in %s', $this->maxDepth, $path));
         }
 
         foreach ($node as $value) {
             ++$nodes;
             if ($nodes > $this->maxNodes) {
-                throw new InvalidArgumentException(sprintf(
-                    'Translation YAML exceeds max nodes (%d) in %s',
-                    $this->maxNodes,
-                    $path,
-                ));
+                throw new InvalidArgumentException(sprintf('Translation YAML exceeds max nodes (%d) in %s', $this->maxNodes, $path));
             }
             if (is_array($value)) {
                 $this->walkTree($value, $depth + 1, $nodes, $path);
