@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-07-20
+
 ### Fixed
 
 - **Missing translation log:** **`persistBuffer`** now uses native **UPSERT** on MySQL/MariaDB (`INSERT … ON DUPLICATE KEY UPDATE`) and SQLite/PostgreSQL (`INSERT … ON CONFLICT … DO UPDATE`). Duplicate keys no longer raise **`UniqueConstraintViolationException`** / MySQL **1062** on the common path (so observability tools that report caught SQLSTATE **`23000`** — e.g. Sentry DBAL reporters — stay quiet). Other platforms keep an **UPDATE-then-INSERT** fallback with a race catch. **No database migration** (unique index unchanged).

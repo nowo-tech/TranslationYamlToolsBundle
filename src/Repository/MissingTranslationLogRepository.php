@@ -195,7 +195,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
      * Native MySQL / MariaDB upsert — no UniqueConstraintViolationException on conflict
      * (avoids noise in tools that report caught SQLSTATE 23000 / errno 1062).
      *
-     * @param array<string, string>                                                                                                                                                                                                                                                                                                           $columns
+     * @param array<string, string> $columns
      * @param array{messageId: string, domain: string, locale: string, hits: int, callSite: ?string, requestRoute: ?string, requestMethod: ?string, requestPath: ?string, seenAt: string} $row
      */
     private function upsertBufferRowMySql(
@@ -246,7 +246,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
     /**
      * SQLite / PostgreSQL upsert via ON CONFLICT — no exception on duplicate unique key.
      *
-     * @param array<string, string>                                                                                                                                                                                                                                                                                                           $columns
+     * @param array<string, string> $columns
      * @param array{messageId: string, domain: string, locale: string, hits: int, callSite: ?string, requestRoute: ?string, requestMethod: ?string, requestPath: ?string, seenAt: string} $row
      */
     private function upsertBufferRowOnConflict(
@@ -299,7 +299,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
      * Portable fallback for other platforms: UPDATE first (common path, no exception),
      * then INSERT; on concurrent insert race, catch and UPDATE again.
      *
-     * @param array<string, string>                                                                                                                                                                                                                                                                                                           $columns
+     * @param array<string, string> $columns
      * @param array{messageId: string, domain: string, locale: string, hits: int, callSite: ?string, requestRoute: ?string, requestMethod: ?string, requestPath: ?string, seenAt: string} $row
      */
     private function upsertBufferRowFallback(
@@ -349,7 +349,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
     }
 
     /**
-     * @param array<string, string>                                                                                                                                                                                                                                                                                                           $columns
+     * @param array<string, string> $columns
      * @param array{messageId: string, domain: string, locale: string, hits: int, callSite: ?string, requestRoute: ?string, requestMethod: ?string, requestPath: ?string, seenAt: string} $row
      */
     private function updateExistingBufferRow(
@@ -371,7 +371,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $qDomain        = $q($columns['domain']);
         $qLocale        = $q($columns['locale']);
 
-        $sql = "UPDATE {$qTable} SET {$qHitCount} = {$qHitCount} + :hits, {$qLastSeenAt} = :lastSeenAt";
+        $sql    = "UPDATE {$qTable} SET {$qHitCount} = {$qHitCount} + :hits, {$qLastSeenAt} = :lastSeenAt";
         $params = [
             'hits'       => $row['hits'],
             'lastSeenAt' => $row['seenAt'],
