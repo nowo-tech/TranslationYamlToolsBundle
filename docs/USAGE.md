@@ -123,7 +123,7 @@ Files must follow Symfony’s usual pattern:
 
 When **`missing_translation_log.web_ui.enabled`** is **`true`**, the bundle exposes HTML under the imported route prefix (see [Configuration](CONFIGURATION.md)). The controller renders **`@NowoTranslationYamlToolsBundle/missing_translation_log/index.html.twig`**. Optional layout integration with **NowoDashboardMenuBundle** / **NowoBreadcrumbKitBundle** uses the bridge templates and **`web_ui.layout_template`** (see [Configuration](CONFIGURATION.md)).
 
-The log table enforces one row per **`(message_id, domain, locale)`**; from **0.3.2** onward, flushes use duplicate-safe persistence so parallel traffic does not hit SQL duplicate-key errors (details in [Configuration](CONFIGURATION.md#missing-translation-log-database)).
+The log table enforces one row per **`(message_id, domain, locale)`**; from **0.3.2** onward, flushes use duplicate-safe persistence. From **1.2.1** onward, the common engines use a native UPSERT so conflict does not throw a SQL duplicate-key exception (details in [Configuration](CONFIGURATION.md#missing-translation-log-database)).
 
 ## Missing translation log: coverage and call_site
 

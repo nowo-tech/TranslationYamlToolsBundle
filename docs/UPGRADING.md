@@ -4,6 +4,11 @@
 
 This line is **1.2.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
 
+## To 1.2.1 (from 1.2.0)
+
+- **Recommended** if **`missing_translation_log.enabled`** is **`true`** and you use observability that reports **caught** SQL errors (e.g. Sentry DBAL middleware on SQLSTATE **`23000`**): **1.2.1** makes **`persistBuffer`** use native UPSERT on MySQL/MariaDB and SQLite/PostgreSQL so duplicate keys no longer raise **`UniqueConstraintViolationException`**. **No database migration** and no YAML changes.
+- Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^1.2`** already allows **1.2.1**).
+
 ## To 1.2.0 (from 1.1.3)
 
 - **Breaking for insecure setups:** if **`missing_translation_log.web_ui.enabled: true`** and the app has **no** SecurityBundle (`security.authorization_checker`), the container **will not compile** (enforced by **`MissingLogWebUiSecurityPass`**). Fix by either:
