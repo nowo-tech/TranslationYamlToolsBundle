@@ -69,9 +69,9 @@ class MissingTranslationLog
         ?string $requestMethod = null,
         ?string $requestPath = null,
     ) {
-        $this->messageId     = $messageId;
-        $this->domain        = $domain;
-        $this->locale        = $locale;
+        $this->messageId     = $this->normalizeMessageId($messageId);
+        $this->domain        = $this->normalizeDomain($domain);
+        $this->locale        = $this->normalizeLocale($locale);
         $this->firstSeenAt   = $seenAt;
         $this->lastSeenAt    = $seenAt;
         $this->callSite      = $this->normalizeCallSite($callSite);
@@ -179,6 +179,21 @@ class MissingTranslationLog
         if ($np !== null) {
             $this->requestPath = $np;
         }
+    }
+
+    private function normalizeMessageId(string $messageId): string
+    {
+        return strlen($messageId) <= 500 ? $messageId : substr($messageId, 0, 497) . '...';
+    }
+
+    private function normalizeDomain(string $domain): string
+    {
+        return strlen($domain) <= 180 ? $domain : substr($domain, 0, 177) . '...';
+    }
+
+    private function normalizeLocale(string $locale): string
+    {
+        return strlen($locale) <= 32 ? $locale : substr($locale, 0, 32);
     }
 
     private function normalizeCallSite(?string $callSite): ?string

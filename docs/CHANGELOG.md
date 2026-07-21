@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-07-21
+
+### Fixed
+
+- **Missing translation log:** **`persistBuffer`** and **`MissingTranslationLog`** now truncate **`message_id`** (max 500), **`domain`** (max 180), and **`locale`** (max 32) before write — same pattern as **`call_site`** / request fields. Avoids **`SQLSTATE[22001]`** / MySQL **1406** (*Data too long for column 'message_id'*) when a missing key is a long free-text id. **No database migration.**
+
+### Documentation
+
+- **[CONFIGURATION](CONFIGURATION.md)** / **[UPGRADING](UPGRADING.md):** document column length limits and truncation on write for **1.2.2+**.
+
 ## [1.2.1] - 2026-07-20
 
 ### Fixed

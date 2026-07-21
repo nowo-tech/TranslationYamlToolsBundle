@@ -93,6 +93,24 @@ final class MissingTranslationLogRepositoryTest extends TestCase
         self::assertStringEndsWith('...', $site);
     }
 
+    public function testPersistBufferTruncatesLongMessageId(): void
+    {
+        $long = str_repeat('k', 600);
+        $repo = $this->createRepository();
+        $repo->persistBuffer([
+            'a' => [
+                'hits'      => 1,
+                'messageId' => $long,
+                'domain'    => 'messages',
+                'locale'    => 'es',
+                'callSite'  => null,
+            ],
+        ]);
+        $messageId = $repo->findByStatus(MissingTranslationLogStatus::Pending, 1)[0]->getMessageId();
+        self::assertSame(500, strlen($messageId));
+        self::assertStringEndsWith('...', $messageId);
+    }
+
     public function testPersistBufferInsertsRequestFieldsAndDuplicateUpdatesThem(): void
     {
         $repo = $this->createRepository();

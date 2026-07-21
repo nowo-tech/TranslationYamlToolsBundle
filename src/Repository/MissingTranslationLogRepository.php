@@ -127,9 +127,9 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
                 $tableName,
                 $columns,
                 [
-                    'messageId'     => $row['messageId'],
-                    'domain'        => $row['domain'],
-                    'locale'        => $row['locale'],
+                    'messageId'     => $this->normalizeMessageId($row['messageId']),
+                    'domain'        => $this->normalizeDomain($row['domain']),
+                    'locale'        => $this->normalizeLocale($row['locale']),
                     'hits'          => $row['hits'],
                     'callSite'      => $this->normalizeCallSite($row['callSite'] ?? null),
                     'requestRoute'  => $this->normalizeRequestRoute($row['requestRoute'] ?? null),
@@ -453,6 +453,21 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
             'requestMethod' => $row['requestMethod'] === null ? ParameterType::NULL : ParameterType::STRING,
             'requestPath'   => $row['requestPath'] === null ? ParameterType::NULL : ParameterType::STRING,
         ];
+    }
+
+    private function normalizeMessageId(string $messageId): string
+    {
+        return strlen($messageId) <= 500 ? $messageId : substr($messageId, 0, 497) . '...';
+    }
+
+    private function normalizeDomain(string $domain): string
+    {
+        return strlen($domain) <= 180 ? $domain : substr($domain, 0, 177) . '...';
+    }
+
+    private function normalizeLocale(string $locale): string
+    {
+        return strlen($locale) <= 32 ? $locale : substr($locale, 0, 32);
     }
 
     private function normalizeCallSite(?string $callSite): ?string

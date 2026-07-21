@@ -89,6 +89,24 @@ final class MissingTranslationLogEntityTest extends TestCase
         self::assertStringEndsWith('...', (string) $e->getCallSite());
     }
 
+    public function testConstructorTruncatesLongMessageId(): void
+    {
+        $long = str_repeat('m', 600);
+        $at   = new DateTimeImmutable('2026-01-01 00:00:00');
+        $e    = new MissingTranslationLog($long, 'messages', 'es', $at);
+        self::assertSame(500, strlen($e->getMessageId()));
+        self::assertStringEndsWith('...', $e->getMessageId());
+    }
+
+    public function testConstructorTruncatesLongDomainAndLocale(): void
+    {
+        $at = new DateTimeImmutable('2026-01-01 00:00:00');
+        $e  = new MissingTranslationLog('k', str_repeat('d', 200), str_repeat('l', 40), $at);
+        self::assertSame(180, strlen($e->getDomain()));
+        self::assertStringEndsWith('...', $e->getDomain());
+        self::assertSame(32, strlen($e->getLocale()));
+    }
+
     public function testConstructorTruncatesLongRequestPath(): void
     {
         $longPath = '/' . str_repeat('q', 2100);
