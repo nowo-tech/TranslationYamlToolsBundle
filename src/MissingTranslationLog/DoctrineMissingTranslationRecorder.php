@@ -7,6 +7,7 @@ namespace Nowo\TranslationYamlToolsBundle\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
@@ -96,8 +97,8 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
         if ($this->asyncPersist) {
             if ($this->asyncPersistStrategy === 'messenger'
                 && $this->messageBus !== null
-                && interface_exists(\Symfony\Component\Messenger\MessageBusInterface::class)
-                && $this->messageBus instanceof \Symfony\Component\Messenger\MessageBusInterface) {
+                && interface_exists(MessageBusInterface::class)
+                && $this->messageBus instanceof MessageBusInterface) {
                 $this->messageBus->dispatch(new MissingTranslationBufferMessage($snapshot));
 
                 return;

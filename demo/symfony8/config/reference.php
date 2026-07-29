@@ -1260,8 +1260,13 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             enabled?: bool|Param, // Expose HTTP routes + Twig UI to list rows and mark pending entries as added (protect with firewall / access_control) // Default: false
  *             path_prefix?: scalar|Param|null, // URL prefix for imported routes (must start with /) // Default: "/_translation_yaml_tools/missing-log"
  *             layout_template?: scalar|Param|null, // Twig layout extended by the missing-log UI (global nowo_translation_yaml_tools_missing_log_layout_template). Use @NowoTranslationYamlToolsBundle/missing_translation_log/layout_integrate_dashboard_menu.html.twig or layout_integrate_breadcrumb_kit.html.twig to match those dashboards. // Default: "@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig"
- *             required_role?: scalar|Param|null, // Symfony role required to access the Web UI (requires SecurityBundle). Set null to disable bundle-level checks (still requires SecurityBundle unless allow_unauthenticated is true). // Default: "ROLE_ADMIN"
- *             allow_unauthenticated?: bool|Param, // DEV/DEMO ONLY. When true, the Web UI may load without SecurityBundle. Default false: enabling the UI without security.authorization_checker fails container compilation. // Default: false
+ *             required_role?: scalar|Param|null, // Deprecated BC alias for security.access_roles (single role). Prefer security.access_roles. Set null or empty to disable bundle-level role checks. // Default: "ROLE_ADMIN"
+ *             allow_unauthenticated?: bool|Param, // Deprecated BC alias for security.allow_unauthenticated. DEV/DEMO ONLY. // Default: false
+ *             security?: array{ // Private Web UI access (REQ-UI-002). Defaults to ROLE_ADMIN; demos may set allow_unauthenticated.
+ *                 access_roles?: list<scalar|Param|null>,
+ *                 access_checker?: scalar|Param|null, // Optional service id implementing MissingLogUiAccessCheckerInterface. null = built-in role checker. // Default: null
+ *                 allow_unauthenticated?: bool|Param, // DEV/DEMO only: allow Web UI without SecurityBundle / without login. Never true in production. // Default: false
+ *             },
  *         },
  *     },
  * }

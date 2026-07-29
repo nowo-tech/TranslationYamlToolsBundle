@@ -45,6 +45,11 @@ final class ConfigurationTest extends TestCase
                 'layout_template'       => '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig',
                 'required_role'         => 'ROLE_ADMIN',
                 'allow_unauthenticated' => false,
+                'security'              => [
+                    'access_roles'          => ['ROLE_ADMIN'],
+                    'access_checker'        => null,
+                    'allow_unauthenticated' => false,
+                ],
             ],
         ], $config['missing_translation_log']);
     }
@@ -158,5 +163,64 @@ final class ConfigurationTest extends TestCase
         $processor->processConfiguration(new Configuration(), [[
             'yaml_tree_indent' => 1,
         ]]);
+    }
+
+    public function testRequiredRoleMapsToSecurityAccessRoles(): void
+    {
+        $processor = new Processor();
+        $config    = $processor->processConfiguration(new Configuration(), [[
+            'missing_translation_log' => [
+                'web_ui' => [
+                    'required_role' => 'ROLE_TRANSLATOR',
+                ],
+            ],
+        ]]);
+
+        self::assertSame(['ROLE_TRANSLATOR'], $config['missing_translation_log']['web_ui']['security']['access_roles']);
+    }
+
+    public function testNullRequiredRoleMapsToEmptyAccessRoles(): void
+    {
+        $processor = new Processor();
+        $config    = $processor->processConfiguration(new Configuration(), [[
+            'missing_translation_log' => [
+                'web_ui' => [
+                    'required_role' => null,
+                ],
+            ],
+        ]]);
+
+        self::assertSame([], $config['missing_translation_log']['web_ui']['security']['access_roles']);
+    }
+
+    public function testTopLevelAllowUnauthenticatedMapsToSecurity(): void
+    {
+        $processor = new Processor();
+        $config    = $processor->processConfiguration(new Configuration(), [[
+            'missing_translation_log' => [
+                'web_ui' => [
+                    'allow_unauthenticated' => true,
+                ],
+            ],
+        ]]);
+
+        self::assertTrue($config['missing_translation_log']['web_ui']['security']['allow_unauthenticated']);
+    }
+
+    public function testCanonicalSecurityAccessRolesWinsOverRequiredRole(): void
+    {
+        $processor = new Processor();
+        $config    = $processor->processConfiguration(new Configuration(), [[
+            'missing_translation_log' => [
+                'web_ui' => [
+                    'required_role' => 'ROLE_OLD',
+                    'security'      => [
+                        'access_roles' => ['ROLE_NEW', 'ROLE_OTHER'],
+                    ],
+                ],
+            ],
+        ]]);
+
+        self::assertSame(['ROLE_NEW', 'ROLE_OTHER'], $config['missing_translation_log']['web_ui']['security']['access_roles']);
     }
 }

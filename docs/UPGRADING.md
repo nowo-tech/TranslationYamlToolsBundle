@@ -4,6 +4,16 @@
 
 This line is **1.2.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
 
+## To 1.2.3 (from 1.2.2)
+
+- **REQ-UI-002 Web UI security (recommended migration, BC aliases kept):**
+  - Prefer **`missing_translation_log.web_ui.security.access_roles`** (default **`[ROLE_ADMIN]`**) instead of scalar **`required_role`**.
+  - Prefer **`security.allow_unauthenticated`** under **`web_ui.security`** (legacy top-level **`web_ui.allow_unauthenticated`** still works).
+  - Optional custom checker: **`security.access_checker: App\Security\YourMissingLogUiAccessChecker`** implementing **`MissingLogUiAccessCheckerInterface`**.
+  - **`required_role: null`** (or empty) still disables bundle-level role checks (maps to empty **`access_roles`**).
+- FrankenPHP banner / Make `demo-smoke` / coverage gate — no consumer action.
+- Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^1.2`** already allows **1.2.3**).
+
 ## To 1.2.2 (from 1.2.1)
 
 - **Recommended** if **`missing_translation_log.enabled`** is **`true`** and you see **`SQLSTATE[22001]`** / MySQL **1406** (*Data too long for column 'message_id'*) in error trackers: long free-text translation ids (and oversized **`domain`** / **`locale`**) are truncated to column limits before UPSERT. **No database migration** and no YAML changes.

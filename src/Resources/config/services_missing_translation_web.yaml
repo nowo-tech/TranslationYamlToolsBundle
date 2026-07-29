@@ -5,7 +5,7 @@ services:
 
     Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController:
         arguments:
-            $requiredRole: '%nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role%'
+            $accessChecker: null
 
     Nowo\TranslationYamlToolsBundle\Twig\MissingTranslationLogExtension:
         arguments:

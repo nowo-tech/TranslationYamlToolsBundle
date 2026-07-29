@@ -24,6 +24,17 @@ make down
 
 The Makefile prints `Demo started at: http://localhost:<PORT>` using `PORT` from `.env` / `.env.example`.
 
+## Switching classic vs worker (`FRANKENPHP_MODE`)
+
+Demos select the FrankenPHP runtime via **`FRANKENPHP_MODE`** in `.env` / `.env.example` (not a Dockerfile `ENV`):
+
+| Value | Behaviour |
+| --- | --- |
+| **`worker`** (default) | Keep the worker Caddyfile (`php_server { worker ... }`) |
+| **`classic`** | Entrypoint copies `Caddyfile.dev` (plain `php_server`, hot-reload friendly) |
+
+Compose passes `FRANKENPHP_MODE=${FRANKENPHP_MODE:-worker}` into the PHP service. After changing `.env`, run `docker compose up -d` (or `make up`) so the container is **recreated** — a plain `restart` does not reload env. No image rebuild is required.
+
 ## Troubleshooting
 
 - If Composer fails on the path repository, ensure the compose volume mounts the bundle at `/var/translation-yaml-tools-bundle` (see each demo `docker-compose.yml`).

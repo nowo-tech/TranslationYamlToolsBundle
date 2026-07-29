@@ -83,3 +83,26 @@
 | YAML config | 6 | 6 |
 | Twig views | 7 | 7 |
 | **Total production sources** | **56** | **56** |
+
+## Inventory refresh (2026-07-29 remedia)
+
+Files present under `src/` that must stay listed for REQ-SPECKIT-003:
+
+- `DependencyInjection/Compiler/MissingLogWebUiSecurityPass.php`
+- `MachineTranslation/LibreTranslateBaseUrlGuard.php`
+- `MachineTranslation/ThrottledMachineTranslator.php`
+- `Resources/config/routes/missing_translation_log_ui.yaml`
+- `Resources/config/services.yaml`
+- `Resources/config/services_missing_translation.yaml`
+- `Resources/config/services_missing_translation_event_dispatcher.yaml`
+- `Resources/config/services_missing_translation_messenger.yaml`
+- `Resources/config/services_missing_translation_web.yaml`
+- `Resources/views/missing_translation_log/_status_filters.html.twig`
+- `Resources/views/missing_translation_log/_table.html.twig`
+- `Resources/views/missing_translation_log/base.html.twig`
+- `Resources/views/missing_translation_log/index.html.twig`
+- `Resources/views/missing_translation_log/layout.html.twig`
+- `Resources/views/missing_translation_log/layout_integrate_breadcrumb_kit.html.twig`
+- `Resources/views/missing_translation_log/layout_integrate_dashboard_menu.html.twig`
+- `Security/ConfigurableMissingLogUiAccessChecker.php`
+- `Security/MissingLogUiAccessCheckerInterface.php`

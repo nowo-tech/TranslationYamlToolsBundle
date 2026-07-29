@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Command\MissingTranslationLog;
 
+use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -47,7 +48,7 @@ final class MissingTranslationLogValidateCommand extends Command
         $id = (int) $input->getArgument('id');
 
         $row = $this->repository->findOneById($id);
-        if (!$row instanceof \Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog) {
+        if (!$row instanceof MissingTranslationLog) {
             $io->error(sprintf('No row with id %d.', $id));
 
             return Command::FAILURE;

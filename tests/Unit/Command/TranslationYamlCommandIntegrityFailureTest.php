@@ -16,6 +16,7 @@ use Nowo\TranslationYamlToolsBundle\Service\TranslationYamlCatalog;
 use Nowo\TranslationYamlToolsBundle\Service\TranslationYamlFileHandler;
 use Nowo\TranslationYamlToolsBundle\Service\YamlArraySorter;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -29,7 +30,7 @@ use function dirname;
 final class TranslationYamlCommandIntegrityFailureTest extends TestCase
 {
     /**
-     * @return array{0: \PHPUnit\Framework\MockObject\MockObject&TranslationYamlCatalog, 1: FrameworkTranslationPathsResolver&\PHPUnit\Framework\MockObject\MockObject}
+     * @return array{0: MockObject&TranslationYamlCatalog, 1: FrameworkTranslationPathsResolver&MockObject}
      */
     private function baseCatalogAndPaths(string $enPath, ?string $frPath = null): array
     {
@@ -157,6 +158,54 @@ final class TranslationYamlCommandIntegrityFailureTest extends TestCase
 
         self::assertSame(1, $exit);
         self::assertStringContainsString('Leaf key integrity check failed', $output->fetch());
+        @unlink($enPath);
+    }
+
+    public function testTreeFailsWhenConflictRemainsAfterDisambiguation(): void
+    {
+        $enPath = sys_get_temp_dir() . '/tyt_tree_after_' . uniqid('', true) . '.yaml';
+        file_put_contents($enPath, "a: x\n");
+
+        [$catalog, $paths] = $this->baseCatalogAndPaths($enPath);
+
+        $fileHandler = new TranslationYamlFileHandler();
+
+        $analyzer = $this->createMock(DotKeyTreeAnalyzer::class);
+        $analyzer->method('flatten')->willReturn(['a' => 'x', 'a.b' => 'y']);
+        $analyzer->method('treeConversionConflict')->willReturnOnConsecutiveCalls(
+            'leaf/prefix conflict',
+            'still conflicted after rename',
+        );
+        $analyzer->method('disambiguateLeafPrefixConflicts')->willReturn([
+            'flat'    => ['a.index' => 'x', 'a.b' => 'y'],
+            'renames' => [['from' => 'a', 'to' => 'a.index']],
+        ]);
+
+        $command = new TranslationYamlTreeCommand(
+            $catalog,
+            $paths,
+            $analyzer,
+            $fileHandler,
+            4,
+            'index',
+        );
+
+        $input = new ArrayInput([
+            '--domain'          => 'messages',
+            '--locale'          => 'en',
+            '--fix-leaf-prefix' => true,
+        ]);
+        $input->setInteractive(false);
+
+        $exit = $command->run(
+            $input,
+            $output = new BufferedOutput(),
+        );
+
+        self::assertSame(1, $exit);
+        $display = $output->fetch();
+        self::assertStringContainsString('Cannot convert to tree after disambiguation', $display);
+        self::assertStringContainsString('still conflicted after rename', $display);
         @unlink($enPath);
     }
 

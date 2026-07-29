@@ -24,6 +24,9 @@ use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\HelperSet;
 use Symfony\Component\Console\Helper\QuestionHelper;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
@@ -1014,7 +1017,7 @@ final class TranslationYamlCommandsTest extends TestCase
         );
 
         $method = new ReflectionMethod(AbstractTranslationYamlCommand::class, 'resolveDomainAndLocale');
-        $input  = $this->createMock(\Symfony\Component\Console\Input\InputInterface::class);
+        $input  = $this->createMock(InputInterface::class);
         $output = $this->createMock(OutputInterface::class);
 
         $this->expectException(RuntimeException::class);
@@ -1030,7 +1033,7 @@ final class TranslationYamlCommandsTest extends TestCase
         $cmd     = $this->treeCommand($deps);
 
         $method = new ReflectionMethod(AbstractTranslationYamlCommand::class, 'resolveDomainAndLocale');
-        $input  = $this->createMock(\Symfony\Component\Console\Input\InputInterface::class);
+        $input  = $this->createMock(InputInterface::class);
         $output = $this->createMock(OutputInterface::class);
 
         $this->expectException(InvalidArgumentException::class);
@@ -1049,9 +1052,9 @@ final class TranslationYamlCommandsTest extends TestCase
         $cmd = $this->treeCommand($deps);
         $this->bind($cmd);
 
-        $input = new \Symfony\Component\Console\Input\ArrayInput([], $cmd->getDefinition());
+        $input = new ArrayInput([], $cmd->getDefinition());
         $input->setInteractive(true);
-        $output = new \Symfony\Component\Console\Output\BufferedOutput();
+        $output = new BufferedOutput();
         $stream = fopen('php://memory', 'r+');
         self::assertNotFalse($stream);
         fwrite($stream, "fr\n");

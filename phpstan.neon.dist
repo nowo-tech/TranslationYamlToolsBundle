@@ -8,3 +8,7 @@ parameters:
         - demo/*
     reportUnmatchedIgnoredErrors: false
     treatPhpDocTypesAsCertain: false
+
+includes:
+  - vendor/nowo-tech/phpstan-frankenphp/ruleset-classic.neon
+  - vendor/nowo-tech/phpstan-frankenphp/ruleset-worker.neon

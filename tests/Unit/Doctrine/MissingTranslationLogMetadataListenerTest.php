@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\Doctrine;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\LoadClassMetadataEventArgs;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Nowo\TranslationYamlToolsBundle\Doctrine\MissingTranslationLogMetadataListener;
@@ -20,7 +21,7 @@ final class MissingTranslationLogMetadataListenerTest extends TestCase
         $listener = new MissingTranslationLogMetadataListener('pfx_');
         $metadata = $this->createMock(ClassMetadata::class);
         $metadata->method('getName')->willReturn(stdClass::class);
-        $args = new LoadClassMetadataEventArgs($metadata, $this->createMock(\Doctrine\ORM\EntityManagerInterface::class));
+        $args = new LoadClassMetadataEventArgs($metadata, $this->createMock(EntityManagerInterface::class));
 
         $listener->loadClassMetadata($args);
 
@@ -31,7 +32,7 @@ final class MissingTranslationLogMetadataListenerTest extends TestCase
     {
         $listener = new MissingTranslationLogMetadataListener('acme_');
         $metadata = new ClassMetadata(MissingTranslationLog::class);
-        $args     = new LoadClassMetadataEventArgs($metadata, $this->createMock(\Doctrine\ORM\EntityManagerInterface::class));
+        $args     = new LoadClassMetadataEventArgs($metadata, $this->createMock(EntityManagerInterface::class));
 
         $listener->loadClassMetadata($args);
 

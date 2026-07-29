@@ -11,4 +11,5 @@ nowo_translation_yaml_tools:
         web_ui:
             enabled: true
             path_prefix: '/_demo/translation-yaml-tools/missing-log'
-            required_role: ROLE_ADMIN
+            security:
+                access_roles: [ROLE_ADMIN]

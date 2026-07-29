@@ -37,7 +37,7 @@ If you enable **`missing_translation_log.web_ui.enabled`**, you also need:
 |-------------------|-----|
 | **`symfony/twig-bundle`** | Renders the HTML UI |
 | **`symfony/security-csrf`** + `framework.csrf_protection` | CSRF on mutating forms |
-| **`symfony/security-bundle`** | Required by default (`security.authorization_checker`). Without it, the container fails unless you set **`allow_unauthenticated: true`** (dev/demo only). |
+| **`symfony/security-bundle`** | Required by default (`security.authorization_checker`). Without it, the container fails unless you set **`web_ui.security.allow_unauthenticated: true`** (dev/demo only). |
 
 See [SECURITY.md](SECURITY.md) and the **`access_control`** snippet in [CONFIGURATION.md](CONFIGURATION.md).
 

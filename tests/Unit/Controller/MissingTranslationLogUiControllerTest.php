@@ -7,6 +7,7 @@ namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\Controller;
 use Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
+use Nowo\TranslationYamlToolsBundle\Security\MissingLogUiAccessCheckerInterface;
 use Nowo\TranslationYamlToolsBundle\Tests\Fixtures\MissingTranslationLogTestEntityManagerFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -17,7 +18,10 @@ use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
@@ -281,5 +285,56 @@ final class MissingTranslationLogUiControllerTest extends TestCase
 
         $this->expectException(AccessDeniedException::class);
         $controller->clearStatus($request);
+    }
+
+    public function testIndexDeniesWhenAccessCheckerRejectsAnonymousUser(): void
+    {
+        $repo = $this->createMock(MissingTranslationLogRepository::class);
+        $repo->expects(self::never())->method('findByStatus');
+
+        $checker = $this->createMock(MissingLogUiAccessCheckerInterface::class);
+        $checker->expects(self::never())->method('canAccess');
+
+        $storage = $this->createMock(TokenStorageInterface::class);
+        $storage->method('getToken')->willReturn(null);
+
+        $container = new Container();
+        $container->set('twig', $this->createMock(Environment::class));
+        $container->set('security.token_storage', $storage);
+
+        $controller = new MissingTranslationLogUiController($repo, $checker);
+        $controller->setContainer($container);
+
+        $this->expectException(AccessDeniedException::class);
+        $this->expectExceptionMessage('MissingLogUiAccessCheckerInterface');
+        $controller->index(Request::create('/'));
+    }
+
+    public function testIndexAllowsWhenAccessCheckerAcceptsUser(): void
+    {
+        $repo = $this->createMock(MissingTranslationLogRepository::class);
+        $repo->method('findByStatus')->willReturn([]);
+
+        $user    = $this->createMock(UserInterface::class);
+        $checker = $this->createMock(MissingLogUiAccessCheckerInterface::class);
+        $checker->expects(self::once())->method('canAccess')->with($user)->willReturn(true);
+
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getUser')->willReturn($user);
+        $storage = $this->createMock(TokenStorageInterface::class);
+        $storage->method('getToken')->willReturn($token);
+
+        $twig = $this->createMock(Environment::class);
+        $twig->expects(self::once())->method('render')->willReturn('<html>ok</html>');
+
+        $container = new Container();
+        $container->set('twig', $twig);
+        $container->set('security.token_storage', $storage);
+
+        $controller = new MissingTranslationLogUiController($repo, $checker);
+        $controller->setContainer($container);
+
+        $response = $controller->index(Request::create('/'));
+        self::assertSame(200, $response->getStatusCode());
     }
 }

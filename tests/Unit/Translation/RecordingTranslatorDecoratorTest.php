@@ -11,7 +11,10 @@ use Nowo\TranslationYamlToolsBundle\Translation\MissingTranslationRecordContext;
 use Nowo\TranslationYamlToolsBundle\Translation\RecordingTranslatorDecorator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpKernel\CacheWarmer\WarmableInterface;
 use Symfony\Component\Translation\MessageCatalogue;
+use Symfony\Component\Translation\MessageCatalogueInterface;
+use Symfony\Component\Translation\TranslatorBagInterface;
 use Symfony\Contracts\Translation\LocaleAwareInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -32,7 +35,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
     {
         new MessageCatalogue('en', ['messages' => ['present' => 'ok']]);
 
-        $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+        $inner = new class implements TranslatorInterface, TranslatorBagInterface, LocaleAwareInterface {
             private string $locale = 'en';
 
             /** @param array<string, bool|float|int|string|null> $parameters */
@@ -51,7 +54,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
                 $this->locale = $locale;
             }
 
-            public function getCatalogue(?string $locale = null): \Symfony\Component\Translation\MessageCatalogueInterface
+            public function getCatalogue(?string $locale = null): MessageCatalogueInterface
             {
                 return new MessageCatalogue('en', ['messages' => ['present' => 'ok']]);
             }
@@ -88,7 +91,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
 
     public function testDelegatesLocaleCatalogueAndFallback(): void
     {
-        $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+        $inner = new class implements TranslatorInterface, TranslatorBagInterface, LocaleAwareInterface {
             /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
@@ -104,7 +107,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
             {
             }
 
-            public function getCatalogue(?string $locale = null): \Symfony\Component\Translation\MessageCatalogueInterface
+            public function getCatalogue(?string $locale = null): MessageCatalogueInterface
             {
                 return new MessageCatalogue('de');
             }
@@ -135,7 +138,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
 
     public function testCallForwardsUnknownMethodsToInner(): void
     {
-        $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+        $inner = new class implements TranslatorInterface, TranslatorBagInterface, LocaleAwareInterface {
             /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
@@ -151,7 +154,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
             {
             }
 
-            public function getCatalogue(?string $locale = null): \Symfony\Component\Translation\MessageCatalogueInterface
+            public function getCatalogue(?string $locale = null): MessageCatalogueInterface
             {
                 return new MessageCatalogue('en');
             }
@@ -183,7 +186,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
 
     public function testWarmUpDelegatesWhenInnerIsWarmable(): void
     {
-        $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface, \Symfony\Component\HttpKernel\CacheWarmer\WarmableInterface {
+        $inner = new class implements TranslatorInterface, TranslatorBagInterface, LocaleAwareInterface, WarmableInterface {
             /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
@@ -199,7 +202,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
             {
             }
 
-            public function getCatalogue(?string $locale = null): \Symfony\Component\Translation\MessageCatalogueInterface
+            public function getCatalogue(?string $locale = null): MessageCatalogueInterface
             {
                 return new MessageCatalogue('en');
             }
@@ -230,7 +233,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
 
     public function testWarmUpReturnsEmptyWhenInnerIsNotWarmable(): void
     {
-        $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+        $inner = new class implements TranslatorInterface, TranslatorBagInterface, LocaleAwareInterface {
             /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
@@ -246,7 +249,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
             {
             }
 
-            public function getCatalogue(?string $locale = null): \Symfony\Component\Translation\MessageCatalogueInterface
+            public function getCatalogue(?string $locale = null): MessageCatalogueInterface
             {
                 return new MessageCatalogue('en');
             }
@@ -274,7 +277,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
     {
         $catalogue = new MessageCatalogue('en', ['messages' => []]);
 
-        $inner = new class($catalogue) implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+        $inner = new class($catalogue) implements TranslatorInterface, TranslatorBagInterface, LocaleAwareInterface {
             public function __construct(private readonly MessageCatalogue $catalogue)
             {
             }
@@ -294,7 +297,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
             {
             }
 
-            public function getCatalogue(?string $locale = null): \Symfony\Component\Translation\MessageCatalogueInterface
+            public function getCatalogue(?string $locale = null): MessageCatalogueInterface
             {
                 return $this->catalogue;
             }
@@ -333,7 +336,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
 
     public function testGetFallbackLocalesReturnsEmptyWhenInnerHasNoMethod(): void
     {
-        $inner = new class implements TranslatorInterface, \Symfony\Component\Translation\TranslatorBagInterface, LocaleAwareInterface {
+        $inner = new class implements TranslatorInterface, TranslatorBagInterface, LocaleAwareInterface {
             /** @param array<string, bool|float|int|string|null> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
@@ -349,7 +352,7 @@ final class RecordingTranslatorDecoratorTest extends TestCase
             {
             }
 
-            public function getCatalogue(?string $locale = null): \Symfony\Component\Translation\MessageCatalogueInterface
+            public function getCatalogue(?string $locale = null): MessageCatalogueInterface
             {
                 return new MessageCatalogue('en');
             }

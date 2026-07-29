@@ -7,14 +7,18 @@ namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 use InvalidArgumentException;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateBaseUrlGuard;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper;
+use Nowo\TranslationYamlToolsBundle\Security\ConfigurableMissingLogUiAccessChecker;
+use Nowo\TranslationYamlToolsBundle\Security\MissingLogUiAccessCheckerInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\Messenger\MessageBusInterface;
 
-use function array_key_exists;
 use function dirname;
 use function is_array;
 use function is_string;
@@ -94,30 +98,34 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         );
 
         /** @var array<string, mixed> $missingLog */
-        $missingLog           = $config['missing_translation_log'];
-        $tablePrefix          = 'nowo_translation_';
-        $recordCallSite       = true;
-        $recordRequestContext = true;
-        $asyncPersist         = false;
-        $asyncPersistStrategy = 'messenger';
-        $webUiEnabled         = false;
-        $webUiPathPrefix      = '/_translation_yaml_tools/missing-log';
-        $webUiLayoutTemplate  = '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig';
+        $missingLog          = $config['missing_translation_log'];
+        $tablePrefix         = 'nowo_translation_';
+        $webUiPathPrefix     = '/_translation_yaml_tools/missing-log';
+        $webUiLayoutTemplate = '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig';
 
-        $missingLogEnabled         = (bool) ($missingLog['enabled'] ?? false);
-        $tablePrefix               = (string) ($missingLog['table_prefix'] ?? $tablePrefix);
-        $recordCallSite            = (bool) ($missingLog['record_call_site'] ?? true);
-        $recordRequestContext      = (bool) ($missingLog['record_request_context'] ?? true);
-        $asyncPersist              = (bool) ($missingLog['async_persist'] ?? false);
-        $asyncPersistStrategy      = (string) ($missingLog['async_persist_strategy'] ?? 'messenger');
-        $webUi                     = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
-        $webUiEnabled              = (bool) ($webUi['enabled'] ?? false);
-        $webUiPathPrefix           = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
-        $webUiLayoutTemplate       = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
-        $webUiAllowUnauthenticated = (bool) ($webUi['allow_unauthenticated'] ?? false);
-        $webUiRequiredRole         = array_key_exists('required_role', $webUi)
-            ? (is_string($webUi['required_role']) && $webUi['required_role'] !== '' ? $webUi['required_role'] : null)
-            : 'ROLE_ADMIN';
+        $missingLogEnabled    = (bool) ($missingLog['enabled'] ?? false);
+        $tablePrefix          = (string) ($missingLog['table_prefix'] ?? $tablePrefix);
+        $recordCallSite       = (bool) ($missingLog['record_call_site'] ?? true);
+        $recordRequestContext = (bool) ($missingLog['record_request_context'] ?? true);
+        $asyncPersist         = (bool) ($missingLog['async_persist'] ?? false);
+        $asyncPersistStrategy = (string) ($missingLog['async_persist_strategy'] ?? 'messenger');
+        $webUi                = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
+        $webUiEnabled         = (bool) ($webUi['enabled'] ?? false);
+        $webUiPathPrefix      = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
+        $webUiLayoutTemplate  = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
+        $security             = is_array($webUi['security'] ?? null) ? $webUi['security'] : [];
+        /** @var list<string> $accessRoles */
+        $accessRoles = [];
+        foreach ($security['access_roles'] ?? ['ROLE_ADMIN'] as $role) {
+            if (is_string($role) && $role !== '') {
+                $accessRoles[] = $role;
+            }
+        }
+        $accessCheckerId           = $security['access_checker'] ?? null;
+        $customAccessChecker       = is_string($accessCheckerId) && $accessCheckerId !== '';
+        $webUiAllowUnauthenticated = (bool) ($security['allow_unauthenticated'] ?? $webUi['allow_unauthenticated'] ?? false);
+        // BC parameter: first configured role, or null when bundle-level role checks are disabled.
+        $webUiRequiredRoleBc = $accessRoles[0] ?? null;
 
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.enabled', $missingLogEnabled);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.table_prefix', $tablePrefix);
@@ -128,8 +136,11 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled', $webUiEnabled);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.path_prefix', $webUiPathPrefix);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template', $webUiLayoutTemplate);
-        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role', $webUiRequiredRole);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role', $webUiRequiredRoleBc);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.allow_unauthenticated', $webUiAllowUnauthenticated);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.security.access_roles', $accessRoles);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.security.allow_unauthenticated', $webUiAllowUnauthenticated);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.security.custom_access_checker', $customAccessChecker);
 
         // SecurityBundle presence + MissingLogUiAccessSubscriber: MissingLogWebUiSecurityPass
         // (Extension::load runs in an isolated container where other bundles are invisible).
@@ -139,7 +150,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
 
         if ($missingLogEnabled) {
             $loader->load('services_missing_translation.yaml');
-            if ($asyncPersist && $asyncPersistStrategy === 'messenger' && interface_exists(\Symfony\Component\Messenger\MessageBusInterface::class)) {
+            if ($asyncPersist && $asyncPersistStrategy === 'messenger' && interface_exists(MessageBusInterface::class)) {
                 $loader->load('services_missing_translation_messenger.yaml');
             }
             if ($asyncPersist && $asyncPersistStrategy === 'event_dispatcher') {
@@ -147,8 +158,34 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
             }
             if ($webUiEnabled) {
                 $loader->load('services_missing_translation_web.yaml');
+                if (!$webUiAllowUnauthenticated) {
+                    $this->registerAccessChecker($container, $accessRoles, $customAccessChecker ? (string) $accessCheckerId : null);
+                }
             }
         }
+    }
+
+    /**
+     * @param list<string> $accessRoles
+     */
+    private function registerAccessChecker(ContainerBuilder $container, array $accessRoles, ?string $accessCheckerId): void
+    {
+        if ($accessCheckerId === null || $accessCheckerId === '') {
+            $accessCheckerId = 'nowo_translation_yaml_tools.missing_log_ui.access_checker.default';
+            $definition      = new Definition(ConfigurableMissingLogUiAccessChecker::class);
+            $definition->setArgument('$accessRoles', $accessRoles);
+            $hasAuthorizationChecker = $container->hasDefinition('security.authorization_checker')
+                || $container->hasAlias('security.authorization_checker');
+            if ($hasAuthorizationChecker) {
+                $definition->setArgument('$authorizationChecker', new Reference('security.authorization_checker'));
+            } else {
+                // Placeholder until SecurityBundle registers the checker; SecurityPass fails compile if still missing.
+                $definition->setAutowired(true);
+            }
+            $container->setDefinition($accessCheckerId, $definition);
+        }
+
+        $container->setAlias(MissingLogUiAccessCheckerInterface::class, $accessCheckerId);
     }
 
     private function rawConfigEnablesMissingTranslationLog(ContainerBuilder $container): bool

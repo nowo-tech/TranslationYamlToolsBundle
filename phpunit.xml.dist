@@ -13,6 +13,8 @@
         <env name="APP_ENV" value="test" force="true"/>
         <env name="GOOGLE_TRANSLATE_API_KEY" value="" force="true"/>
         <env name="DEEPL_AUTH_KEY" value="" force="true"/>
+        <!-- REQ-SF-005: fail on direct deprecations from this package -->
+        <env name="SYMFONY_DEPRECATIONS_HELPER" value="max[direct]=0"/>
     </php>
     <testsuites>
         <testsuite name="Unit">

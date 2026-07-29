@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-07-29
+
+### Security
+
+- **REQ-UI-002:** missing-log Web UI now uses canonical **`missing_translation_log.web_ui.security`** (`access_roles` default `[ROLE_ADMIN]`, optional **`access_checker`**, **`allow_unauthenticated`**). Legacy **`required_role`** and top-level **`allow_unauthenticated`** remain as BC aliases (mapped via config normalization). New **`MissingLogUiAccessCheckerInterface`** + **`ConfigurableMissingLogUiAccessChecker`**; subscriber and controller enforce the checker instead of a single scalar role.
+- **REQ-SEC-002:** release checklist includes **REQ-SEC-004** Pass (conditional) row.
+
+### Added
+
+- **Makefile:** `check-open-prs`, `coverage-check` / `test-coverage-100`, `demo-smoke`, `down-dev`; `release-check` wires the full REQ-MAKE-002 chain.
+- **SF-005:** `SYMFONY_DEPRECATIONS_HELPER=max[direct]=0` in `phpunit.xml.dist` and CI.
+- **docs/COVERAGE.md** — justified coverage exclusions; **100%** line gate.
+- FrankenPHP Friendly Worker Mode banner in README (REQ-DOCS-017).
+- Spec Kit inventory refresh for Web UI / Security / machine-translation files.
+
+### Documentation
+
+- **[CONFIGURATION](CONFIGURATION.md)** / **[SECURITY](SECURITY.md)** / **[UPGRADING](UPGRADING.md):** document `security.access_roles` / `access_checker` / `allow_unauthenticated` and BC aliases.
+- GitHub About: plain description, Packagist homepage, topics (`php`, `symfony`, `symfony-bundle`, `frankenphp`, …).
+
 ## [1.2.2] - 2026-07-21
 
 ### Fixed

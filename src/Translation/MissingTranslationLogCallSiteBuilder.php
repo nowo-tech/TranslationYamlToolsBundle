@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Translation;
 
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 use function is_string;
@@ -36,7 +37,7 @@ class MissingTranslationLogCallSiteBuilder
         $requestPath   = null;
         if ($includeRequest) {
             $request = $this->requestStack->getCurrentRequest();
-            if ($request instanceof \Symfony\Component\HttpFoundation\Request) {
+            if ($request instanceof Request) {
                 $route = $request->attributes->get('_route');
                 if (is_string($route) && $route !== '') {
                     $requestRoute = $this->truncate($route, 180);

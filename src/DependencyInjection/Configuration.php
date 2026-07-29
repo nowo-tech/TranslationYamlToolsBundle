@@ -7,6 +7,8 @@ namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
+use function array_key_exists;
+use function is_array;
 use function is_string;
 use function strlen;
 
@@ -139,6 +141,31 @@ final class Configuration implements ConfigurationInterface
                         ->end()
                         ->arrayNode('web_ui')
                             ->addDefaultsIfNotSet()
+                            ->beforeNormalization()
+                                ->ifArray()
+                                ->then(static function (array $v): array {
+                                    $security = is_array($v['security'] ?? null) ? $v['security'] : [];
+
+                                    // BC: required_role (scalar|null) → security.access_roles
+                                    if (array_key_exists('required_role', $v) && !array_key_exists('access_roles', $security)) {
+                                        $role = $v['required_role'];
+                                        if ($role === null || $role === '') {
+                                            $security['access_roles'] = [];
+                                        } elseif (is_string($role)) {
+                                            $security['access_roles'] = [$role];
+                                        }
+                                    }
+
+                                    // BC: top-level allow_unauthenticated → security.allow_unauthenticated
+                                    if (array_key_exists('allow_unauthenticated', $v) && !array_key_exists('allow_unauthenticated', $security)) {
+                                        $security['allow_unauthenticated'] = (bool) $v['allow_unauthenticated'];
+                                    }
+
+                                    $v['security'] = $security;
+
+                                    return $v;
+                                })
+                            ->end()
                             ->children()
                                 ->booleanNode('enabled')
                                     ->info('Expose HTTP routes + Twig UI to list rows and mark pending entries as added (protect with firewall / access_control)')
@@ -157,12 +184,31 @@ final class Configuration implements ConfigurationInterface
                                     ->defaultValue('@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig')
                                 ->end()
                                 ->scalarNode('required_role')
-                                    ->info('Symfony role required to access the Web UI (requires SecurityBundle). Set null to disable bundle-level checks (still requires SecurityBundle unless allow_unauthenticated is true).')
+                                    ->info('Deprecated BC alias for security.access_roles (single role). Prefer security.access_roles. Set null or empty to disable bundle-level role checks.')
                                     ->defaultValue('ROLE_ADMIN')
                                 ->end()
                                 ->booleanNode('allow_unauthenticated')
-                                    ->info('DEV/DEMO ONLY. When true, the Web UI may load without SecurityBundle. Default false: enabling the UI without security.authorization_checker fails container compilation.')
+                                    ->info('Deprecated BC alias for security.allow_unauthenticated. DEV/DEMO ONLY.')
                                     ->defaultFalse()
+                                ->end()
+                                ->arrayNode('security')
+                                    ->info('Private Web UI access (REQ-UI-002). Defaults to ROLE_ADMIN; demos may set allow_unauthenticated.')
+                                    ->addDefaultsIfNotSet()
+                                    ->children()
+                                        ->arrayNode('access_roles')
+                                            ->scalarPrototype()->end()
+                                            ->defaultValue(['ROLE_ADMIN'])
+                                            ->info('User must be granted at least one role. Empty list disables bundle-level role checks (firewall / custom checker only).')
+                                        ->end()
+                                        ->scalarNode('access_checker')
+                                            ->defaultNull()
+                                            ->info('Optional service id implementing MissingLogUiAccessCheckerInterface. null = built-in role checker.')
+                                        ->end()
+                                        ->booleanNode('allow_unauthenticated')
+                                            ->defaultFalse()
+                                            ->info('DEV/DEMO only: allow Web UI without SecurityBundle / without login. Never true in production.')
+                                        ->end()
+                                    ->end()
                                 ->end()
                             ->end()
                         ->end()

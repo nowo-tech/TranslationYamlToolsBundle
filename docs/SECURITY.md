@@ -19,7 +19,7 @@ This bundle provides:
 
 | Threat | Mitigation |
 |--------|------------|
-| **Unauthenticated Web UI** | Default `web_ui.enabled: false`. Enabling the UI **requires** `security.authorization_checker` (SecurityBundle) unless `allow_unauthenticated: true` (dev/demo only). Default `required_role: ROLE_ADMIN` via `MissingLogUiAccessSubscriber`. Also protect with firewall / `access_control`. |
+| **Unauthenticated Web UI** | Default `web_ui.enabled: false`. Enabling the UI **requires** `security.authorization_checker` (SecurityBundle) unless `web_ui.security.allow_unauthenticated: true` (dev/demo only — never copy to production). Default `security.access_roles: [ROLE_ADMIN]` via `MissingLogUiAccessCheckerInterface` / `MissingLogUiAccessSubscriber` (REQ-UI-002). Also protect with firewall / `access_control` on `path_prefix`. |
 | **Path traversal** via crafted domain/locale names | Domain/locale options are validated against discovered file names; new files are created only under resolved translation directories with a safe `domain.locale.ext` pattern. |
 | **SSRF / data exfiltration** via translator | Backends use fixed HTTPS endpoints (or configured LibreTranslate base URL); request bodies contain text snippets from translation files. |
 | **Secret leakage** | API keys are read from environment / DI parameters, never logged by the bundle. Do not enable verbose HTTP dumps in production for the same process. |
@@ -34,8 +34,8 @@ This bundle provides:
 When enabling `missing_translation_log.web_ui.enabled`:
 
 1. Install **`symfony/security-bundle`** (and Twig + CSRF as documented in [CONFIGURATION.md](CONFIGURATION.md)).
-2. Keep **`allow_unauthenticated: false`** (default).
-3. Keep **`required_role: ROLE_ADMIN`** (or a stricter role).
+2. Keep **`security.allow_unauthenticated: false`** (default).
+3. Keep **`security.access_roles: [ROLE_ADMIN]`** (or stricter roles / a custom **`security.access_checker`**).
 4. Add **`access_control`** for your `path_prefix`.
 5. Prefer installing the bundle as **`require-dev`** so production kernels do not register it.
 
@@ -76,3 +76,5 @@ When enabling `missing_translation_log.web_ui.enabled`:
 | Dependency updates for known CVEs | [ ] |
 | Permissions / dev-only install guidance | [ ] |
 | Rate limits / quotas understood for translation API | [ ] |
+| **CSRF** on Web UI mutations | [ ] |
+| **AI security audit (REQ-SEC-004)** | Pass (conditional) recorded in monorepo `BUNDLES_SECURITY_ANALYSIS.md` |

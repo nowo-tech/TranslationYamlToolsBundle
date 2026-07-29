@@ -25,11 +25,14 @@
 | `missing_translation_log.record_request_context` | `bool` | `true` | When **`true`** and an HTTP **`Request`** exists, the row also stores **`request_route`** (from **`_route`** when set), **`request_method`**, and **`request_path`** (**`getPathInfo()`** when non-empty). CLI / workers have no request, so those columns stay **`NULL`**. Set **`false`** if you do not want route or path persisted (privacy). |
 | `missing_translation_log.async_persist` | `bool` | `false` | When **`true`**, flush uses **`async_persist_strategy`** instead of calling **`persistBuffer`** directly in the recorder. If the chosen strategy is unavailable (no bus, no **`event_dispatcher`**), the recorder **falls back** to synchronous **`persistBuffer`**. |
 | `missing_translation_log.async_persist_strategy` | `string` | `messenger` | Only when **`async_persist`** is **`true`**: **`messenger`** dispatches **`MissingTranslationBufferMessage`** (needs **`symfony/messenger`** + **`messenger.default_bus`**; route the message to an async transport for workers). **`event_dispatcher`** dispatches **`MissingTranslationBufferEvent`** on the app **`event_dispatcher`**; the bundle registers **`MissingTranslationBufferDoctrinePersistListener`** at priority **-1024** to call **`persistBuffer`** unless a listener with higher priority called **`stopPropagation()`** (use that to enqueue the buffer and persist later without Messenger). |
-| `missing_translation_log.web_ui.enabled` | `bool` | `false` | When **`true`** (and the log is enabled), registers **`MissingTranslationLogUiController`** and runs **`TwigPathsPass`**: if **`templates/bundles/NowoTranslationYamlToolsBundle/`** exists, that path is prepended on the native Twig loader with namespace **`NowoTranslationYamlToolsBundle`**, then the bundle **`src/Resources/views`** path is appended with the same namespace so overrides win without **`twig.paths`** (see [USAGE](USAGE.md#overriding-templates-req-twig-001)). Requires **`symfony/twig-bundle`**. Also requires **`symfony/security-bundle`** unless **`allow_unauthenticated: true`**. |
+| `missing_translation_log.web_ui.enabled` | `bool` | `false` | When **`true`** (and the log is enabled), registers **`MissingTranslationLogUiController`** and runs **`TwigPathsPass`**: if **`templates/bundles/NowoTranslationYamlToolsBundle/`** exists, that path is prepended on the native Twig loader with namespace **`NowoTranslationYamlToolsBundle`**, then the bundle **`src/Resources/views`** path is appended with the same namespace so overrides win without **`twig.paths`** (see [USAGE](USAGE.md#overriding-templates-req-twig-001)). Requires **`symfony/twig-bundle`**. Also requires **`symfony/security-bundle`** unless **`security.allow_unauthenticated: true`**. |
 | `missing_translation_log.web_ui.path_prefix` | `string` | `/_translation_yaml_tools/missing-log` | URL prefix for the routes you import (must start with **`/`**). Use a **trailing slash** on the list URL if your router enforces strict trailing slashes. |
 | `missing_translation_log.web_ui.layout_template` | `string` | `@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig` | Twig layout extended by **`missing_translation_log/base.html.twig`**. Exposed as Twig global **`nowo_translation_yaml_tools_missing_log_layout_template`**. Use **`.../layout_integrate_dashboard_menu.html.twig`** or **`.../layout_integrate_breadcrumb_kit.html.twig`** to align with those dashboards. |
-| `missing_translation_log.web_ui.required_role` | `string\|null` | `ROLE_ADMIN` | When the Web UI is enabled and **`security.authorization_checker`** is available, **`MissingLogUiAccessSubscriber`** requires this role for routes named **`nowo_translation_yaml_tools_missing_log_*`**. Set **`null`** to skip bundle-level checks (rely on your firewall / **`access_control`** only). |
-| `missing_translation_log.web_ui.allow_unauthenticated` | `bool` | `false` | **Dev/demo only.** When **`false`** (default), enabling the Web UI without **`security.authorization_checker`** fails container compilation. Set **`true`** only for local demos/tests that intentionally omit SecurityBundle — **never in production**. |
+| `missing_translation_log.web_ui.security.access_roles` | `list<string>` | `[ROLE_ADMIN]` | User must be granted **at least one** role for **`nowo_translation_yaml_tools_missing_log_*`** routes (REQ-UI-002). Empty list disables bundle-level role checks (firewall / custom checker only). |
+| `missing_translation_log.web_ui.security.access_checker` | `string\|null` | `null` | Optional service id implementing **`MissingLogUiAccessCheckerInterface`**. **`null`** = built-in role checker (`ConfigurableMissingLogUiAccessChecker`). |
+| `missing_translation_log.web_ui.security.allow_unauthenticated` | `bool` | `false` | **Dev/demo only.** When **`false`** (default), enabling the Web UI without **`security.authorization_checker`** fails container compilation. Set **`true`** only for local demos/tests that intentionally omit SecurityBundle — **never in production**. |
+| `missing_translation_log.web_ui.required_role` | `string\|null` | `ROLE_ADMIN` | **Deprecated BC alias.** Mapped to **`security.access_roles`** (`null` / empty → empty list). Prefer **`security.access_roles`**. |
+| `missing_translation_log.web_ui.allow_unauthenticated` | `bool` | `false` | **Deprecated BC alias** for **`security.allow_unauthenticated`**. |
 
 Example:
 
@@ -68,8 +71,10 @@ nowo_translation_yaml_tools:
         web_ui:
             enabled: true
             path_prefix: '/_translation_yaml_tools/missing-log'
-            required_role: ROLE_ADMIN
-            # allow_unauthenticated: false   # default; never true in production
+            security:
+                access_roles: [ROLE_ADMIN]
+                # access_checker: App\Security\MissingLogUiAccessChecker
+                # allow_unauthenticated: false   # default; never true in production
 ```
 
 3. Create the table (migrations / `doctrine:schema:update` in dev only). Entity: **`Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog`**; table name follows **`{table_prefix}missing_log`**. The bundle metadata adds a **unique** constraint on **`message_id`**, **`domain`**, and **`locale`**. From **0.3.2** onward, **`persistBuffer`** is duplicate-safe for concurrent flushes. From **0.3.3** onward, statements resolve **physical column names** from Doctrine class metadata. From **1.2.1** onward, MySQL/MariaDB and SQLite/PostgreSQL use a **native UPSERT** (no **`SQLSTATE[23000]`** / **1062** exception on conflict); other platforms use **UPDATE-then-INSERT** with a race catch. On conflict the row increments **`hit_count`**, refreshes **`last_seen_at`**, and updates optional context columns (**`call_site`**, **`request_route`**, **`request_method`**, **`request_path`**) when the new value is non-null.
@@ -95,7 +100,7 @@ framework:
 
 Also install **`symfony/security-csrf`** (and enable **`session`** if you do not already) so the **`csrf_token()`** Twig function is available.
 
-6. **SecurityBundle (required for the Web UI in real apps):** install **`symfony/security-bundle`**. Without it, container compilation fails unless you explicitly set **`allow_unauthenticated: true`** (demos/tests only). Recommended **`access_control`**:
+6. **SecurityBundle (required for the Web UI in real apps):** install **`symfony/security-bundle`**. Without it, container compilation fails unless you explicitly set **`security.allow_unauthenticated: true`** (demos/tests only). Recommended **`access_control`**:
 
 ```yaml
 # config/packages/security.yaml (fragment)
@@ -104,7 +109,7 @@ security:
         - { path: ^/_translation_yaml_tools, roles: ROLE_ADMIN }
 ```
 
-Adjust the path to match **`web_ui.path_prefix`**. Bundle-level **`required_role`** (default **`ROLE_ADMIN`**) is enforced by **`MissingLogUiAccessSubscriber`** in addition to your firewall.
+Adjust the path to match **`web_ui.path_prefix`**. Bundle-level **`security.access_roles`** (default **`[ROLE_ADMIN]`**) is enforced by **`MissingLogUiAccessSubscriber`** / **`MissingLogUiAccessCheckerInterface`** in addition to your firewall. Legacy **`required_role`** / top-level **`allow_unauthenticated`** still work as BC aliases.
 
 7. **Optional deferred flush** (the response is usually already sent before **`kernel.terminate`**; this further decouples *how* you persist):
    - **`async_persist_strategy: messenger`** (default when **`async_persist: true`**): install **`symfony/messenger`**, route **`MissingTranslationBufferMessage`** to an async transport; the bundle registers **`PersistMissingTranslationBufferMessageHandler`** when Messenger is available.

@@ -39,9 +39,12 @@ final class TranslationYamlFileHandler
         }
 
         $size = filesize($path);
+        // After is_file(), filesize() failing is not reproducible on normal filesystems / stream wrappers.
+        // @codeCoverageIgnoreStart
         if ($size === false) {
             throw new InvalidArgumentException(sprintf('Cannot read file size: %s', $path));
         }
+        // @codeCoverageIgnoreEnd
         if ($size > $this->maxFileBytes) {
             throw new InvalidArgumentException(sprintf('Translation YAML exceeds max size (%d bytes > %d): %s', $size, $this->maxFileBytes, $path));
         }

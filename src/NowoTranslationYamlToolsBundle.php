@@ -32,9 +32,12 @@ final class NowoTranslationYamlToolsBundle extends Bundle
             $this->extension = new NowoTranslationYamlToolsExtension();
         }
 
+        // Typed Bundle::$extension cannot hold a non-ExtensionInterface value on PHP 8.2+.
+        // @codeCoverageIgnoreStart
         if (!$this->extension instanceof ExtensionInterface) {
             throw new LogicException('Bundle extension must implement ExtensionInterface.');
         }
+        // @codeCoverageIgnoreEnd
 
         return $this->extension;
     }

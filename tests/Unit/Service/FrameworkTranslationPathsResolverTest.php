@@ -232,4 +232,23 @@ final class FrameworkTranslationPathsResolverTest extends TestCase
         $resolver = new FrameworkTranslationPathsResolver($kernel, $bag);
         self::assertContains($extra, $resolver->resolveTranslationDirectories());
     }
+
+    public function testItSkipsOversizedTranslationConfigFiles(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_fw_big_' . uniqid();
+        mkdir($project . '/config/packages', 0777, true);
+        mkdir($project . '/translations', 0777, true);
+        $hugePath = $project . '/config/packages/translation.yaml';
+        $payload  = "framework:\n  translator:\n    paths:\n      - " . $project . "/from_huge\n";
+        // Exceed DEFAULT_MAX_FILE_BYTES so pathsFromFrameworkYaml skips the file (line with filesize check).
+        file_put_contents($hugePath, str_repeat('#', 2_097_153) . "\n" . $payload);
+
+        $kernel = $this->createMock(KernelInterface::class);
+        $kernel->method('getProjectDir')->willReturn($project);
+        $bag      = new ParameterBag(['kernel.project_dir' => $project]);
+        $resolver = new FrameworkTranslationPathsResolver($kernel, $bag);
+        $dirs     = $resolver->resolveTranslationDirectories();
+        self::assertSame([$project . '/translations'], $dirs);
+        self::assertNotContains($project . '/from_huge', $dirs);
+    }
 }

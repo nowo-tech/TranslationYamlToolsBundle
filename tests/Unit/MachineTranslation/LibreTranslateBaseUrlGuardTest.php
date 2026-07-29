@@ -50,4 +50,28 @@ final class LibreTranslateBaseUrlGuardTest extends TestCase
         $this->expectExceptionMessage('userinfo');
         $guard->assertAllowed('https://user:pass@libretranslate.com');
     }
+
+    public function testRejectsInvalidUrl(): void
+    {
+        $guard = new LibreTranslateBaseUrlGuard(['libretranslate.com']);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid LibreTranslate base URL');
+        $guard->assertAllowed('not-a-url');
+    }
+
+    public function testRejectsEmptyOrDotDotHost(): void
+    {
+        $guard = new LibreTranslateBaseUrlGuard(['libretranslate.com']);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid LibreTranslate host');
+        $guard->assertAllowed('https://evil..example');
+    }
+
+    public function testRejectsWhenAllowedHostsEmpty(): void
+    {
+        $guard = new LibreTranslateBaseUrlGuard([]);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('libretranslate_allowed_hosts is empty');
+        $guard->assertAllowed('https://libretranslate.com');
+    }
 }

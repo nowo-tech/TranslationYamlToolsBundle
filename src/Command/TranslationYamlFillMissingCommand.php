@@ -16,6 +16,7 @@ use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -108,7 +109,7 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
             if (!$input->isInteractive()) {
                 throw new RuntimeException('Non-interactive mode requires --domain.');
             }
-            /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
+            /** @var QuestionHelper $helper */
             $helper = $this->getHelper('question');
             $domain = (string) $helper->ask($input, $output, new ChoiceQuestion('Select domain: ', $this->catalog->listDomains()));
         }
@@ -130,7 +131,7 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
             if (!$input->isInteractive()) {
                 throw new RuntimeException('Non-interactive mode requires --target-locale.');
             }
-            /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
+            /** @var QuestionHelper $helper */
             $helper       = $this->getHelper('question');
             $question     = new Question(sprintf('Target locale to fill (source is %s): ', $sourceLocale));
             $targetLocale = (string) $helper->ask($input, $output, $question);
@@ -348,9 +349,11 @@ final class TranslationYamlFillMissingCommand extends AbstractTranslationYamlCom
             throw new RuntimeException(sprintf('Cannot create translation directory: %s', $parent));
         }
         $realParent = realpath($parent);
+        // @codeCoverageIgnoreStart
         if ($realParent === false) {
             throw new RuntimeException(sprintf('Cannot resolve translation directory for: %s', $path));
         }
+        // @codeCoverageIgnoreEnd
 
         foreach ($allowedRoots as $root) {
             if ($realParent === $root || str_starts_with($realParent, $root . DIRECTORY_SEPARATOR)) {

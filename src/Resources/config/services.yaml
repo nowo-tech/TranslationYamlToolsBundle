@@ -20,6 +20,7 @@ services:
             - '../../Doctrine/'
             - '../../Twig/'
             - '../../EventSubscriber/'
+            - '../../Security/'
 
     Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper:
         arguments:
