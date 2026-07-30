@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-30
+
+### Added
+
+- **REQ-UI-001 `missing_translation_log.web_ui.css_framework`** — enum (`bootstrap5` default; also `bootstrap` / `bootstrap4` / `tabler` / `tailwind` / `foundation` / `custom` / `none`). Container parameter and Twig global **`nowo_translation_yaml_tools_css_framework`**. Default layout loads Bootstrap 5 CDN when the value is Bootstrap/Tabler-compatible; use `custom` (or match the host) with DashboardMenu / BreadcrumbKit / project layouts.
+
+### Changed
+
+- Missing-log **`base.html.twig`** stacks `stylesheets` / `javascripts` with **`{{ parent() }}`** so host / bridge layouts keep their assets (REQ-UI-001).
+- Default **`layout.html.twig`**: `nowo-ui-css-*` / `data-css-framework` on `<html>`; CDN gated by `css_framework`.
+
+### Documentation
+
+- **[CONFIGURATION](CONFIGURATION.md)** / **[USAGE](USAGE.md):** `css_framework`, layout without forking, freeze rule for Twig overrides.
+- **[UPGRADING](UPGRADING.md)** section **To 1.3.0**.
+
 ## [1.2.3] - 2026-07-29
 
 ### Security

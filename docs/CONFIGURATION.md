@@ -28,6 +28,7 @@
 | `missing_translation_log.web_ui.enabled` | `bool` | `false` | When **`true`** (and the log is enabled), registers **`MissingTranslationLogUiController`** and runs **`TwigPathsPass`**: if **`templates/bundles/NowoTranslationYamlToolsBundle/`** exists, that path is prepended on the native Twig loader with namespace **`NowoTranslationYamlToolsBundle`**, then the bundle **`src/Resources/views`** path is appended with the same namespace so overrides win without **`twig.paths`** (see [USAGE](USAGE.md#overriding-templates-req-twig-001)). Requires **`symfony/twig-bundle`**. Also requires **`symfony/security-bundle`** unless **`security.allow_unauthenticated: true`**. |
 | `missing_translation_log.web_ui.path_prefix` | `string` | `/_translation_yaml_tools/missing-log` | URL prefix for the routes you import (must start with **`/`**). Use a **trailing slash** on the list URL if your router enforces strict trailing slashes. |
 | `missing_translation_log.web_ui.layout_template` | `string` | `@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig` | Twig layout extended by **`missing_translation_log/base.html.twig`**. Exposed as Twig global **`nowo_translation_yaml_tools_missing_log_layout_template`**. Use **`.../layout_integrate_dashboard_menu.html.twig`** or **`.../layout_integrate_breadcrumb_kit.html.twig`** to align with those dashboards. |
+| `missing_translation_log.web_ui.css_framework` | `string` | `bootstrap5` | Host CSS stack hint (REQ-UI-001): `bootstrap5`, `bootstrap`, `bootstrap4`, `tabler`, `tailwind`, `foundation`, `custom`, `none`. Twig global **`nowo_translation_yaml_tools_css_framework`**. Demo layout loads Bootstrap 5 CDN when the value is Bootstrap/Tabler-compatible. |
 | `missing_translation_log.web_ui.security.access_roles` | `list<string>` | `[ROLE_ADMIN]` | User must be granted **at least one** role for **`nowo_translation_yaml_tools_missing_log_*`** routes (REQ-UI-002). Empty list disables bundle-level role checks (firewall / custom checker only). |
 | `missing_translation_log.web_ui.security.access_checker` | `string\|null` | `null` | Optional service id implementing **`MissingLogUiAccessCheckerInterface`**. **`null`** = built-in role checker (`ConfigurableMissingLogUiAccessChecker`). |
 | `missing_translation_log.web_ui.security.allow_unauthenticated` | `bool` | `false` | **Dev/demo only.** When **`false`** (default), enabling the Web UI without **`security.authorization_checker`** fails container compilation. Set **`true`** only for local demos/tests that intentionally omit SecurityBundle — **never in production**. |
@@ -71,6 +72,7 @@ nowo_translation_yaml_tools:
         web_ui:
             enabled: true
             path_prefix: '/_translation_yaml_tools/missing-log'
+            css_framework: bootstrap5   # or: tailwind | foundation | custom | …
             security:
                 access_roles: [ROLE_ADMIN]
                 # access_checker: App\Security\MissingLogUiAccessChecker

@@ -43,6 +43,7 @@ final class ConfigurationTest extends TestCase
                 'enabled'               => false,
                 'path_prefix'           => '/_translation_yaml_tools/missing-log',
                 'layout_template'       => '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig',
+                'css_framework'         => 'bootstrap5',
                 'required_role'         => 'ROLE_ADMIN',
                 'allow_unauthenticated' => false,
                 'security'              => [
@@ -52,6 +53,19 @@ final class ConfigurationTest extends TestCase
                 ],
             ],
         ], $config['missing_translation_log']);
+    }
+
+    public function testInvalidCssFrameworkRejected(): void
+    {
+        $processor = new Processor();
+        $this->expectException(InvalidConfigurationException::class);
+        $processor->processConfiguration(new Configuration(), [[
+            'missing_translation_log' => [
+                'web_ui' => [
+                    'css_framework' => 'material',
+                ],
+            ],
+        ]]);
     }
 
     public function testMissingTranslationLogFalseNormalizesToDisabledDefaults(): void

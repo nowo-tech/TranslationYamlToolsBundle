@@ -2,7 +2,14 @@
 
 ## 1.x
 
-This line is **1.2.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
+This line is **1.3.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
+
+## To 1.3.0 (from 1.2.3)
+
+- **Optional (REQ-UI-001):** set **`missing_translation_log.web_ui.css_framework`** to match the host CSS stack. Default remains **`bootstrap5`** (demo CDN). With a host / DashboardMenu / BreadcrumbKit layout, prefer **`custom`** (or the value that matches that shell) so Bootstrap CDN is not assumed.
+- Twig global: **`nowo_translation_yaml_tools_css_framework`**. Page shell stacks assets with **`{{ parent() }}`** — no YAML change required for existing installs that keep defaults.
+- Prefer **`layout_template`** / **`css_framework`** over full-file Twig freezes (see [USAGE](USAGE.md#overriding-templates-req-twig-001)).
+- Upgrade with **`composer update nowo-tech/translation-yaml-tools-bundle`** (constraint **`^1.2`** already allows **1.3.0**; prefer **`^1.3`** if you want this line explicitly).
 
 ## To 1.2.3 (from 1.2.2)
 

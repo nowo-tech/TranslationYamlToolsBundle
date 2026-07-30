@@ -155,6 +155,8 @@ When **`missing_translation_log.record_request_context`** is **`true`** (default
 
 The bundle registers the Twig namespace **`@NowoTranslationYamlToolsBundle/`** only when the Web UI is enabled. **`TwigPathsPass`** maps the Symfony override directory **`templates/bundles/NowoTranslationYamlToolsBundle/`** to that namespace with **`prependPath()`** when the folder exists, then registers the bundle **`src/Resources/views`** path with **`addPath()`**, so your app copies are tried before the vendor templates. You do not need entries in **`config/packages/twig.yaml`** for this.
 
+**Freeze rule:** a full-file override hides vendor updates for that `<subpath>` until you delete or manually merge it. Prefer **`missing_translation_log.web_ui.layout_template`** / **`css_framework`** (and host / bridge layouts) over copying every missing-log page; override only the one file you customise.
+
 **Procedure (app):**
 
 1. Take the template path relative to the bundle views root (the **`<subpath>`** below).
@@ -179,7 +181,18 @@ templates/bundles/NowoTranslationYamlToolsBundle/missing_translation_log/index.h
 | `missing_translation_log/layout_integrate_dashboard_menu.html.twig` | Bridge extending **NowoDashboardMenuBundle** dashboard layout (optional). |
 | `missing_translation_log/layout_integrate_breadcrumb_kit.html.twig` | Bridge extending **NowoBreadcrumbKitBundle** dashboard layout (optional). |
 
-**Layout without copying files:** set **`missing_translation_log.web_ui.layout_template`** to your app layout or to one of the bridge templates above; the Twig global **`nowo_translation_yaml_tools_missing_log_layout_template`** mirrors that value for use in custom templates.
+**Layout without copying files:** set **`missing_translation_log.web_ui.layout_template`** to your app layout or to one of the bridge templates above; the Twig global **`nowo_translation_yaml_tools_missing_log_layout_template`** mirrors that value for use in custom templates. The page shell (`base.html.twig`) stacks `stylesheets` / `javascripts` with `{{ parent() }}` (REQ-UI-001).
+
+**`css_framework` (REQ-UI-001):** set **`missing_translation_log.web_ui.css_framework`** to match the host stack (`bootstrap5` default, or `tailwind` / `foundation` / `custom` / …). Twig global: **`nowo_translation_yaml_tools_css_framework`**. When using a host / DashboardMenu / BreadcrumbKit layout, set `custom` (or match that shell) so the standalone Bootstrap CDN is not assumed.
+
+```yaml
+nowo_translation_yaml_tools:
+    missing_translation_log:
+        web_ui:
+            enabled: true
+            css_framework: bootstrap5
+            # layout_template: '@NowoTranslationYamlToolsBundle/missing_translation_log/layout_integrate_dashboard_menu.html.twig'
+```
 
 ## Symfony 8 demo
 

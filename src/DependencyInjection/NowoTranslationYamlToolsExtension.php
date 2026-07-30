@@ -113,6 +113,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $webUiEnabled         = (bool) ($webUi['enabled'] ?? false);
         $webUiPathPrefix      = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
         $webUiLayoutTemplate  = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
+        $webUiCssFramework    = (string) ($webUi['css_framework'] ?? 'bootstrap5');
         $security             = is_array($webUi['security'] ?? null) ? $webUi['security'] : [];
         /** @var list<string> $accessRoles */
         $accessRoles = [];
@@ -136,6 +137,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled', $webUiEnabled);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.path_prefix', $webUiPathPrefix);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template', $webUiLayoutTemplate);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.css_framework', $webUiCssFramework);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role', $webUiRequiredRoleBc);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.allow_unauthenticated', $webUiAllowUnauthenticated);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.security.access_roles', $accessRoles);

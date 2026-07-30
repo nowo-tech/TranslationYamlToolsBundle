@@ -10,3 +10,4 @@ services:
     Nowo\TranslationYamlToolsBundle\Twig\MissingTranslationLogExtension:
         arguments:
             $layoutTemplate: '%nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template%'
+            $cssFramework: '%nowo_translation_yaml_tools.missing_translation_log.web_ui.css_framework%'

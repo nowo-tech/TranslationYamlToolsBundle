@@ -1,5 +1,14 @@
 {% extends nowo_translation_yaml_tools_missing_log_layout_template|default('@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig') %}
 
+{# REQ-UI-001: stack host assets when layout_template points at the project / a bridge. #}
+{% block stylesheets %}
+    {{ parent() }}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+{% endblock %}
+
 {% block nowo_translation_yaml_tools_missing_log_content %}
     {% for msg in app.flashes('success') %}
         <div class="alert alert-success alert-dismissible fade show" role="alert">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>
