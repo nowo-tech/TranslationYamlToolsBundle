@@ -19,6 +19,7 @@ use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Messenger\MessageBusInterface;
 
+use function array_key_exists;
 use function dirname;
 use function is_array;
 use function is_string;
@@ -48,6 +49,55 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
             ]);
         }
 
+        $this->prependUiKitDefaults($container);
+    }
+
+    /**
+     * When UiKit is installed, seed nowo_ui_kit from missing_translation_log.web_ui
+     * so kit macros resolve the same stack. Does not override keys the host already set.
+     */
+    private function prependUiKitDefaults(ContainerBuilder $container): void
+    {
+        if (!$container->hasExtension('nowo_ui_kit')) {
+            return;
+        }
+
+        $hostHasCssFramework = false;
+        $hostHasIconSet      = false;
+        foreach ($container->getExtensionConfig('nowo_ui_kit') as $cfg) {
+            if (!is_array($cfg)) {
+                continue;
+            }
+            if (array_key_exists('css_framework', $cfg)) {
+                $hostHasCssFramework = true;
+            }
+            if (array_key_exists('icon_set', $cfg)) {
+                $hostHasIconSet = true;
+            }
+        }
+
+        if ($hostHasCssFramework && $hostHasIconSet) {
+            return;
+        }
+
+        $config  = $this->processConfiguration(new Configuration(), $container->getExtensionConfig($this->getAlias()));
+        $webUi   = is_array($config['missing_translation_log']['web_ui'] ?? null)
+            ? $config['missing_translation_log']['web_ui']
+            : [];
+        $defaults = [];
+
+        if (!$hostHasCssFramework) {
+            $fw = (string) ($webUi['css_framework'] ?? 'bootstrap5');
+            $defaults['css_framework'] = $fw === 'bootstrap' ? 'bootstrap5' : $fw;
+        }
+        if (!$hostHasIconSet) {
+            $fwForIcons = (string) ($defaults['css_framework'] ?? $webUi['css_framework'] ?? 'bootstrap5');
+            $defaults['icon_set'] = $fwForIcons === 'tabler' ? 'tabler-icons' : 'bootstrap-icons';
+        }
+
+        if ($defaults !== []) {
+            $container->prependExtensionConfig('nowo_ui_kit', $defaults);
+        }
     }
 
     /**

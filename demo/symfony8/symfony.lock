@@ -28,6 +28,9 @@
     "nowo-tech/twig-inspector-bundle": {
         "version": "v1.0.29"
     },
+    "nowo-tech/ui-kit-bundle": {
+        "version": "v1.4.0"
+    },
     "phpunit/phpunit": {
         "version": "11.5",
         "recipe": {
@@ -164,5 +167,8 @@
             "config/packages/web_profiler.yaml",
             "config/routes/web_profiler.yaml"
         ]
+    },
+    "twig/extra-bundle": {
+        "version": "v3.24.0"
     }
 }

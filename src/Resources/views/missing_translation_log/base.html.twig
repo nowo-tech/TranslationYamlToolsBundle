@@ -1,8 +1,10 @@
 {% extends nowo_translation_yaml_tools_missing_log_layout_template|default('@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig') %}
+{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
 
-{# REQ-UI-001: stack host assets when layout_template points at the project / a bridge. #}
+{# REQ-UI-001 / REQ-UI-001-kit: stack host assets when layout_template points at the project / a bridge. #}
 {% block stylesheets %}
     {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('css/nowo-ui.css', 'nowo_ui_kit') }}">
 {% endblock %}
 
 {% block javascripts %}
