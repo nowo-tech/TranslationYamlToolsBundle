@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-08-07
+
+### Fixed
+
+- **CI:** register `NowoUiKitBundle` in missing-translation-log test fixture `bundles.php` so Twig can resolve `@NowoUiKitBundle` macros.
+
+[1.4.1]: https://github.com/nowo-tech/TranslationYamlToolsBundle/releases/tag/v1.4.1
+
+
 ## [1.4.0] - 2026-08-04
 
 ### Added

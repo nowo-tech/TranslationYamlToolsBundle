@@ -1,5 +1,14 @@
 # Upgrading
 
+## To 1.4.1
+
+From **1.4.0** — test fixture only (UiKit in missing-log kernel). No host migration.
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
+
+
 ## 1.x
 
 This line is **1.3.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
