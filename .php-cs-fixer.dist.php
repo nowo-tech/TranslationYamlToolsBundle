@@ -98,6 +98,7 @@ return (new Config())
             ->in(__DIR__ . '/src')
             ->in(__DIR__ . '/tests')
             ->exclude(['Fixtures'])
+            ->notName('reference.php')
             ->exclude(['vendor', 'var', 'coverage', '.phpunit.cache'])
             ->files()
     );
