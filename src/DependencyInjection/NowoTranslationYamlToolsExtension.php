@@ -80,18 +80,18 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
             return;
         }
 
-        $config  = $this->processConfiguration(new Configuration(), $container->getExtensionConfig($this->getAlias()));
-        $webUi   = is_array($config['missing_translation_log']['web_ui'] ?? null)
+        $config = $this->processConfiguration(new Configuration(), $container->getExtensionConfig($this->getAlias()));
+        $webUi  = is_array($config['missing_translation_log']['web_ui'] ?? null)
             ? $config['missing_translation_log']['web_ui']
             : [];
         $defaults = [];
 
         if (!$hostHasCssFramework) {
-            $fw = (string) ($webUi['css_framework'] ?? 'bootstrap5');
+            $fw                        = (string) ($webUi['css_framework'] ?? 'bootstrap5');
             $defaults['css_framework'] = $fw === 'bootstrap' ? 'bootstrap5' : $fw;
         }
         if (!$hostHasIconSet) {
-            $fwForIcons = (string) ($defaults['css_framework'] ?? $webUi['css_framework'] ?? 'bootstrap5');
+            $fwForIcons           = (string) ($defaults['css_framework'] ?? $webUi['css_framework'] ?? 'bootstrap5');
             $defaults['icon_set'] = $fwForIcons === 'tabler' ? 'tabler-icons' : 'bootstrap-icons';
         }
 
