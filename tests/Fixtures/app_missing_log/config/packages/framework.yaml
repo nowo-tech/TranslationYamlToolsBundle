@@ -12,3 +12,6 @@ framework:
     translator:
         default_path: '%kernel.project_dir%/translations'
         fallbacks: [en]
+    cache:
+        app: cache.adapter.array
+        system: cache.adapter.array

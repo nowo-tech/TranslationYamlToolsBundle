@@ -23,6 +23,7 @@ use stdClass;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -402,5 +403,107 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         ]);
 
         self::assertTrue($reflection->invoke(new NowoTranslationYamlToolsExtension(), $container));
+    }
+
+    public function testPrependSeedsUiKitFromWebUiWhenHostUnset(): void
+    {
+        $container = new ContainerBuilder();
+        $this->registerStubExtension($container, 'nowo_ui_kit');
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+        $container->loadFromExtension('nowo_translation_yaml_tools', [
+            'missing_translation_log' => [
+                'web_ui' => ['css_framework' => 'bootstrap'],
+            ],
+        ]);
+
+        $extension->prepend($container);
+
+        $found = false;
+        foreach ($container->getExtensionConfig('nowo_ui_kit') as $cfg) {
+            if (($cfg['css_framework'] ?? null) === 'bootstrap5'
+                && ($cfg['icon_set'] ?? null) === 'bootstrap-icons'
+            ) {
+                $found = true;
+                break;
+            }
+        }
+        self::assertTrue($found);
+    }
+
+    public function testPrependUiKitDoesNotOverrideHostCssAndIcon(): void
+    {
+        $container = new ContainerBuilder();
+        $this->registerStubExtension($container, 'nowo_ui_kit');
+        $container->prependExtensionConfig('nowo_ui_kit', [
+            'css_framework' => 'none',
+            'icon_set'      => 'none',
+        ]);
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+
+        $extension->prepend($container);
+
+        $seeded = false;
+        foreach ($container->getExtensionConfig('nowo_ui_kit') as $cfg) {
+            if (is_array($cfg) && ($cfg['css_framework'] ?? null) === 'bootstrap5') {
+                $seeded = true;
+            }
+        }
+        self::assertFalse($seeded);
+    }
+
+    public function testPrependUiKitSeedsTablerIcons(): void
+    {
+        $container = new ContainerBuilder();
+        $this->registerStubExtension($container, 'nowo_ui_kit');
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+        $container->loadFromExtension('nowo_translation_yaml_tools', [
+            'missing_translation_log' => [
+                'web_ui' => ['css_framework' => 'tabler'],
+            ],
+        ]);
+
+        $extension->prepend($container);
+
+        $found = false;
+        foreach ($container->getExtensionConfig('nowo_ui_kit') as $cfg) {
+            if (($cfg['css_framework'] ?? null) === 'tabler'
+                && ($cfg['icon_set'] ?? null) === 'tabler-icons'
+            ) {
+                $found = true;
+                break;
+            }
+        }
+        self::assertTrue($found);
+    }
+
+    private function registerStubExtension(ContainerBuilder $container, string $alias): void
+    {
+        $container->registerExtension(new class($alias) implements ExtensionInterface {
+            public function __construct(private readonly string $extensionAlias)
+            {
+            }
+
+            public function load(array $configs, ContainerBuilder $container): void
+            {
+            }
+
+            public function getNamespace(): string
+            {
+                return '';
+            }
+
+            public function getXsdValidationBasePath(): string|false
+            {
+                return false;
+            }
+
+            public function getAlias(): string
+            {
+                return $this->extensionAlias;
+            }
+        });
     }
 }
