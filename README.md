@@ -19,11 +19,15 @@ This bundle is **FrankenPHP worker mode friendly**.
 - **`nowo:translation-yaml:sort`** — recursive alphabetical sort of associative keys.
 - **`nowo:translation-yaml:fill-missing`** — merges missing keys into a target locale using the configured machine translator (Google, DeepL, or LibreTranslate); optional `--tree` output with the same validation as the tree command.
 - **`nowo:translation-yaml:audit`** — read-only report: tree-safe YAML, alphabetical key order, missing keys vs source locale; compact **OK** line per domain when everything passes.
+- **Missing translation log** (opt-in `missing_translation_log`): persist keys that Twig/PHP requested but were missing, with a **Web UI** and CLI:
+  - **`nowo:translation-yaml:missing-log-list`**
+  - **`nowo:translation-yaml:missing-log-mark-added`**
+  - **`nowo:translation-yaml:missing-log-validate`**
 - Configurable **YAML indent** (`yaml_tree_indent`) and **leaf-prefix suffix** (`yaml_tree_leaf_prefix_suffix` for `tree --fix-leaf-prefix`) for dumps / renames.
 
 ## Version information
 
-**1.2.3** is the current stable **1.x** release (PHP **8.2+**, Symfony **7+** / **8.x**). See [UPGRADING](docs/UPGRADING.md) when moving from **1.2.2**, **1.2.1**, **1.2.0**, **1.1.x**, or earlier.
+**1.4.1** is the current stable **1.x** release (PHP **8.2+**, Symfony **7+** / **8.x**). See [UPGRADING](docs/UPGRADING.md) when moving from **1.4.0**, **1.3.x**, **1.2.x**, or earlier.
 
 See [SECURITY POLICY](https://github.com/nowo-tech/TranslationYamlToolsBundle/security/policy) for supported versions.
 
