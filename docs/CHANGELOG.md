@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-08-18
+
+### Changed
+
+- **Demos:** pin `nowo-tech/hot-reload-bundle` to `^1.4` with FrankenPHP Mercure/`hot_reload` (`dev`/`test` only).
+
+[1.4.2]: https://github.com/nowo-tech/TranslationYamlToolsBundle/releases/tag/v1.4.2
+
 ## [1.4.1] - 2026-08-07
 
 ### Fixed
