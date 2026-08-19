@@ -1,5 +1,14 @@
 # Upgrading
 
+## To 1.4.3
+
+No application upgrade steps.
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+php bin/console cache:clear
+```
+
 ## To 1.4.2
 
 No application upgrade steps. **Demos only:** Hot Reload Bundle `^1.4` (FrankenPHP Mercure/`hot_reload`, `dev`/`test`).

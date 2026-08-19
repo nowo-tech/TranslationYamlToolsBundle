@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-08-19
+
+### Security
+
+- **CI:** run `composer audit --locked` after dependency install (REQ-SEC / P3).
+
+[1.4.3]: https://github.com/nowo-tech/TranslationYamlToolsBundle/releases/tag/v1.4.3
+
 ## [1.4.2] - 2026-08-18
 
 ### Changed
