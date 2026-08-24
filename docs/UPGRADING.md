@@ -1,5 +1,27 @@
 # Upgrading
 
+## Table of contents
+
+- [From 1.4.3 to 1.4.4](#from-143-to-144)
+
+## From 1.4.3 to 1.4.4
+
+No breaking changes. **No application upgrade steps.**
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
+
+## From 1.4.3 to 1.4.4
+
+No breaking changes. **No application upgrade steps.**
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
+
+# Upgrading
+
 ## To 1.4.3
 
 No application upgrade steps.
