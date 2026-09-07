@@ -27,6 +27,8 @@ use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Messenger\MessageBusInterface;
 
+use function is_array;
+
 #[CoversClass(NowoTranslationYamlToolsExtension::class)]
 final class NowoTranslationYamlToolsExtensionTest extends TestCase
 {
