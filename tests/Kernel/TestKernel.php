@@ -8,8 +8,6 @@ use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 
-use function dirname;
-
 /**
  * Minimal kernel for integration tests (project dir: tests/Fixtures/app).
  */
@@ -22,7 +20,7 @@ final class TestKernel extends Kernel
      */
     public function getProjectDir(): string
     {
-        return dirname(__DIR__) . '/Fixtures/app';
+        return __DIR__ . '/../Fixtures/app';
     }
 
     /**

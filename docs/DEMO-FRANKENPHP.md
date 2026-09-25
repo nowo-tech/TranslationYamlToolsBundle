@@ -44,4 +44,4 @@ Compose passes `FRANKENPHP_MODE=${FRANKENPHP_MODE:-worker}` into the PHP service
 
 ## FrankenPHP worker mode
 
-FrankenPHP worker mode: Supported (see production Caddyfile in each demo; dev uses non-worker `Caddyfile.dev`).
+FrankenPHP worker mode is **supported**, including when the Symfony kernel is **not** reset between requests. The missing-translation log empties its request buffer on every flush, logs persistence errors instead of ending the worker loop, refreshes Web UI rows behind the Doctrine identity map, and detaches managed log entities after clear actions. Full review: [FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md). Production Caddyfile uses worker; `Caddyfile.dev` is classic mode.

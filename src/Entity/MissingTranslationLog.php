@@ -48,16 +48,16 @@ class MissingTranslationLog
     private ?string $notes = null;
 
     #[ORM\Column(name: 'call_site', length: 1024, nullable: true)]
-    private ?string $callSite = null;
+    private ?string $callSite;
 
     #[ORM\Column(name: 'request_route', length: 180, nullable: true)]
-    private ?string $requestRoute = null;
+    private ?string $requestRoute;
 
     #[ORM\Column(name: 'request_method', length: 8, nullable: true)]
-    private ?string $requestMethod = null;
+    private ?string $requestMethod;
 
     #[ORM\Column(name: 'request_path', length: 2048, nullable: true)]
-    private ?string $requestPath = null;
+    private ?string $requestPath;
 
     public function __construct(
         string $messageId,

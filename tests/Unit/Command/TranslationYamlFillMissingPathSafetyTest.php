@@ -60,12 +60,10 @@ final class TranslationYamlFillMissingPathSafetyTest extends TestCase
         $blocker = tempnam(sys_get_temp_dir(), 'tyt_fill_block_');
         self::assertNotFalse($blocker);
 
-        $cmd      = $this->command($this->createMock(FrameworkTranslationPathsResolver::class));
-        $previous = error_reporting(0);
+        $cmd = $this->command($this->createMock(FrameworkTranslationPathsResolver::class));
         try {
-            $this->assertPath($cmd, $allowed . '/messages.de.yaml', ['', $blocker . '/impossible', $allowed]);
+            @$this->assertPath($cmd, $allowed . '/messages.de.yaml', ['', $blocker . '/impossible', $allowed]);
         } finally {
-            error_reporting($previous);
             @unlink($blocker);
         }
         self::assertTrue(is_dir($allowed));
@@ -73,18 +71,19 @@ final class TranslationYamlFillMissingPathSafetyTest extends TestCase
 
     public function testCreatesCwdTranslationsFallbackWhenNoRootsResolve(): void
     {
-        $project = sys_get_temp_dir() . '/tyt_fill_cwd_' . uniqid('', true);
-        mkdir($project, 0777, true);
-        $previous = getcwd();
-        self::assertNotFalse($previous);
+        $cwd = getcwd();
+        self::assertNotFalse($cwd);
+        $fallback = rtrim($cwd, '/') . '/translations';
+        $existed  = is_dir($fallback);
 
         try {
-            self::assertNotFalse(chdir($project));
             $cmd = $this->command($this->createMock(FrameworkTranslationPathsResolver::class));
-            $this->assertPath($cmd, $project . '/translations/messages.de.yaml', []);
-            self::assertDirectoryExists($project . '/translations');
+            $this->assertPath($cmd, $fallback . '/messages.de.yaml', []);
+            self::assertDirectoryExists($fallback);
         } finally {
-            chdir($previous);
+            if (!$existed) {
+                @rmdir($fallback);
+            }
         }
     }
 
@@ -102,11 +101,9 @@ final class TranslationYamlFillMissingPathSafetyTest extends TestCase
         $cmd = $this->command($this->createMock(FrameworkTranslationPathsResolver::class));
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Cannot create translation directory');
-        $previous = error_reporting(0);
         try {
-            $this->assertPath($cmd, $blocker . '/nested/messages.de.yaml', [$allowed]);
+            @$this->assertPath($cmd, $blocker . '/nested/messages.de.yaml', [$allowed]);
         } finally {
-            error_reporting($previous);
             @unlink($blocker);
         }
     }

@@ -27,7 +27,7 @@ This bundle is **FrankenPHP worker mode friendly**.
 
 ## Version information
 
-**1.4.1** is the current stable **1.x** release (PHP **8.2+**, Symfony **7+** / **8.x**). See [UPGRADING](docs/UPGRADING.md) when moving from **1.4.0**, **1.3.x**, **1.2.x**, or earlier.
+**1.4.5** is the current stable **1.x** release (PHP **8.2+**, Symfony **7+** / **8.x**). See [UPGRADING](docs/UPGRADING.md) when moving from **1.4.4**, **1.4.x**, **1.3.x**, or earlier.
 
 See [SECURITY POLICY](https://github.com/nowo-tech/TranslationYamlToolsBundle/security/policy) for supported versions.
 
@@ -76,6 +76,7 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 
 - [Demos](demo/README.md)
 - [FrankenPHP demos](docs/DEMO-FRANKENPHP.md)
+- [FrankenPHP worker audit (no kernel.reset)](docs/FRANKENPHP-WORKER-AUDIT.md)
 
 ## Tests and coverage
 

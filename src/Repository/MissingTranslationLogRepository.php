@@ -13,21 +13,36 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ObjectManager;
+use LogicException;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
+use Throwable;
 
+use function array_keys;
+use function sprintf;
 use function strlen;
 
 /**
  * @extends ServiceEntityRepository<MissingTranslationLog>
  *
  * Not final so unit tests can mock {@see persistBuffer} via PHPUnit.
+ *
+ * Bundle methods resolve the entity manager per call and replace a closed one, and reads refresh managed rows
+ * ({@see Query::HINT_REFRESH}) because hit counts and deletions are written with DBAL behind the identity map.
+ * After DBAL deletes, managed {@see MissingTranslationLog} instances are detached.
+ * This keeps the Web UI correct in FrankenPHP worker mode even when {@code kernel.reset} does not run.
  */
 class MissingTranslationLogRepository extends ServiceEntityRepository
 {
+    private readonly ManagerRegistry $managerRegistry;
+
     public function __construct(ManagerRegistry $registry)
     {
+        $this->managerRegistry = $registry;
         parent::__construct($registry, MissingTranslationLog::class);
     }
 
@@ -36,34 +51,53 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
      */
     public function findByStatus(MissingTranslationLogStatus $status, int $limit = 500): array
     {
-        return $this->createQueryBuilder('l')
+        /** @var list<MissingTranslationLog> $rows */
+        $rows = $this->entityManager()->createQueryBuilder()
+            ->select('l')
+            ->from(MissingTranslationLog::class, 'l')
             ->andWhere('l.status = :status')
             ->setParameter('status', $status)
             ->orderBy('l.lastSeenAt', 'DESC')
             ->setMaxResults($limit)
             ->getQuery()
+            ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
+
+        return $rows;
     }
 
     public function findOneById(int $id): ?MissingTranslationLog
     {
-        return $this->find($id);
+        /** @var MissingTranslationLog|null $row */
+        $row = $this->entityManager()->createQueryBuilder()
+            ->select('l')
+            ->from(MissingTranslationLog::class, 'l')
+            ->andWhere('l.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->setHint(Query::HINT_REFRESH, true)
+            ->getOneOrNullResult();
+
+        return $row;
     }
 
     public function clearAll(): int
     {
-        $em         = $this->getEntityManager();
+        $em         = $this->entityManager();
         $connection = $em->getConnection();
         $meta       = $em->getClassMetadata(MissingTranslationLog::class);
         $tableName  = $meta->getTableName();
         $qTableName = $connection->quoteSingleIdentifier($tableName);
 
-        return (int) $connection->executeStatement("DELETE FROM {$qTableName}");
+        $deleted = (int) $connection->executeStatement("DELETE FROM {$qTableName}");
+        $this->detachManagedMissingLogs($em);
+
+        return $deleted;
     }
 
     public function clearByStatus(MissingTranslationLogStatus $status): int
     {
-        $em         = $this->getEntityManager();
+        $em         = $this->entityManager();
         $connection = $em->getConnection();
         $meta       = $em->getClassMetadata(MissingTranslationLog::class);
         $tableName  = $meta->getTableName();
@@ -71,21 +105,41 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $qTableName = $connection->quoteSingleIdentifier($tableName);
         $qStatus    = $connection->quoteSingleIdentifier($cStatus);
 
-        return (int) $connection->executeStatement(
+        $deleted = (int) $connection->executeStatement(
             "DELETE FROM {$qTableName} WHERE {$qStatus} = :status",
             ['status' => $status->value],
             ['status' => ParameterType::STRING],
         );
+        $this->detachManagedMissingLogs($em);
+
+        return $deleted;
     }
 
+    /**
+     * Flushes the manager; when the flush fails and closes it, the manager is reset before rethrowing
+     * so the next request of a long-running worker can use the ORM again.
+     */
     public function flush(): void
     {
-        $this->getEntityManager()->flush();
+        $em = $this->entityManager();
+
+        try {
+            $em->flush();
+        } catch (Throwable $e) {
+            if (!$em->isOpen()) {
+                $this->resetClosedManager($em);
+            }
+
+            throw $e;
+        }
     }
 
+    /**
+     * Clears the whole entity manager this entity belongs to. Not called by the bundle at runtime.
+     */
     public function clearManaged(): void
     {
-        $this->getEntityManager()->clear();
+        $this->entityManager()->clear();
     }
 
     /**
@@ -97,7 +151,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
             return;
         }
 
-        $em         = $this->getEntityManager();
+        $em         = $this->entityManager();
         $connection = $em->getConnection();
         $platform   = $connection->getDatabasePlatform();
         $now        = new DateTimeImmutable();
@@ -453,6 +507,45 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
             'requestMethod' => $row['requestMethod'] === null ? ParameterType::NULL : ParameterType::STRING,
             'requestPath'   => $row['requestPath'] === null ? ParameterType::NULL : ParameterType::STRING,
         ];
+    }
+
+    private function entityManager(): EntityManagerInterface
+    {
+        $em = $this->managerRegistry->getManagerForClass(MissingTranslationLog::class);
+        if ($em instanceof EntityManagerInterface && !$em->isOpen()) {
+            $this->resetClosedManager($em);
+            $em = $this->managerRegistry->getManagerForClass(MissingTranslationLog::class);
+        }
+
+        if (!$em instanceof EntityManagerInterface) {
+            throw new LogicException(sprintf('No Doctrine ORM entity manager is configured for "%s".', MissingTranslationLog::class));
+        }
+
+        return $em;
+    }
+
+    private function resetClosedManager(ObjectManager $closed): void
+    {
+        foreach (array_keys($this->managerRegistry->getManagerNames()) as $name) {
+            if ($this->managerRegistry->getManager($name) === $closed) {
+                $this->managerRegistry->resetManager($name);
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * Detaches managed {@see MissingTranslationLog} instances after a DBAL DELETE so a long-lived
+     * FrankenPHP worker identity map does not retain rows that no longer exist (Doctrine ORM 3 has no per-class clear).
+     */
+    private function detachManagedMissingLogs(EntityManagerInterface $em): void
+    {
+        /** @var array<class-string, array<string, object>> $identityMap */
+        $identityMap = $em->getUnitOfWork()->getIdentityMap();
+        foreach ($identityMap[MissingTranslationLog::class] ?? [] as $entity) {
+            $em->detach($entity);
+        }
     }
 
     private function normalizeMessageId(string $messageId): string

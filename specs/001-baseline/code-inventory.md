@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/translation-yaml-tools-bundle`  
-**Last audited**: 2026-07-07
+**Last audited**: 2026-09-25 (FrankenPHP worker / no `kernel.reset`)
 
 ## PHP classes (`src/**/*.php`)
 
@@ -35,7 +35,7 @@
 | `MachineTranslation/MachineTranslationLocaleMapper.php` | Locale mapping | FR-MT-003 |
 | `MachineTranslation/RoutingMachineTranslator.php` | MT router | FR-MT-004 |
 | `MissingTranslationLog/MissingTranslationRecorderInterface.php` | Recorder IF | FR-MLOG-001 |
-| `MissingTranslationLog/DoctrineMissingTranslationRecorder.php` | Doctrine recorder | FR-MLOG-001 |
+| `MissingTranslationLog/DoctrineMissingTranslationRecorder.php` | Doctrine recorder | FR-MLOG-001, FR-MLOG-010, FR-WORKER-001 |
 | `MissingTranslationLog/MissingTranslationBufferDoctrinePersistListener.php` | Event persist | FR-MLOG-004 |
 | `MissingTranslationLog/MissingTranslationBufferEvent.php` | Buffer event | FR-MLOG-004 |
 | `MissingTranslationLog/MissingTranslationBufferMessage.php` | Buffer message | FR-MLOG-004 |
@@ -47,7 +47,7 @@
 | `Entity/MissingTranslationLog.php` | Log entity | FR-MLOG-005 |
 | `Entity/MissingTranslationLogStatus.php` | Status enum | FR-MLOG-005 |
 | `Doctrine/MissingTranslationLogMetadataListener.php` | Table prefix | FR-MLOG-005 |
-| `Repository/MissingTranslationLogRepository.php` | Log repository | FR-MLOG-006 |
+| `Repository/MissingTranslationLogRepository.php` | Log repository | FR-MLOG-006, FR-WORKER-001 |
 | `Controller/MissingTranslationLogUiController.php` | Web UI controller | FR-MLOG-007 |
 | `EventSubscriber/MissingLogUiAccessSubscriber.php` | UI access guard | FR-MLOG-009 |
 | `Twig/MissingTranslationLogExtension.php` | Twig helpers | FR-MLOG-009 |

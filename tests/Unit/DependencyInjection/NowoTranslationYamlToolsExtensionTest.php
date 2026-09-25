@@ -19,6 +19,7 @@ use Nowo\TranslationYamlToolsBundle\Twig\MissingTranslationLogExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
+use ReflectionProperty;
 use stdClass;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -473,6 +474,33 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         foreach ($container->getExtensionConfig('nowo_ui_kit') as $cfg) {
             if (($cfg['css_framework'] ?? null) === 'tabler'
                 && ($cfg['icon_set'] ?? null) === 'tabler-icons'
+            ) {
+                $found = true;
+                break;
+            }
+        }
+        self::assertTrue($found);
+    }
+
+    public function testPrependUiKitIgnoresNonArrayHostConfigEntries(): void
+    {
+        $container = new ContainerBuilder();
+        $this->registerStubExtension($container, 'nowo_ui_kit');
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+
+        $property                 = new ReflectionProperty(ContainerBuilder::class, 'extensionConfigs');
+        $configs                  = $property->getValue($container);
+        $configs['nowo_ui_kit'][] = 'not-an-array';
+        $property->setValue($container, $configs);
+
+        $extension->prepend($container);
+
+        $found = false;
+        foreach ($container->getExtensionConfig('nowo_ui_kit') as $cfg) {
+            if (is_array($cfg)
+                && ($cfg['css_framework'] ?? null) === 'bootstrap5'
+                && ($cfg['icon_set'] ?? null) === 'bootstrap-icons'
             ) {
                 $found = true;
                 break;

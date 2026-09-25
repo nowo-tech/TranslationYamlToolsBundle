@@ -19,6 +19,7 @@ services:
             $asyncPersist: '%nowo_translation_yaml_tools.missing_translation_log.async_persist%'
             $asyncPersistStrategy: '%nowo_translation_yaml_tools.missing_translation_log.async_persist_strategy%'
             $eventDispatcher: '@?event_dispatcher'
+            $logger: '@?logger'
 
     Nowo\TranslationYamlToolsBundle\Translation\MissingTranslationLogCallSiteBuilder: ~
 

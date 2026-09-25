@@ -13,18 +13,18 @@
 
 ### Next planned tag
 
-- Suggested tag: **`v1.3.1`** (patch) as needed after **1.3.0**
+- Suggested tag: **`v1.4.6`** (patch) or **`v1.5.0`** (minor) as needed after **1.4.5**
 - Checklist focus for the next release:
   - `docs/CHANGELOG.md`: move **`[Unreleased]`** items into a dated **`[X.Y.Z]`** section
   - `docs/UPGRADING.md`: add migration notes when users must change config or code
   - `make release-check` green before tagging
 
-### Example: v1.3.0
+### Example: v1.4.5
 
 ```bash
-git tag -a v1.3.0 -m "1.3.0: web_ui.css_framework + parent() asset stacking (REQ-UI-001)"
+git tag -a v1.4.5 -m "1.4.5: FrankenPHP worker mode without kernel.reset"
 git push origin main
-git push origin v1.3.0
+git push origin v1.4.5
 ```
 
 See also `docs/SECURITY.md` for the pre-release security checklist.

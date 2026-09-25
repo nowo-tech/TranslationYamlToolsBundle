@@ -89,11 +89,9 @@ final class TranslationYamlFileHandlerTest extends TestCase
         $path = $fileBlocker . '/nested/file.yaml';
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Cannot create directory');
-        $previous = error_reporting(0);
         try {
-            $handler->dumpToFile($path, ['x' => 'y'], 4);
+            @$handler->dumpToFile($path, ['x' => 'y'], 4);
         } finally {
-            error_reporting($previous);
             @unlink($fileBlocker);
         }
     }
@@ -105,11 +103,9 @@ final class TranslationYamlFileHandlerTest extends TestCase
         $handler = new TranslationYamlFileHandler();
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Cannot write file');
-        $previous = error_reporting(0);
         try {
-            $handler->dumpToFile($dir, ['a' => 'b'], 4);
+            @$handler->dumpToFile($dir, ['a' => 'b'], 4);
         } finally {
-            error_reporting($previous);
             @rmdir($dir);
         }
     }

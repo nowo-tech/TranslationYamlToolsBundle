@@ -9,8 +9,6 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 
-use function dirname;
-
 /**
  * Kernel with Doctrine for missing-translation log integration tests.
  */
@@ -23,7 +21,7 @@ final class MissingTranslationLogTestKernel extends Kernel
      */
     public function getProjectDir(): string
     {
-        return dirname(__DIR__) . '/Fixtures/app_missing_log';
+        return __DIR__ . '/../Fixtures/app_missing_log';
     }
 
     /**

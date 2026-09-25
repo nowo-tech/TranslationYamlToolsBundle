@@ -965,15 +965,17 @@ final class TranslationYamlCommandsTest extends TestCase
             'google',
             false,
         );
-        $method      = new ReflectionMethod(TranslationYamlFillMissingCommand::class, 'guessTargetPathForNewFile');
-        $previousCwd = getcwd();
+        $method = new ReflectionMethod(TranslationYamlFillMissingCommand::class, 'guessTargetPathForNewFile');
+        $cwd    = getcwd();
+        self::assertNotFalse($cwd);
+        $fallback = rtrim($cwd, '/') . '/translations';
+        $existed  = is_dir($fallback);
         try {
-            self::assertNotFalse(chdir($project));
             $out = $method->invoke($cmd, 'messages', 'de', $project . '/translations/messages.en.yaml');
-            self::assertSame($project . '/translations/messages.de.yaml', $out);
+            self::assertSame($fallback . '/messages.de.yaml', $out);
         } finally {
-            if ($previousCwd !== false) {
-                chdir($previousCwd);
+            if (!$existed) {
+                @rmdir($fallback);
             }
         }
     }

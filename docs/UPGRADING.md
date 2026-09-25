@@ -2,8 +2,25 @@
 
 ## Table of contents
 
+- [From 1.4.4 to 1.4.5](#from-144-to-145)
 - [From 1.4.3 to 1.4.4](#from-143-to-144)
 
+## From 1.4.4 to 1.4.5
+
+No breaking changes and no configuration changes. **Recommended** for FrankenPHP worker mode when the kernel is **not** reset between requests (`missing_translation_log` enabled).
+
+Behaviour notes:
+
+- A database or transport error while persisting the missing-translation buffer at `kernel.terminate` is now logged (error level, `logger` service) and no longer rethrown (avoids ending the FrankenPHP worker loop).
+- The terminate flush listener priority changed from `0` to `-1024` (`DoctrineMissingTranslationRecorder::TERMINATE_PRIORITY`). If you had your own `kernel.terminate` listener relying on running **after** the flush, give it a priority lower than `-1024`.
+- `MissingTranslationLogRepository::findByStatus()` / `findOneById()` refresh already managed entities from the database (`Query::HINT_REFRESH`); unflushed in-memory changes to those entities are discarded on the next read. After Web UI clear actions, managed log entities are detached (Doctrine ORM 3 has no per-class `clear()`).
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
+
+See [FRANKENPHP-WORKER-AUDIT](FRANKENPHP-WORKER-AUDIT.md).
+
 ## From 1.4.3 to 1.4.4
 
 No breaking changes. **No application upgrade steps.**
@@ -11,16 +28,6 @@ No breaking changes. **No application upgrade steps.**
 ```bash
 composer update nowo-tech/translation-yaml-tools-bundle
 ```
-
-## From 1.4.3 to 1.4.4
-
-No breaking changes. **No application upgrade steps.**
-
-```bash
-composer update nowo-tech/translation-yaml-tools-bundle
-```
-
-# Upgrading
 
 ## To 1.4.3
 
@@ -51,7 +58,7 @@ composer update nowo-tech/translation-yaml-tools-bundle
 
 ## 1.x
 
-This line is **1.3.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
+This line is **1.4.x** (stable). Patch and minor releases follow [semver](https://semver.org/) unless noted in **`docs/CHANGELOG.md`**. Always read the changelog before upgrading.
 
 ## To 1.3.0 (from 1.2.3)
 

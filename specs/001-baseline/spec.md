@@ -45,6 +45,8 @@ As a maintainer, I record runtime missing translation keys in Doctrine and revie
 1. **Given** `missing_translation_log.enabled=true`, **When** translator misses a key, **Then** `RecordingTranslatorDecorator` buffers id/domain/locale (+ optional call site and request context).
 2. **Given** `async_persist=true`, **When** kernel terminates, **Then** buffer flushes via Messenger or EventDispatcher strategy without blocking the request.
 3. **Given** `web_ui.enabled=true`, **When** admin visits configured prefix, **Then** UI lists rows and supports mark-as-added workflow protected by `required_role`.
+4. **Given** FrankenPHP worker mode without `kernel.reset`, **When** a request records missing keys and terminate persistence fails, **Then** the error is logged, the buffer is empty for the next request, and the worker loop continues.
+5. **Given** the same EntityManager across requests, **When** DBAL upserts or clears update rows behind the identity map, **Then** Web UI reads show fresh hit counts / deletions (`HINT_REFRESH` + detach after clear).
 
 ---
 
@@ -93,15 +95,17 @@ As a maintainer, I record runtime missing translation keys in Doctrine and revie
 
 ### Missing translation log
 
-- **FR-MLOG-001**: `MissingTranslationRecorderInterface` / `DoctrineMissingTranslationRecorder` persist buffered misses.
+- **FR-MLOG-001**: `MissingTranslationRecorderInterface` / `DoctrineMissingTranslationRecorder` persist buffered misses (see also **FR-MLOG-010**).
 - **FR-MLOG-002**: `RecordingTranslatorDecorator` wraps translator to capture misses.
 - **FR-MLOG-003**: `MissingTranslationRecordContext`, `MissingTranslationLogCallSiteBuilder`, `TranslationCallSiteResolver` capture optional caller metadata.
 - **FR-MLOG-004**: Async buffer — `MissingTranslationBufferMessage`, `MissingTranslationBufferEvent`, handler/listener for deferred flush.
 - **FR-MLOG-005**: `MissingTranslationLog` entity + `MissingTranslationLogStatus` enum; `MissingTranslationLogMetadataListener` for table prefix.
-- **FR-MLOG-006**: `MissingTranslationLogRepository` query/update API.
+- **FR-MLOG-006**: `MissingTranslationLogRepository` query/update API; resolves EntityManager per call, recovers closed managers, refreshes managed rows on read, detaches after DBAL deletes (FrankenPHP worker / no `kernel.reset`).
 - **FR-MLOG-007**: `MissingTranslationLogUiController` + routes YAML for Web UI CRUD/filter actions.
 - **FR-MLOG-008**: Twig views (`index`, `_table`, `_status_filters`, layout variants including dashboard/breadcrumb integration).
 - **FR-MLOG-009**: `MissingTranslationLogExtension` Twig helpers; `MissingLogUiAccessSubscriber` enforces `required_role`.
+- **FR-MLOG-010**: `DoctrineMissingTranslationRecorder` implements `ResetInterface`; `flushBuffer` on `kernel.terminate` at priority `-1024` empties the buffer before persist and never rethrows (logs via optional `LoggerInterface`).
+- **FR-WORKER-001**: HTTP runtime of the missing-log feature MUST be safe under FrankenPHP worker mode when the kernel is not reset between requests (scenario B in `docs/FRANKENPHP-WORKER-AUDIT.md`).
 
 ---
 

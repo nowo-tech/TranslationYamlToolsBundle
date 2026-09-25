@@ -20,7 +20,6 @@ use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 use function array_key_exists;
-use function dirname;
 use function is_array;
 use function is_string;
 
@@ -41,7 +40,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
                         'NowoTranslationYamlToolsMissingLog' => [
                             'is_bundle' => false,
                             'type'      => 'attribute',
-                            'dir'       => dirname(__DIR__) . '/Entity',
+                            'dir'       => __DIR__ . '/../Entity',
                             'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\Entity',
                         ],
                     ],
@@ -81,9 +80,8 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         }
 
         $config = $this->processConfiguration(new Configuration(), $container->getExtensionConfig($this->getAlias()));
-        $webUi  = is_array($config['missing_translation_log']['web_ui'] ?? null)
-            ? $config['missing_translation_log']['web_ui']
-            : [];
+        /** @var array<string, mixed> $webUi */
+        $webUi    = $config['missing_translation_log']['web_ui'];
         $defaults = [];
 
         if (!$hostHasCssFramework) {

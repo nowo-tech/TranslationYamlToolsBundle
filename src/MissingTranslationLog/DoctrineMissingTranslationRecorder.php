@@ -5,17 +5,27 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\MissingTranslationLog;
 
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Service\ResetInterface;
+use Throwable;
+
+use function count;
 
 /**
  * Buffers missing keys during a request and flushes aggregated rows on kernel terminate.
+ *
+ * The buffer is emptied before every flush and persistence errors are logged, never rethrown: an exception
+ * escaping {@code kernel.terminate} would end the FrankenPHP worker loop.
  */
 final class DoctrineMissingTranslationRecorder implements MissingTranslationRecorderInterface, ResetInterface
 {
+    /** Low priority so keys translated by other terminate listeners are flushed in the same request. */
+    public const TERMINATE_PRIORITY = -1024;
+
     /**
      * @var array<string, array{hits: int, messageId: string, domain: string, locale: string, callSite: ?string, requestRoute: ?string, requestMethod: ?string, requestPath: ?string}>
      */
@@ -30,6 +40,7 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
         private readonly bool $asyncPersist = false,
         private readonly string $asyncPersistStrategy = 'messenger',
         private readonly ?EventDispatcherInterface $eventDispatcher = null,
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -84,7 +95,7 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
         $this->buffer = [];
     }
 
-    #[AsEventListener(event: KernelEvents::TERMINATE)]
+    #[AsEventListener(event: KernelEvents::TERMINATE, priority: self::TERMINATE_PRIORITY)]
     public function flushBuffer(): void
     {
         if ($this->buffer === []) {
@@ -94,6 +105,22 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
         $snapshot     = $this->buffer;
         $this->buffer = [];
 
+        try {
+            $this->persistSnapshot($snapshot);
+        } catch (Throwable $e) {
+            $this->logger?->error('Could not persist {count} missing translation log row(s): {message}', [
+                'count'     => count($snapshot),
+                'message'   => $e->getMessage(),
+                'exception' => $e,
+            ]);
+        }
+    }
+
+    /**
+     * @param array<string, array{hits: int, messageId: string, domain: string, locale: string, callSite: ?string, requestRoute: ?string, requestMethod: ?string, requestPath: ?string}> $snapshot
+     */
+    private function persistSnapshot(array $snapshot): void
+    {
         if ($this->asyncPersist) {
             if ($this->asyncPersistStrategy === 'messenger'
                 && $this->messageBus !== null

@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.4.5] - 2026-09-25
+
+### Fixed
+
+- **FrankenPHP worker mode (no `kernel.reset`):** `DoctrineMissingTranslationRecorder::flushBuffer()` catches and logs (`@?logger`) any `\Throwable` from synchronous persistence or async dispatch instead of letting it escape `kernel.terminate` and end the worker loop. The listener now runs at priority `-1024` so keys translated by other terminate listeners are flushed in the same request.
+- **Missing-log Web UI freshness:** `MissingTranslationLogRepository` resolves the entity manager per call (replacing a closed one), resets it when `flush()` fails and closes it, reads rows with `Query::HINT_REFRESH`, and detaches managed log entities after DBAL `clearAll` / `clearByStatus` so deletions stay visible without an EntityManager reset.
+- **QA:** fixed PHPStan findings (0 errors at level 8); tests no longer call `chdir()` / `error_reporting()`.
+
+### Documentation
+
+- **[FRANKENPHP-WORKER-AUDIT](FRANKENPHP-WORKER-AUDIT.md):** scenario B (kernel not reset) audit — verdict viable; W-01/W-02 remediations.
+- **[UPGRADING](UPGRADING.md)** / **[CONFIGURATION](CONFIGURATION.md)** / **[DEMO-FRANKENPHP](DEMO-FRANKENPHP.md):** worker-mode notes for missing-log terminate flush.
+
+[1.4.5]: https://github.com/nowo-tech/TranslationYamlToolsBundle/releases/tag/v1.4.5
 
 ## [1.4.4] - 2026-08-24
 

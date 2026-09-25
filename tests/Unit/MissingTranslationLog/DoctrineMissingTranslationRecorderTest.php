@@ -10,11 +10,17 @@ use Nowo\TranslationYamlToolsBundle\MissingTranslationLog\MissingTranslationBuff
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use ReflectionMethod;
+use RuntimeException;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 use function array_key_exists;
+use function array_values;
 use function count;
 
 #[CoversClass(DoctrineMissingTranslationRecorder::class)]
@@ -175,5 +181,93 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
         $recorder = new DoctrineMissingTranslationRecorder($repository);
         $recorder->record('k', 'messages', 'en');
         $recorder->flushBuffer();
+    }
+
+    public function testPersistenceFailureInTerminateIsLoggedAndNotRethrown(): void
+    {
+        $repository = $this->createMock(MissingTranslationLogRepository::class);
+        $repository->method('persistBuffer')->willThrowException(new RuntimeException('no such table'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('error')->with(
+            self::stringContains('Could not persist'),
+            self::callback(static fn (array $context): bool => $context['count'] === 2
+                && $context['message'] === 'no such table'
+                && $context['exception'] instanceof RuntimeException),
+        );
+
+        $recorder = new DoctrineMissingTranslationRecorder($repository, logger: $logger);
+        $recorder->record('a', 'messages', 'en');
+        $recorder->record('b', 'messages', 'en');
+        $recorder->flushBuffer();
+    }
+
+    public function testPersistenceFailureWithoutLoggerIsSwallowed(): void
+    {
+        $repository = $this->createMock(MissingTranslationLogRepository::class);
+        $repository->expects(self::once())->method('persistBuffer')->willThrowException(new RuntimeException('db down'));
+
+        $recorder = new DoctrineMissingTranslationRecorder($repository);
+        $recorder->record('a', 'messages', 'en');
+        $recorder->flushBuffer();
+    }
+
+    public function testAsyncDispatchFailureIsLoggedAndNotRethrown(): void
+    {
+        $repository = $this->createMock(MissingTranslationLogRepository::class);
+        $repository->expects(self::never())->method('persistBuffer');
+
+        $bus = $this->createMock(MessageBusInterface::class);
+        $bus->method('dispatch')->willThrowException(new RuntimeException('transport down'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('error');
+
+        $recorder = new DoctrineMissingTranslationRecorder($repository, $bus, true, 'messenger', null, $logger);
+        $recorder->record('a', 'messages', 'en');
+        $recorder->flushBuffer();
+    }
+
+    public function testConsecutiveRequestsWithoutResetDoNotCarryBufferOver(): void
+    {
+        $calls      = [];
+        $repository = $this->createMock(MissingTranslationLogRepository::class);
+        $repository->expects(self::exactly(2))->method('persistBuffer')->willReturnCallback(
+            static function (array $buffer) use (&$calls): void {
+                $calls[] = $buffer;
+                if (count($calls) === 1) {
+                    throw new RuntimeException('first write fails');
+                }
+            },
+        );
+
+        $recorder = new DoctrineMissingTranslationRecorder($repository);
+
+        // Request 1: persistence fails in kernel.terminate.
+        $recorder->record('request1.key', 'messages', 'en', null, 'route_one', 'GET', '/one');
+        $recorder->flushBuffer();
+
+        // Request 2 on the same instance, no reset().
+        $recorder->record('request2.key', 'messages', 'fr', null, 'route_two', 'POST', '/two');
+        $recorder->flushBuffer();
+
+        self::assertCount(2, $calls);
+        self::assertCount(1, $calls[1]);
+        $row = array_values($calls[1])[0];
+        self::assertSame('request2.key', $row['messageId']);
+        self::assertSame('fr', $row['locale']);
+        self::assertSame('/two', $row['requestPath']);
+        self::assertSame(1, $row['hits']);
+    }
+
+    public function testFlushListenerRunsLateInKernelTerminate(): void
+    {
+        $attributes = (new ReflectionMethod(DoctrineMissingTranslationRecorder::class, 'flushBuffer'))->getAttributes(AsEventListener::class);
+        self::assertCount(1, $attributes);
+        $listener = $attributes[0]->newInstance();
+
+        self::assertSame(KernelEvents::TERMINATE, $listener->event);
+        self::assertSame(DoctrineMissingTranslationRecorder::TERMINATE_PRIORITY, $listener->priority);
+        self::assertLessThan(0, $listener->priority);
     }
 }

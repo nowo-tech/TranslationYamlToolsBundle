@@ -11,8 +11,12 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\UnitOfWork;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ObjectManager;
 use Exception;
+use LogicException;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
@@ -21,6 +25,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
+use RuntimeException;
 
 use function in_array;
 use function str_contains;
@@ -485,5 +490,138 @@ final class MissingTranslationLogRepositoryTest extends TestCase
         self::assertSame(180, strlen($row->getRequestRoute()));
         self::assertSame(8, strlen((string) $row->getRequestMethod()));
         self::assertNull($row->getRequestPath());
+    }
+
+    public function testReadsSeeDbalWritesOfLaterRequestsWithoutClearingTheManager(): void
+    {
+        $repo = $this->createRepository();
+        $row  = ['hits' => 1, 'messageId' => 'k', 'domain' => 'messages', 'locale' => 'en', 'callSite' => null];
+
+        // Request 1: the row becomes managed.
+        $repo->persistBuffer(['a' => $row]);
+        $first = $repo->findByStatus(MissingTranslationLogStatus::Pending, 10);
+        self::assertCount(1, $first);
+        self::assertSame(1, $first[0]->getHitCount());
+        $id = $first[0]->getId();
+        self::assertNotNull($id);
+
+        // Request 2 (no reset / clear): the DBAL upsert increments behind the identity map.
+        $repo->persistBuffer(['a' => $row + ['requestPath' => '/second']]);
+        $second = $repo->findByStatus(MissingTranslationLogStatus::Pending, 10);
+        self::assertSame(2, $second[0]->getHitCount());
+        self::assertSame('/second', $second[0]->getRequestPath());
+        self::assertSame(2, $repo->findOneById($id)?->getHitCount());
+
+        // Request 3: "clear" deletes with DBAL; the managed object must not come back.
+        self::assertSame(1, $repo->clearAll());
+        self::assertSame([], $repo->findByStatus(MissingTranslationLogStatus::Pending, 10));
+        self::assertNull($repo->findOneById($id));
+    }
+
+    public function testStatusChangedByAnotherWorkerIsVisibleWithoutClear(): void
+    {
+        $repo = $this->createRepository();
+        $repo->persistBuffer(['a' => ['hits' => 1, 'messageId' => 'k', 'domain' => 'messages', 'locale' => 'en', 'callSite' => null]]);
+        $row = $repo->findByStatus(MissingTranslationLogStatus::Pending, 1)[0];
+        self::assertSame(MissingTranslationLogStatus::Pending, $row->getStatus());
+
+        $em = (new ReflectionMethod(MissingTranslationLogRepository::class, 'getEntityManager'))->invoke($repo);
+        $em->getConnection()->executeStatement(
+            'UPDATE ' . $em->getClassMetadata(MissingTranslationLog::class)->getTableName() . ' SET status = ?',
+            [MissingTranslationLogStatus::Added->value],
+        );
+
+        self::assertSame([], $repo->findByStatus(MissingTranslationLogStatus::Pending, 10));
+        self::assertSame(MissingTranslationLogStatus::Added, $repo->findOneById((int) $row->getId())?->getStatus());
+    }
+
+    public function testClosedManagerFromPreviousRequestIsResetBeforeUse(): void
+    {
+        $closed = $this->createMock(EntityManagerInterface::class);
+        $closed->method('isOpen')->willReturn(false);
+        $closed->expects(self::never())->method('getConnection');
+
+        $connection = $this->createMock(Connection::class);
+        $connection->method('quoteSingleIdentifier')->willReturnArgument(0);
+        $connection->expects(self::once())->method('executeStatement')->willReturn(3);
+        $meta = $this->createMock(ClassMetadata::class);
+        $meta->method('getTableName')->willReturn('t');
+
+        $uow = $this->createMock(UnitOfWork::class);
+        $uow->method('getIdentityMap')->willReturn([]);
+
+        $fresh = $this->createMock(EntityManagerInterface::class);
+        $fresh->method('isOpen')->willReturn(true);
+        $fresh->method('getConnection')->willReturn($connection);
+        $fresh->method('getClassMetadata')->willReturn($meta);
+        $fresh->method('getUnitOfWork')->willReturn($uow);
+
+        $current  = ['em' => $closed];
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->willReturnCallback(static function () use (&$current): ObjectManager {
+            return $current['em'];
+        });
+        $registry->method('getManagerNames')->willReturn(['other' => 'doctrine.orm.other_entity_manager', 'default' => 'doctrine.orm.default_entity_manager']);
+        $registry->method('getManager')->willReturnCallback(static function (?string $name) use (&$current, $fresh): ObjectManager {
+            return $name === 'default' ? $current['em'] : $fresh;
+        });
+        $registry->expects(self::once())->method('resetManager')->with('default')->willReturnCallback(
+            static function () use (&$current, $fresh): ObjectManager {
+                return $current['em'] = $fresh;
+            },
+        );
+
+        self::assertSame(3, (new MissingTranslationLogRepository($registry))->clearAll());
+    }
+
+    public function testFailedFlushResetsClosedManagerAndRethrows(): void
+    {
+        $open = true;
+        $em   = $this->createMock(EntityManagerInterface::class);
+        $em->method('isOpen')->willReturnCallback(static function () use (&$open): bool {
+            return $open;
+        });
+        $em->method('flush')->willReturnCallback(static function () use (&$open): never {
+            $open = false;
+
+            throw new RuntimeException('flush failed');
+        });
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->willReturn($em);
+        $registry->method('getManagerNames')->willReturn(['default' => 'doctrine.orm.default_entity_manager']);
+        $registry->method('getManager')->with('default')->willReturn($em);
+        $registry->expects(self::once())->method('resetManager')->with('default');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('flush failed');
+
+        (new MissingTranslationLogRepository($registry))->flush();
+    }
+
+    public function testFailedFlushOnOpenManagerRethrowsWithoutReset(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('isOpen')->willReturn(true);
+        $em->method('flush')->willThrowException(new RuntimeException('deadlock'));
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->willReturn($em);
+        $registry->expects(self::never())->method('resetManager');
+
+        $this->expectException(RuntimeException::class);
+
+        (new MissingTranslationLogRepository($registry))->flush();
+    }
+
+    public function testMissingOrmManagerIsReported(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->willReturn(null);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('No Doctrine ORM entity manager is configured');
+
+        (new MissingTranslationLogRepository($registry))->clearAll();
     }
 }
