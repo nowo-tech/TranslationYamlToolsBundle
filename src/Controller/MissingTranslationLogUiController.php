@@ -84,6 +84,7 @@ final class MissingTranslationLogUiController extends AbstractController
             throw $this->createAccessDeniedException('Invalid CSRF token.');
         }
 
+        // @igor-ignore - HTTP handler delegates to services; no controller worker state.
         $deleted = $this->repository->clearAll();
         $this->addFlash('success', sprintf('Cleared %d missing-log row(s).', $deleted));
 
@@ -108,6 +109,7 @@ final class MissingTranslationLogUiController extends AbstractController
         $statusParam = (string) $request->request->get('status', MissingTranslationLogStatus::Pending->value);
         $status      = MissingTranslationLogStatus::tryFrom($statusParam) ?? MissingTranslationLogStatus::Pending;
 
+        // @igor-ignore - HTTP handler delegates to services; no controller worker state.
         $deleted = $this->repository->clearByStatus($status);
         $this->addFlash('success', sprintf('Cleared %d row(s) with status "%s".', $deleted, $status->value));
 

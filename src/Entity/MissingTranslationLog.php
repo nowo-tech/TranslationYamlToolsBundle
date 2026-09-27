@@ -161,22 +161,28 @@ class MissingTranslationLog
         if ($hits < 1) {
             return;
         }
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->hitCount += $hits;
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->lastSeenAt = $at;
         $normalized       = $this->normalizeCallSite($latestCallSite);
         if ($normalized !== null) {
+            // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
             $this->callSite = $normalized;
         }
         $nr = $this->normalizeRequestRoute($latestRequestRoute);
         if ($nr !== null) {
+            // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
             $this->requestRoute = $nr;
         }
         $nm = $this->normalizeRequestMethod($latestRequestMethod);
         if ($nm !== null) {
+            // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
             $this->requestMethod = $nm;
         }
         $np = $this->normalizeRequestPath($latestRequestPath);
         if ($np !== null) {
+            // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
             $this->requestPath = $np;
         }
     }
@@ -234,12 +240,15 @@ class MissingTranslationLog
 
     public function setStatus(MissingTranslationLogStatus $status, ?DateTimeImmutable $at = null): void
     {
-        $this->status          = $status;
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
+        $this->status = $status;
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->statusChangedAt = $at ?? new DateTimeImmutable();
     }
 
     public function setNotes(?string $notes): void
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->notes = $notes;
     }
 }

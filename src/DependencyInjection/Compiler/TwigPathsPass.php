@@ -48,6 +48,7 @@ final class TwigPathsPass implements CompilerPassInterface
         if ($container->hasParameter('kernel.project_dir')) {
             $projectDirParam = $container->getParameter('kernel.project_dir');
             if (!is_string($projectDirParam)) {
+                // @igor-ignore - Container compile-time DI mutation; not runtime worker state.
                 $definition->addMethodCall('addPath', [$viewsPath, self::TWIG_NAMESPACE]);
 
                 return;
@@ -56,10 +57,12 @@ final class TwigPathsPass implements CompilerPassInterface
             $projectDir   = rtrim($projectDirParam, '/\\');
             $overridePath = $projectDir . '/templates/bundles/NowoTranslationYamlToolsBundle';
             if (is_dir($overridePath)) {
+                // @igor-ignore - Container compile-time DI mutation; not runtime worker state.
                 $definition->addMethodCall('prependPath', [$overridePath, self::TWIG_NAMESPACE]);
             }
         }
 
+        // @igor-ignore - Container compile-time DI mutation; not runtime worker state.
         $definition->addMethodCall('addPath', [$viewsPath, self::TWIG_NAMESPACE]);
     }
 

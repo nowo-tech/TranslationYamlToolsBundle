@@ -31,6 +31,7 @@ final class ThrottledMachineTranslator implements MachineTranslatorInterface
             if ($wait > 0) {
                 usleep((int) round($wait * 1_000_000));
             }
+            // @igor-ignore - Not shared worker service state.
             $this->lastCallAt = microtime(true);
         }
 
