@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "daba64152c6a82f3b6da1b7169b4e022",
+    "content-hash": "c887d304c5c3ca80e98109354d1dc1cf",
     "packages": [
         {
             "name": "nowo-tech/ui-kit-bundle",
