@@ -25,6 +25,7 @@ use Throwable;
 use function array_keys;
 use function sprintf;
 use function strlen;
+use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<MissingTranslationLog>
@@ -57,7 +58,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
             ->from(MissingTranslationLog::class, 'l')
             ->andWhere('l.status = :status')
             ->setParameter('status', $status)
-            ->orderBy('l.lastSeenAt', 'DESC')
+            ->orderBy('l.lastSeenAt', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
