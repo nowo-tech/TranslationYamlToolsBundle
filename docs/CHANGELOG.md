@@ -4,10 +4,15 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-28
+
+### Security
+
+- Empty `missing_translation_log.web_ui.security.access_roles` is fail-closed (deny). Compiler pass wires `MissingLogUiAccessSubscriber` when the Web UI is enabled and `allow_unauthenticated` is false.
+
 ### Changed
 
 - **Doctrine ORM SortDirection:** replace string `'ASC'`/`'DESC'` in `#[ORM\OrderBy]` and QueryBuilder `orderBy`/`addOrderBy` with `SortDirection::Ascending`/`Descending` (doctrine/orm deprecation, https://github.com/doctrine/orm/issues/11313); require `doctrine/orm` `^3.7` where applicable.
-
 
 ## [1.4.6] - 2026-09-27
 
@@ -19,6 +24,7 @@ All notable changes to this project are documented in this file.
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.5.0]: https://github.com/nowo-tech/TranslationYamlToolsBundle/releases/tag/v1.5.0
 [1.4.6]: https://github.com/nowo-tech/TranslationYamlToolsBundle/releases/tag/v1.4.6
 
 ## [1.4.5] - 2026-09-25

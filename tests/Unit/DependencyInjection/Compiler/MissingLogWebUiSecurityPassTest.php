@@ -61,7 +61,7 @@ final class MissingLogWebUiSecurityPassTest extends TestCase
         self::assertArrayHasKey('$accessChecker', $controllerArgs);
     }
 
-    public function testSkipsSubscriberWhenAccessRolesEmptyAndNoCustomChecker(): void
+    public function testRegistersSubscriberWhenAccessRolesEmpty(): void
     {
         $container = $this->baseContainer(enabled: true, allowUnauthenticated: false, accessRoles: [], customChecker: false);
         $container->setDefinition('security.authorization_checker', new Definition(stdClass::class));
@@ -69,7 +69,7 @@ final class MissingLogWebUiSecurityPassTest extends TestCase
 
         (new MissingLogWebUiSecurityPass())->process($container);
 
-        self::assertFalse($container->hasDefinition(MissingLogUiAccessSubscriber::class));
+        self::assertTrue($container->hasDefinition(MissingLogUiAccessSubscriber::class));
     }
 
     public function testSkipsWhenWebUiEnabledParameterMissing(): void

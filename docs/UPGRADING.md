@@ -2,8 +2,21 @@
 
 ## Table of contents
 
+- [From 1.4.6 to 1.5.0](#from-146-to-150)
 - [From 1.4.4 to 1.4.5](#from-144-to-145)
 - [From 1.4.3 to 1.4.4](#from-143-to-144)
+
+## From 1.4.6 to 1.5.0
+
+From **1.4.6** — Web UI `access_roles` fail-closed + subscriber wiring; Doctrine `SortDirection`.
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+php bin/console cache:clear
+```
+
+- Empty `missing_translation_log.web_ui.security.access_roles` denies the Web UI. Set roles / custom checker, or demo-only `allow_unauthenticated`.
+- Ensure `doctrine/orm` is `^3.7` (SortDirection).
 
 ## From 1.4.4 to 1.4.5
 
@@ -232,6 +245,18 @@ There is no earlier semver tag. If you tracked **`dev-main`** or a commit hash:
 - **`libretranslate_base_url`** and **`libretranslate_api_key`** are optional and default to the public LibreTranslate origin and an empty key; no change is required for existing Google-only setups.
 
 ## Unreleased
+
+## To 1.5.0
+
+From **1.4.6** — Web UI `access_roles` fail-closed + subscriber wiring; Doctrine `SortDirection`.
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+php bin/console cache:clear
+```
+
+- Empty `missing_translation_log.web_ui.security.access_roles` denies the Web UI. Set roles / custom checker, or demo-only `allow_unauthenticated`.
+- Ensure `doctrine/orm` is `^3.7` (SortDirection).
 
 ## To 1.4.6
 

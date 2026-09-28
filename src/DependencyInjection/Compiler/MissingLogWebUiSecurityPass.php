@@ -42,14 +42,7 @@ final class MissingLogWebUiSecurityPass implements CompilerPassInterface
             return;
         }
 
-        /** @var list<string> $accessRoles */
-        $accessRoles   = $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.security.access_roles');
-        $customChecker = (bool) $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.security.custom_access_checker');
-        // Empty access_roles with the default checker = no bundle-level enforcement (firewall only).
-        if ($accessRoles === [] && !$customChecker) {
-            return;
-        }
-
+        // Always register when !allow_unauthenticated. Empty access_roles is fail-closed via the checker.
         if (!$container->has(MissingLogUiAccessCheckerInterface::class)) {
             return;
         }

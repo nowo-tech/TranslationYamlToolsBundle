@@ -13,14 +13,14 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[CoversClass(ConfigurableMissingLogUiAccessChecker::class)]
 final class ConfigurableMissingLogUiAccessCheckerTest extends TestCase
 {
-    public function testAllowsAccessWhenNoRolesConfigured(): void
+    public function testDeniesAccessWhenNoRolesConfigured(): void
     {
         $checker = new ConfigurableMissingLogUiAccessChecker(
             $this->createMock(AuthorizationCheckerInterface::class),
             [],
         );
 
-        self::assertTrue($checker->canAccess(new stdClass()));
+        self::assertFalse($checker->canAccess(new stdClass()));
     }
 
     public function testAllowsAccessWhenUserHasAnyConfiguredRole(): void
