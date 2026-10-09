@@ -20,12 +20,12 @@ use Doctrine\Persistence\ObjectManager;
 use LogicException;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
+use SortDirection;
 use Throwable;
 
 use function array_keys;
 use function sprintf;
 use function strlen;
-use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<MissingTranslationLog>
