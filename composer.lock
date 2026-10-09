@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "66e036c43e00cf3efb0bea3daffed06b",
+    "content-hash": "1a0eafe1f67fbd09d182b67b039e367b",
     "packages": [
         {
             "name": "nowo-tech/ui-kit-bundle",
@@ -9428,5 +9428,8 @@
         "php": ">=8.2 <8.6"
     },
     "platform-dev": {},
+    "platform-overrides": {
+        "php": "8.2.0"
+    },
     "plugin-api-version": "2.9.0"
 }
