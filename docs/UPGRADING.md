@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [From 1.5.0 to 1.5.1](#from-150-to-151)
 - [From 1.4.6 to 1.5.0](#from-146-to-150)
 - [From 1.4.4 to 1.4.5](#from-144-to-145)
 - [From 1.4.3 to 1.4.4](#from-143-to-144)
@@ -245,6 +246,14 @@ There is no earlier semver tag. If you tracked **`dev-main`** or a commit hash:
 - **`libretranslate_base_url`** and **`libretranslate_api_key`** are optional and default to the public LibreTranslate origin and an empty key; no change is required for existing Google-only setups.
 
 ## Unreleased
+
+## From 1.5.0 to 1.5.1
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
+
+No breaking changes. No application upgrade steps.
 
 ## To 1.5.0
 

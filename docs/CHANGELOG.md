@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-10-09
+
+### Changed
+
+- Code style: sorted the `SortDirection` import in `MissingTranslationLogRepository` (PHP CS Fixer).
+
+### Dependencies
+
+- Runtime lock: `nowo-tech/ui-kit-bundle` 1.8.3 -> 1.9.1 (Dependabot #41/#46 + update).
+- Dev tooling: `doctrine/orm` 3.7.4 (#43), `igor-php/igor-php` ^0.10 (v0.10.1, #44), `nowo-tech/phpstan-frankenphp` v1.2.3 (#45), phpstan group (#42) -> `phpstan/phpstan` 2.3.1, `phpstan/phpstan-phpunit` 2.1.1, `phpstan/phpstan-symfony` 2.1.0; `rector/rector` 2.7.0, `phpunit/phpunit` 10.5.66.
+- Demo (Symfony 8): `doctrine/orm` 3.7.4, `doctrine/dbal` 4.5.0, `nowo-tech/ui-kit-bundle` v1.9.1, `twig/twig` v3.30.0, `twig/extra-bundle` v3.29.0, `nowo-tech/hot-reload-bundle` v1.5.5, `nowo-tech/twig-inspector-bundle` v1.1.7.
+
+[1.5.1]: https://github.com/nowo-tech/TranslationYamlToolsBundle/releases/tag/v1.5.1
+
 ## [1.5.0] - 2026-09-28
 
 ### Security
