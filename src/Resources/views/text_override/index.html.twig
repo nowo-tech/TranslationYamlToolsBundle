@@ -1,0 +1,56 @@
+{% extends layout_template %}
+{% trans_default_domain 'NowoTranslationYamlToolsBundle' %}
+
+{% block title %}{{ 'overrides.title'|trans }}{% endblock %}
+
+{% block body %}
+<div class="nowo-tyt-overrides mb-4" data-testid="tyt-overrides-index">
+    <h1 class="h3">{{ 'overrides.title'|trans }}</h1>
+    <p class="text-muted mb-1">{{ 'overrides.intro'|trans }}</p>
+    <p class="text-muted small" data-testid="tyt-overrides-count">{{ 'overrides.override_count'|trans({'%count%': override_count}) }}</p>
+</div>
+
+<form class="row g-2 align-items-end mb-3" method="get" action="{{ path('nowo_translation_yaml_tools_overrides_index') }}" role="search" data-testid="tyt-overrides-filter">
+    <div class="col-12 col-md-5">
+        <label class="form-label" for="tyt-overrides-q">{{ 'overrides.search'|trans }}</label>
+        <input class="form-control" type="search" id="tyt-overrides-q" name="q" value="{{ query }}" placeholder="{{ 'overrides.search_placeholder'|trans }}">
+    </div>
+    <div class="col-12 col-md-4">
+        <label class="form-label" for="tyt-overrides-group">{{ 'overrides.group'|trans }}</label>
+        <select class="form-select" id="tyt-overrides-group" name="group">
+            <option value="">{{ 'overrides.all_groups'|trans }}</option>
+            {% for name, count in groups %}
+                <option value="{{ name }}"{% if name == group %} selected{% endif %}>{{ name }} ({{ count }})</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-12 col-md-3">
+        <button class="btn btn-primary" type="submit">{{ 'overrides.filter'|trans }}</button>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-sm table-hover align-middle bg-white" data-testid="tyt-overrides-table">
+        <thead>
+            <tr>
+                <th scope="col">{{ 'overrides.col.key'|trans }}</th>
+                <th scope="col">{{ 'overrides.col.text'|trans({'%locale%': default_locale|upper}) }}</th>
+                <th scope="col">{{ 'overrides.col.overridden'|trans }}</th>
+                <th scope="col"><span class="visually-hidden">{{ 'overrides.col.actions'|trans }}</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td><code class="small">{{ row.key }}</code></td>
+                    <td>{{ row.text }}</td>
+                    <td>{% for locale in row.overridden %}<span class="badge text-bg-info me-1">{{ locale|upper }}</span>{% endfor %}</td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ path('nowo_translation_yaml_tools_overrides_edit', {key: row.key}) }}">{{ 'overrides.edit'|trans }}</a></td>
+                </tr>
+            {% else %}
+                <tr><td class="text-muted" colspan="4">{{ 'overrides.empty'|trans }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

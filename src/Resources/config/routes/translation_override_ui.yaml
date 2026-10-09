@@ -1,0 +1,4 @@
+# Import with prefix '%nowo_translation_yaml_tools.overrides.web_ui.path_prefix%' (see docs/USAGE.md).
+nowo_translation_yaml_tools_overrides:
+    resource: ../../../TextOverride/Controller/TranslationOverrideController.php
+    type: attribute

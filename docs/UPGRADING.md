@@ -2,10 +2,37 @@
 
 ## Table of contents
 
+- [From 1.5.x to 1.6.0](#from-15x-to-160)
 - [From 1.5.0 to 1.5.1](#from-150-to-151)
 - [From 1.4.6 to 1.5.0](#from-146-to-150)
 - [From 1.4.4 to 1.4.5](#from-144-to-145)
 - [From 1.4.3 to 1.4.4](#from-143-to-144)
+
+## From 1.5.x to 1.6.0
+
+No breaking changes; nothing to do unless you adopt the new **text overrides** feature (disabled by default).
+
+To adopt it:
+
+1. Install the bundle for **all** environments (not `--dev` only) and register it with `['all' => true]`; install `doctrine/orm` + `doctrine/doctrine-bundle` (and preferably `symfony/html-sanitizer`).
+2. Enable `nowo_translation_yaml_tools.overrides` with your `editable` domains / prefixes (see [CONFIGURATION — Text overrides](CONFIGURATION.md#text-overrides-database)).
+3. Generate and run a Doctrine migration for `{table_prefix}override` (default `nowo_translation_override`):
+
+```bash
+php bin/console doctrine:migrations:diff
+php bin/console doctrine:migrations:migrate
+```
+
+4. For the Web UI: `overrides.web_ui.enabled: true`, import `@NowoTranslationYamlToolsBundle/Resources/config/routes/translation_override_ui.yaml` with prefix `%nowo_translation_yaml_tools.overrides.web_ui.path_prefix%`, enable `framework.csrf_protection` (+ `symfony/security-csrf`) and SecurityBundle, and protect the prefix in `access_control`.
+
+**Migrating from an app-local implementation** (e.g. a `site_text_override` table): copy rows into the new table (`locale`, `domain`, `message_key`, `value`, `created_at`, `updated_at`; `updated_by` may stay `NULL`), e.g.
+
+```sql
+INSERT INTO nowo_translation_override (locale, domain, message_key, value, created_at, updated_at)
+SELECT locale, domain, message_key, value, COALESCE(created_at, NOW()), COALESCE(updated_at, NOW()) FROM site_text_override;
+```
+
+then clear the cache pool (`php bin/console cache:pool:clear cache.app`).
 
 ## From 1.4.6 to 1.5.0
 

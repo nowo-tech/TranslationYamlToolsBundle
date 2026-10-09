@@ -726,6 +726,25 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             },
  *         },
  *     },
+ *     overrides?: bool|array{ // Operator text overrides: per-locale DB replacements for editable catalogue messages, applied by a translator decorator. Requires doctrine/orm + doctrine/doctrine-bundle; the host generates the migration for table {table_prefix}override.
+ *         enabled?: bool|Param, // Default: false
+ *         table_prefix?: scalar|Param|null, // Physical table name = prefix + "override" (e.g. nowo_translation_override). Allowed: [a-z0-9_]+, max 40 chars. // Default: "nowo_translation_"
+ *         editable?: array<string, list<scalar|Param|null>>,
+ *         locales?: list<scalar|Param|null>,
+ *         cache_pool?: scalar|Param|null, // Cache pool (Symfony\Contracts\Cache\CacheInterface) holding the override map. // Default: "cache.app"
+ *         cache_ttl?: int|Param, // Seconds the override map stays cached; writes through the bundle invalidate it immediately (TTL bounds staleness after SQL / restore writes). // Default: 3600
+ *         max_length?: int|Param, // Maximum characters per override text (Web UI validation). // Default: 5000
+ *         html_sanitizer?: scalar|Param|null, // Service id implementing TranslationOverrideHtmlSanitizerInterface. null = symfony/html-sanitizer inline allowlist when installed, else strip all tags. // Default: null
+ *         web_ui?: array{
+ *             enabled?: bool|Param, // Expose the overrides desk (list / edit / reset). Import routes/translation_override_ui.yaml. Requires twig-bundle, security-csrf (+ framework.csrf_protection) and security-bundle. // Default: false
+ *             path_prefix?: scalar|Param|null, // URL prefix for imported routes (must start with /) // Default: "/_translation_yaml_tools/texts"
+ *             layout_template?: scalar|Param|null, // Twig layout the pages extend; must define blocks "title" and "body" (Symfony base.html.twig convention), e.g. your admin layout. // Default: "@NowoTranslationYamlToolsBundle/text_override/layout.html.twig"
+ *             security?: array{
+ *                 access_roles?: list<scalar|Param|null>,
+ *                 allow_unauthenticated?: bool|Param, // DEV/DEMO only: skip the role check (no SecurityBundle needed). Never true in production. // Default: false
+ *             },
+ *         },
+ *     },
  * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,

@@ -1,0 +1,7 @@
+site:
+    topline:
+        hours: 'Abierto de lunes a viernes'
+    greeting: 'Hola %name%'
+    consent: 'Acepto la <a href="/privacidad">política de privacidad</a>'
+admin:
+    title: 'Solo admin'

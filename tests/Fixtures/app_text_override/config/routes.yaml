@@ -1,0 +1,4 @@
+nowo_translation_yaml_tools_overrides_ui:
+    resource: '@NowoTranslationYamlToolsBundle/Resources/config/routes/translation_override_ui.yaml'
+    type: yaml
+    prefix: '%nowo_translation_yaml_tools.overrides.web_ui.path_prefix%'

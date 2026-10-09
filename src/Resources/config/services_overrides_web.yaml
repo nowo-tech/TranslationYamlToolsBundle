@@ -1,0 +1,13 @@
+# Loaded when nowo_translation_yaml_tools.overrides.web_ui.enabled is true.
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Nowo\TranslationYamlToolsBundle\TextOverride\Controller\TranslationOverrideController:
+        arguments:
+            $translator: '@translator'
+            $layoutTemplate: '%nowo_translation_yaml_tools.overrides.web_ui.layout_template%'
+            $accessRoles: '%nowo_translation_yaml_tools.overrides.web_ui.security.access_roles%'
+            $allowUnauthenticated: '%nowo_translation_yaml_tools.overrides.web_ui.security.allow_unauthenticated%'
+            $maxLength: '%nowo_translation_yaml_tools.overrides.max_length%'

@@ -1,0 +1,48 @@
+# Loaded when nowo_translation_yaml_tools.overrides.enabled is true.
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Nowo\TranslationYamlToolsBundle\TextOverride\Doctrine\TranslationOverrideMetadataListener:
+        arguments:
+            $tablePrefix: '%nowo_translation_yaml_tools.overrides.table_prefix%'
+        tags:
+            - { name: doctrine.event_listener, event: loadClassMetadata }
+
+    Nowo\TranslationYamlToolsBundle\TextOverride\Repository\TranslationOverrideRepository:
+        arguments:
+            $registry: '@doctrine'
+
+    Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides:
+        arguments:
+            $cache: '@nowo_translation_yaml_tools.overrides.cache'
+            $sanitizer: '@Nowo\TranslationYamlToolsBundle\TextOverride\Html\TranslationOverrideHtmlSanitizerInterface'
+            $logger: '@?logger'
+            $cacheTtl: '%nowo_translation_yaml_tools.overrides.cache_ttl%'
+
+    Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideProviderInterface:
+        alias: Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides
+
+    Nowo\TranslationYamlToolsBundle\TextOverride\EditableTranslationKeys:
+        arguments:
+            $editable: '%nowo_translation_yaml_tools.overrides.editable%'
+
+    Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideLocales:
+        arguments:
+            $configured: '%nowo_translation_yaml_tools.overrides.locales%'
+            $enabled: '%kernel.enabled_locales%'
+            $bundleDefaultLocale: '%nowo_translation_yaml_tools.default_locale%'
+
+    Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideEditor:
+        arguments:
+            $translator: '@translator'
+
+    Nowo\TranslationYamlToolsBundle\TextOverride\OverridingTranslator:
+        decorates: translator
+        # Outside the missing-log recorder (priority 20): overridden keys are never reported missing.
+        decoration_priority: 5
+        arguments:
+            $inner: '@.inner'
+            $overrides: !service_closure '@Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides'
+            $formatter: '@translator.formatter'

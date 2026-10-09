@@ -27,6 +27,7 @@
 # Fixture runtime
 /tests/Fixtures/app/var
 /tests/Fixtures/app_missing_log/var
+/tests/Fixtures/app_text_override/var
 
 # Archives / compressed
 *.zip

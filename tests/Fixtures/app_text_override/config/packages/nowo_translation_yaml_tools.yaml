@@ -1,0 +1,11 @@
+nowo_translation_yaml_tools:
+    overrides:
+        enabled: true
+        editable:
+            messages: ['site.']
+            ShopBundle: ['loader.']
+        web_ui:
+            enabled: true
+            # Test kernel has no SecurityBundle; opt-in only for fixtures/demos.
+            security:
+                allow_unauthenticated: true

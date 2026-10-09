@@ -34,6 +34,20 @@
 | `missing_translation_log.web_ui.security.allow_unauthenticated` | `bool` | `false` | **Dev/demo only.** When **`false`** (default), enabling the Web UI without **`security.authorization_checker`** fails container compilation. Set **`true`** only for local demos/tests that intentionally omit SecurityBundle — **never in production**. |
 | `missing_translation_log.web_ui.required_role` | `string\|null` | `ROLE_ADMIN` | **Deprecated BC alias.** Mapped to **`security.access_roles`** (`null` / empty → empty list). Prefer **`security.access_roles`**. |
 | `missing_translation_log.web_ui.allow_unauthenticated` | `bool` | `false` | **Deprecated BC alias** for **`security.allow_unauthenticated`**. |
+| `overrides` | `array` | see below | **Operator text overrides** (opt-in): per-locale DB replacements for editable catalogue messages, served by a `translator` decorator. See [Text overrides](#text-overrides-database). |
+| `overrides.enabled` | `bool` | `false` | When **`true`**, decorates **`translator`** with **`OverridingTranslator`** (decoration priority **5**, outside the missing-log recorder) and prepends the ORM mapping for **`TextOverride\Entity\TranslationOverride`**. Requires **`doctrine/orm`** + **`doctrine/doctrine-bundle`** and the bundle registered in **every** environment where texts must apply (usually **all**, not only `dev`). |
+| `overrides.table_prefix` | `string` | `nowo_translation_` | Physical table name = **`{table_prefix}override`** (`[a-z0-9_]`, max 40 chars). |
+| `overrides.editable` | `array<string, list<string>>` | `{}` | Editable messages: **translation domain ⇒ key prefixes** (`''` = whole domain). Example: `{ messages: ['site.', 'legal.'], NowoUiKitBundle: ['loader.'] }`. Keys outside these prefixes are never listed nor editable. Domain names cannot contain `:`. |
+| `overrides.locales` | `list<string>` | `[]` | Locales edited in the UI (one tab each). Empty ⇒ **`framework.enabled_locales`**, else the default locale only. The default locale (`default_locale` / translator default) is always first. |
+| `overrides.cache_pool` | `string` | `cache.app` | Cache pool holding the override map (`Symfony\Contracts\Cache\CacheInterface`). |
+| `overrides.cache_ttl` | `int` | `3600` | Seconds the map stays cached. Writes through the bundle invalidate it at once; the TTL bounds staleness after SQL / backup-restore writes. |
+| `overrides.max_length` | `int` | `5000` | Max characters per text in the Web UI (HTTP 422 with a field error when exceeded). |
+| `overrides.html_sanitizer` | `string\|null` | `null` | Service id implementing **`TranslationOverrideHtmlSanitizerInterface`**. `null` ⇒ **`SymfonyTranslationOverrideHtmlSanitizer`** (inline allowlist via **`symfony/html-sanitizer`**) when installed, else **`StripTagsTranslationOverrideHtmlSanitizer`** (drops every tag). Values containing `<` are sanitized on save **and** when the map is loaded. |
+| `overrides.web_ui.enabled` | `bool` | `false` | Registers **`TranslationOverrideController`** (list / edit / reset). Requires **`symfony/twig-bundle`**, **`symfony/security-csrf`** + **`framework.csrf_protection`**, and **`symfony/security-bundle`** unless `allow_unauthenticated` (compile-time check). |
+| `overrides.web_ui.path_prefix` | `string` | `/_translation_yaml_tools/texts` | URL prefix for the imported routes (list URL ends with `/`). |
+| `overrides.web_ui.layout_template` | `string` | `@NowoTranslationYamlToolsBundle/text_override/layout.html.twig` | Layout the pages extend; it must define blocks **`title`** and **`body`** (Symfony `base.html.twig` convention), so your admin layout usually works as-is. |
+| `overrides.web_ui.security.access_roles` | `list<string>` | `[ROLE_ADMIN]` | User needs **at least one** (checked with `isGranted()`, so voter attributes work too). Empty ⇒ deny everyone. |
+| `overrides.web_ui.security.allow_unauthenticated` | `bool` | `false` | **Dev/demo only**: skip the role check (no SecurityBundle needed). Never in production. |
 
 Example:
 
@@ -128,6 +142,72 @@ Adjust the path to match **`web_ui.path_prefix`**. Bundle-level **`security.acce
 Row fields include **`message_id`** (max 500 chars), **`domain`** (max 180), **`locale`** (max 32), **`status`**, **`hit_count`**, **`call_site`** (nullable backtrace **`file:line`**, max 1024 chars), **`request_route`** (nullable, max 180), **`request_method`** (nullable, max 8), **`request_path`** (nullable **`pathInfo`**, max 2048), **`first_seen_at`**, **`last_seen_at`**, **`status_changed_at`**, **`notes`**. Oversized string values are truncated on write (ellipsis suffix where the column is long enough) so inserts never fail with **SQLSTATE[22001]** / MySQL **1406**.
 
 The log records **runtime `TranslatorInterface::trans()`** lookups that miss the catalogue for the requested locale; it is **not** a full inventory of every untranslated string in the app, and **`call_site`** from Twig often points at **compiled** Twig under **`var/cache`**, not the **`.twig`** source line. With **`record_request_context`** (default **true**), HTTP rows also get **`request_route`**, **`request_method`**, and **`request_path`**. See [USAGE — Missing translation log: coverage and call_site](USAGE.md#missing-translation-log-coverage-and-call_site).
+
+## Text overrides (database)
+
+Operators replace shipped catalogue texts per locale without a deploy. Overrides are stored in **`{table_prefix}override`** and served by **`OverridingTranslator`** (decorates `translator`): Twig `|trans`, forms, mails and PHP `trans()` see the edited text; `getCatalogue()` keeps returning the shipped text. Only an exact *(locale, domain, key)* match is replaced; `%param%`, plural and ICU formatting work as for catalogue messages.
+
+1. Install the bundle for **all** environments (`composer require nowo-tech/translation-yaml-tools-bundle`, `['all' => true]` in `config/bundles.php`) plus **`doctrine/orm`** and **`doctrine/doctrine-bundle`**. Optional: **`symfony/html-sanitizer`** (recommended — keeps links/emphasis instead of stripping all markup).
+2. Configure:
+
+```yaml
+nowo_translation_yaml_tools:
+    overrides:
+        enabled: true
+        editable:
+            messages: ['site.', 'legal.', 'error.']
+            NowoUiKitBundle: ['loader.']
+        # locales: [es, en]        # default: framework.enabled_locales
+        # html_sanitizer: app.text_override_sanitizer
+        web_ui:
+            enabled: true
+            path_prefix: '/admin/texts'
+            layout_template: 'admin/base.html.twig'   # must define blocks "title" and "body"
+            security:
+                access_roles: [ROLE_ADMIN]
+```
+
+3. **Generate the Doctrine migration** in the host (the bundle ships none):
+
+```bash
+php bin/console doctrine:migrations:diff   # review, then
+php bin/console doctrine:migrations:migrate
+```
+
+The diff creates (names depend on `table_prefix`):
+
+```sql
+CREATE TABLE nowo_translation_override (
+    id INT AUTO_INCREMENT NOT NULL,          -- SERIAL / INTEGER PRIMARY KEY per platform
+    locale VARCHAR(16) NOT NULL,
+    domain VARCHAR(128) NOT NULL,
+    message_key VARCHAR(255) NOT NULL,
+    value LONGTEXT NOT NULL,                 -- TEXT
+    created_at DATETIME NOT NULL,            -- (DC2Type:datetime_immutable)
+    updated_at DATETIME NOT NULL,
+    updated_by VARCHAR(180) DEFAULT NULL,    -- user identifier of the last editor
+    UNIQUE INDEX tyt_ovr_uq_<hash> (locale, domain, message_key),
+    PRIMARY KEY(id)
+);
+```
+
+Until the table exists, the override map is empty (a warning is logged) and the shipped texts are shown.
+
+4. Import the routes (same prefix as `web_ui.path_prefix`):
+
+```yaml
+# config/routes/nowo_translation_yaml_tools_overrides.yaml
+nowo_translation_yaml_tools_overrides_ui:
+    resource: '@NowoTranslationYamlToolsBundle/Resources/config/routes/translation_override_ui.yaml'
+    type: yaml
+    prefix: '%nowo_translation_yaml_tools.overrides.web_ui.path_prefix%'
+```
+
+Routes: **`nowo_translation_yaml_tools_overrides_index`** (GET `?q=&group=`), **`…_edit`** (GET/POST `?key=`), **`…_reset`** (POST `?key=`). Keys of the `messages` domain are addressed as-is; other domains as **`Domain:key`** (e.g. `NowoUiKitBundle:loader.loading`). Unknown / non-editable keys answer **404**.
+
+5. Security: every POST carries a CSRF token (`nowo_tyt_override_edit_<ref>` / `nowo_tyt_override_reset_<ref>`); reset also needs the confirmation checkbox (no inline JavaScript). Also protect the prefix in `access_control`. The edit page has one inline `<style>` (CSS-only locale tabs) that carries **`nonce="{{ app.request.attributes.get('csp_nonce') }}"`** when your CSP listener sets the **`csp_nonce`** request attribute.
+
+Cache: the map is cached in `cache_pool` for `cache_ttl` seconds and memoised per request (`ResetInterface`, worker-safe). Writes outside the bundle (SQL, backup restore) are picked up after the TTL or after `TranslationOverrides::invalidate()`.
 
 ## Machine translator by locale
 

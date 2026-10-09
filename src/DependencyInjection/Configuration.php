@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 
+use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -219,8 +220,115 @@ final class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
+                ->append($this->overridesNode())
             ->end();
 
         return $treeBuilder;
+    }
+
+    /**
+     * Operator text overrides (DB rows served before the catalogues) + optional Web UI.
+     */
+    private function overridesNode(): ArrayNodeDefinition
+    {
+        /** @var ArrayNodeDefinition $node */
+        $node = (new TreeBuilder('overrides'))->getRootNode();
+
+        $node
+            ->info('Operator text overrides: per-locale DB replacements for editable catalogue messages, applied by a translator decorator. Requires doctrine/orm + doctrine/doctrine-bundle; the host generates the migration for table {table_prefix}override.')
+            ->canBeEnabled()
+            ->children()
+                ->scalarNode('table_prefix')
+                    ->info('Physical table name = prefix + "override" (e.g. nowo_translation_override). Allowed: [a-z0-9_]+, max 40 chars.')
+                    ->defaultValue('nowo_translation_')
+                    ->validate()
+                        ->ifTrue(static fn ($v): bool => !is_string($v) || $v === '' || strlen($v) > 40 || !preg_match('/^[a-z0-9_]+$/', $v))
+                        ->thenInvalid('overrides.table_prefix must be a non-empty string matching [a-z0-9_]+ (max 40 characters)')
+                    ->end()
+                ->end()
+                ->arrayNode('editable')
+                    ->info('Editable messages: translation domain => list of key prefixes ("" = whole domain). Example: { messages: ["site.", "legal."], NowoUiKitBundle: ["loader."] }. Keys outside these prefixes cannot be overridden from the UI.')
+                    ->useAttributeAsKey('domain')
+                    ->normalizeKeys(false)
+                    ->arrayPrototype()
+                        ->scalarPrototype()->end()
+                    ->end()
+                    ->defaultValue([])
+                    ->validate()
+                        ->ifTrue(static function (array $v): bool {
+                            foreach ($v as $domain => $prefixes) {
+                                if (!is_string($domain) || $domain === '' || str_contains($domain, ':') || $prefixes === []) {
+                                    return true;
+                                }
+                            }
+
+                            return false;
+                        })
+                        ->thenInvalid('overrides.editable: each domain must be a non-empty name without ":" and list at least one key prefix ("" = whole domain)')
+                    ->end()
+                ->end()
+                ->arrayNode('locales')
+                    ->info('Locales edited in the UI (one tab each). Empty = framework.enabled_locales, else the default locale only. The default locale is always first.')
+                    ->scalarPrototype()->end()
+                    ->defaultValue([])
+                ->end()
+                ->scalarNode('cache_pool')
+                    ->info('Cache pool (Symfony\\Contracts\\Cache\\CacheInterface) holding the override map.')
+                    ->defaultValue('cache.app')
+                    ->cannotBeEmpty()
+                ->end()
+                ->integerNode('cache_ttl')
+                    ->info('Seconds the override map stays cached; writes through the bundle invalidate it immediately (TTL bounds staleness after SQL / restore writes).')
+                    ->defaultValue(3600)
+                    ->min(0)
+                ->end()
+                ->integerNode('max_length')
+                    ->info('Maximum characters per override text (Web UI validation).')
+                    ->defaultValue(5000)
+                    ->min(1)
+                ->end()
+                ->scalarNode('html_sanitizer')
+                    ->info('Service id implementing TranslationOverrideHtmlSanitizerInterface. null = symfony/html-sanitizer inline allowlist when installed, else strip all tags.')
+                    ->defaultNull()
+                ->end()
+                ->arrayNode('web_ui')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->booleanNode('enabled')
+                            ->info('Expose the overrides desk (list / edit / reset). Import routes/translation_override_ui.yaml. Requires twig-bundle, security-csrf (+ framework.csrf_protection) and security-bundle.')
+                            ->defaultFalse()
+                        ->end()
+                        ->scalarNode('path_prefix')
+                            ->info('URL prefix for imported routes (must start with /)')
+                            ->defaultValue('/_translation_yaml_tools/texts')
+                            ->validate()
+                                ->ifTrue(static fn ($v): bool => !is_string($v) || !str_starts_with($v, '/'))
+                                ->thenInvalid('overrides.web_ui.path_prefix must be a string starting with /')
+                            ->end()
+                        ->end()
+                        ->scalarNode('layout_template')
+                            ->info('Twig layout the pages extend; must define blocks "title" and "body" (Symfony base.html.twig convention), e.g. your admin layout.')
+                            ->defaultValue('@NowoTranslationYamlToolsBundle/text_override/layout.html.twig')
+                            ->cannotBeEmpty()
+                        ->end()
+                        ->arrayNode('security')
+                            ->addDefaultsIfNotSet()
+                            ->children()
+                                ->arrayNode('access_roles')
+                                    ->info('User must be granted at least one role (any attribute isGranted() understands). Empty list = deny everyone.')
+                                    ->scalarPrototype()->end()
+                                    ->defaultValue(['ROLE_ADMIN'])
+                                ->end()
+                                ->booleanNode('allow_unauthenticated')
+                                    ->info('DEV/DEMO only: skip the role check (no SecurityBundle needed). Never true in production.')
+                                    ->defaultFalse()
+                                ->end()
+                            ->end()
+                        ->end()
+                    ->end()
+                ->end()
+            ->end();
+
+        return $node;
     }
 }

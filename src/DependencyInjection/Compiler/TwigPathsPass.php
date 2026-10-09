@@ -13,7 +13,7 @@ use function is_string;
 use function rtrim;
 
 /**
- * Registers the bundle Twig namespace when the missing-log Web UI is enabled.
+ * Registers the bundle Twig namespace when the missing-log or the translation-overrides Web UI is enabled.
  *
  * REQ-TWIG-001: Application overrides win over vendor. When
  * {@code templates/bundles/NowoTranslationYamlToolsBundle/} exists, it is registered with
@@ -28,10 +28,8 @@ final class TwigPathsPass implements CompilerPassInterface
 
     public function process(ContainerBuilder $container): void
     {
-        if (!$container->hasParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled')) {
-            return;
-        }
-        if (!$container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled')) {
+        if (!$this->isEnabled($container, 'nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled')
+            && !$this->isEnabled($container, 'nowo_translation_yaml_tools.overrides.web_ui.enabled')) {
             return;
         }
 
@@ -64,6 +62,11 @@ final class TwigPathsPass implements CompilerPassInterface
 
         // @igor-ignore - Container compile-time DI mutation; not runtime worker state.
         $definition->addMethodCall('addPath', [$viewsPath, self::TWIG_NAMESPACE]);
+    }
+
+    private function isEnabled(ContainerBuilder $container, string $parameter): bool
+    {
+        return $container->hasParameter($parameter) && (bool) $container->getParameter($parameter);
     }
 
     private function getNativeLoaderServiceId(ContainerBuilder $container): ?string

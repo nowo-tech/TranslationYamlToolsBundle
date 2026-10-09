@@ -9,6 +9,9 @@ use Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateBaseUrlGuar
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper;
 use Nowo\TranslationYamlToolsBundle\Security\ConfigurableMissingLogUiAccessChecker;
 use Nowo\TranslationYamlToolsBundle\Security\MissingLogUiAccessCheckerInterface;
+use Nowo\TranslationYamlToolsBundle\TextOverride\Html\StripTagsTranslationOverrideHtmlSanitizer;
+use Nowo\TranslationYamlToolsBundle\TextOverride\Html\SymfonyTranslationOverrideHtmlSanitizer;
+use Nowo\TranslationYamlToolsBundle\TextOverride\Html\TranslationOverrideHtmlSanitizerInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -17,10 +20,13 @@ use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\HtmlSanitizer\HtmlSanitizer;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 use function array_key_exists;
+use function in_array;
 use function is_array;
+use function is_bool;
 use function is_string;
 
 /**
@@ -42,6 +48,21 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
                             'type'      => 'attribute',
                             'dir'       => __DIR__ . '/../Entity',
                             'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\Entity',
+                        ],
+                    ],
+                ],
+            ]);
+        }
+
+        if ($container->hasExtension('doctrine') && $this->rawConfigEnablesOverrides($container)) {
+            $container->prependExtensionConfig('doctrine', [
+                'orm' => [
+                    'mappings' => [
+                        'NowoTranslationYamlToolsTextOverride' => [
+                            'is_bundle' => false,
+                            'type'      => 'attribute',
+                            'dir'       => __DIR__ . '/../TextOverride/Entity',
+                            'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\TextOverride\\Entity',
                         ],
                     ],
                 ],
@@ -198,6 +219,10 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');
 
+        /** @var array<string, mixed> $overrides */
+        $overrides = $config['overrides'];
+        $this->loadOverrides($overrides, $container, $loader);
+
         if ($missingLogEnabled) {
             $loader->load('services_missing_translation.yaml');
             if ($asyncPersist && $asyncPersistStrategy === 'messenger' && interface_exists(MessageBusInterface::class)) {
@@ -212,6 +237,74 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
                     $this->registerAccessChecker($container, $accessRoles, $customAccessChecker ? (string) $accessCheckerId : null);
                 }
             }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $overrides processed overrides config
+     */
+    private function loadOverrides(array $overrides, ContainerBuilder $container, YamlFileLoader $loader): void
+    {
+        $enabled = (bool) $overrides['enabled'];
+        /** @var array<string, mixed> $webUi */
+        $webUi        = $overrides['web_ui'];
+        $webUiEnabled = $enabled && (bool) $webUi['enabled'];
+        /** @var array<string, mixed> $security */
+        $security = $webUi['security'];
+
+        $editable = [];
+        /** @var array<string, list<string>> $configuredEditable */
+        $configuredEditable = $overrides['editable'];
+        foreach ($configuredEditable as $domain => $prefixes) {
+            $editable[(string) $domain] = array_values(array_unique(array_map('strval', $prefixes)));
+        }
+        $locales = [];
+        /** @var list<string> $configuredLocales */
+        $configuredLocales = $overrides['locales'];
+        foreach ($configuredLocales as $locale) {
+            if (is_string($locale) && $locale !== '' && !in_array($locale, $locales, true)) {
+                $locales[] = $locale;
+            }
+        }
+        $accessRoles = [];
+        /** @var list<string> $configuredRoles */
+        $configuredRoles = $security['access_roles'];
+        foreach ($configuredRoles as $role) {
+            if (is_string($role) && $role !== '') {
+                $accessRoles[] = $role;
+            }
+        }
+
+        $prefix = 'nowo_translation_yaml_tools.overrides.';
+        $container->setParameter($prefix . 'enabled', $enabled);
+        $container->setParameter($prefix . 'table_prefix', (string) $overrides['table_prefix']);
+        $container->setParameter($prefix . 'editable', $editable);
+        $container->setParameter($prefix . 'locales', $locales);
+        $container->setParameter($prefix . 'cache_ttl', (int) $overrides['cache_ttl']);
+        $container->setParameter($prefix . 'max_length', (int) $overrides['max_length']);
+        $container->setParameter($prefix . 'web_ui.enabled', $webUiEnabled);
+        $container->setParameter($prefix . 'web_ui.path_prefix', (string) $webUi['path_prefix']);
+        $container->setParameter($prefix . 'web_ui.layout_template', (string) $webUi['layout_template']);
+        $container->setParameter($prefix . 'web_ui.security.access_roles', $accessRoles);
+        $container->setParameter($prefix . 'web_ui.security.allow_unauthenticated', (bool) $security['allow_unauthenticated']);
+
+        if (!$enabled) {
+            return;
+        }
+
+        $container->setAlias($prefix . 'cache', (string) $overrides['cache_pool']);
+
+        $sanitizerId = $overrides['html_sanitizer'];
+        if (!is_string($sanitizerId) || $sanitizerId === '') {
+            // symfony/html-sanitizer when installed, else strip every tag.
+            $sanitizerId = class_exists(HtmlSanitizer::class) ? SymfonyTranslationOverrideHtmlSanitizer::class : StripTagsTranslationOverrideHtmlSanitizer::class;
+            $container->setDefinition($sanitizerId, new Definition($sanitizerId));
+        }
+        $container->setAlias(TranslationOverrideHtmlSanitizerInterface::class, $sanitizerId);
+
+        $loader->load('services_overrides.yaml');
+        if ($webUiEnabled) {
+            $loader->load('services_overrides_web.yaml');
         }
     }
 
@@ -236,6 +329,24 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         }
 
         $container->setAlias(MissingLogUiAccessCheckerInterface::class, $accessCheckerId);
+    }
+
+    private function rawConfigEnablesOverrides(ContainerBuilder $container): bool
+    {
+        $enabled = false;
+        foreach ($container->getExtensionConfig('nowo_translation_yaml_tools') as $chunk) {
+            if (!is_array($chunk) || !array_key_exists('overrides', $chunk)) {
+                continue;
+            }
+            $overrides = $chunk['overrides'];
+            if ($overrides === null || is_bool($overrides)) {
+                $enabled = $overrides ?? true;
+            } elseif (is_array($overrides)) {
+                $enabled = !array_key_exists('enabled', $overrides) || $overrides['enabled'] === true;
+            }
+        }
+
+        return $enabled;
     }
 
     private function rawConfigEnablesMissingTranslationLog(ContainerBuilder $container): bool

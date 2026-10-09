@@ -9,6 +9,7 @@
 - [File naming](#file-naming)
 - [Twig — missing translation log Web UI](#twig--missing-translation-log-web-ui)
 - [Missing translation log: coverage and call_site](#missing-translation-log-coverage-and-call_site)
+- [Text overrides (operator-edited texts)](#text-overrides-operator-edited-texts)
 - [Overriding templates (REQ-TWIG-001)](#overriding-templates-req-twig-001)
 - [Symfony 8 demo](#symfony-8-demo)
 
@@ -150,6 +151,50 @@ That design avoids pointing every hit at the Twig bridge file, but for Twig-rend
 **Yes — it is expected** that **`call_site`** sometimes does not match the Twig source line; improving that would require Twig/source-map style metadata beyond what **`debug_backtrace`** exposes here.
 
 When **`missing_translation_log.record_request_context`** is **`true`** (default), the row stores **`request_route`** (from **`_route`** when set), **`request_method`**, and **`request_path`** (**`Request::getPathInfo()`** when non-empty) for the current HTTP request (see [Configuration](CONFIGURATION.md)). **CLI** commands and other non-HTTP contexts have **no** request, so those columns stay empty. Set **`record_request_context: false`** if you prefer not to store URLs or route names (privacy).
+
+## Text overrides (operator-edited texts)
+
+Opt-in (`overrides.enabled`, see [CONFIGURATION — Text overrides](CONFIGURATION.md#text-overrides-database)).
+
+### Web UI desk
+
+`GET {path_prefix}/` lists every editable message of the default locale (filter by **group** — first two key segments, e.g. `site.footer` or `NowoUiKitBundle:loader` — and full-text **search** over key + current text), with badges for the locales that have an override. `GET {path_prefix}/edit?key=site.footer.tagline` shows one textarea per locale in CSS-only tabs plus the shipped text; saving a text equal to the shipped one (or blank) deletes that locale's override. The reset form deletes every locale's override after a confirmation checkbox. Templates: `@NowoTranslationYamlToolsBundle/text_override/{layout,index,edit}.html.twig` (override them under `templates/bundles/NowoTranslationYamlToolsBundle/text_override/`). UI strings live in the `NowoTranslationYamlToolsBundle` domain (en, es).
+
+### Form bridge (host forms)
+
+`TranslationOverrideEditor` binds any per-locale field (e.g. an unmapped field with one child per locale) to a message:
+
+```php
+use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideEditor;
+
+// prefill: override, else shipped text, per locale
+$form->get('intro')->setData($editor->currentTexts('messages', 'site.specialty.intro'));
+
+// on submit (same transaction as your entity)
+$editor->save('messages', 'site.specialty.intro', (array) $form->get('intro')->getData(), flush: false, updatedBy: $user?->getUserIdentifier());
+$entityManager->flush();
+$editor->flush(); // flushes + invalidates the cached map
+```
+
+Other helpers: `locales()`, `defaultLocale()`, `shippedTexts()`, `overriddenLocales()`, `reset()`. Low-level reads/writes: `TranslationOverrides::get()/all()/set()/invalidate()`; read-only consumers can type-hint `TranslationOverrideProviderInterface`.
+
+### HTML sanitizing
+
+Values containing `<` go through `TranslationOverrideHtmlSanitizerInterface` on save and again when the map is (re)loaded from the database. Default: inline allowlist (`a[href|title|target]` with forced `rel="noopener noreferrer"`, `strong`, `b`, `em`, `i`, `u`, `s`, `small`, `code`, `abbr`, `span[class]`, `br`; http/https/mailto/tel and relative links) when `symfony/html-sanitizer` is installed, else every tag is stripped. Plug your own:
+
+```php
+final class AppTextSanitizer implements TranslationOverrideHtmlSanitizerInterface
+{
+    public function __construct(private HtmlSanitizerInterface $appSanitizer) {}
+    public function sanitize(string $html): string { return $this->appSanitizer->sanitize($html); }
+}
+```
+
+```yaml
+nowo_translation_yaml_tools:
+    overrides:
+        html_sanitizer: App\Text\AppTextSanitizer
+```
 
 ## Overriding templates (REQ-TWIG-001)
 

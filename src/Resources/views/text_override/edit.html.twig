@@ -1,0 +1,67 @@
+{% extends layout_template %}
+{% trans_default_domain 'NowoTranslationYamlToolsBundle' %}
+
+{% block title %}{{ 'overrides.edit_title'|trans }}{% endblock %}
+
+{% block body %}
+{% set csp_nonce = app.request.attributes.get('csp_nonce') %}
+{% set active_locale = errors is not empty ? errors|keys|first : locales|first %}
+{# CSS-only tabs (no JavaScript); the nonce lets a strict style-src CSP accept this block. #}
+<style{% if csp_nonce %} nonce="{{ csp_nonce }}"{% endif %}>
+    .nowo-tyt-tabs > .nowo-tyt-tab-input { position: absolute; opacity: 0; pointer-events: none; }
+    .nowo-tyt-tabs > .nowo-tyt-tab-panel { display: none; }
+    .nowo-tyt-shipped { white-space: pre-line; }
+    .nowo-tyt-tabs > .nowo-tyt-tab-input:focus-visible + .nowo-tyt-tab-label { outline: 2px solid currentColor; outline-offset: 2px; }
+    {% for locale in locales %}
+    #nowo-tyt-tab-{{ loop.index }}:checked + .nowo-tyt-tab-label { font-weight: 600; border-bottom: 2px solid currentColor; }
+    #nowo-tyt-tab-{{ loop.index }}:checked ~ #nowo-tyt-panel-{{ loop.index }} { display: block; }
+    {% endfor %}
+</style>
+
+<div class="mb-3">
+    <p class="small mb-1"><a href="{{ path('nowo_translation_yaml_tools_overrides_index', {group: group}) }}">{{ 'overrides.back'|trans }}</a></p>
+    <h1 class="h3">{{ 'overrides.edit_title'|trans }}</h1>
+    <p class="font-monospace small mb-1" data-testid="tyt-overrides-key">{{ key }}</p>
+    <p class="text-muted">{{ 'overrides.edit_intro'|trans }}</p>
+</div>
+
+<form method="post" action="{{ path('nowo_translation_yaml_tools_overrides_edit', {key: key}) }}" class="card card-body mb-3" data-testid="tyt-overrides-form" novalidate>
+    <input type="hidden" name="_token" value="{{ csrf_token(csrf_edit) }}">
+    <fieldset class="nowo-tyt-tabs">
+        <legend class="h6">{{ 'overrides.locale_tabs'|trans }}</legend>
+        {% for locale in locales %}
+            <input class="nowo-tyt-tab-input" type="radio" name="_tab" value="{{ locale }}" id="nowo-tyt-tab-{{ loop.index }}"{% if locale == active_locale %} checked{% endif %}>
+            <label class="nowo-tyt-tab-label d-inline-block px-3 py-1 me-1" for="nowo-tyt-tab-{{ loop.index }}">{{ locale|upper }}{% if locale in overridden %} <span class="badge text-bg-info">{{ 'overrides.badge_overridden'|trans }}</span>{% endif %}</label>
+        {% endfor %}
+        {% for locale in locales %}
+            <div class="nowo-tyt-tab-panel pt-3" id="nowo-tyt-panel-{{ loop.index }}" data-locale="{{ locale }}">
+                <label class="form-label" for="nowo-tyt-text-{{ loop.index }}">{{ 'overrides.text_for'|trans({'%locale%': locale|upper}) }}</label>
+                <textarea class="form-control{% if errors[locale] is defined %} is-invalid{% endif %}" id="nowo-tyt-text-{{ loop.index }}" name="texts[{{ locale }}]" rows="4" maxlength="{{ max_length }}" lang="{{ locale|replace({_: '-'}) }}"{% if errors[locale] is defined %} aria-invalid="true" aria-describedby="nowo-tyt-error-{{ loop.index }}"{% endif %}>{{ texts[locale] ?? '' }}</textarea>
+                {% if errors[locale] is defined %}<div class="invalid-feedback d-block" id="nowo-tyt-error-{{ loop.index }}">{{ errors[locale] }}</div>{% endif %}
+                <div class="form-text">{{ 'overrides.text_help'|trans }}</div>
+                <details class="mt-2 small">
+                    <summary>{{ 'overrides.shipped'|trans }}</summary>
+                    <div class="nowo-tyt-shipped text-muted mt-1">{{ shipped[locale] ?? '' }}</div>
+                </details>
+            </div>
+        {% endfor %}
+    </fieldset>
+
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        <button class="btn btn-primary" type="submit">{{ 'overrides.save'|trans }}</button>
+        <a class="btn btn-outline-secondary" href="{{ path('nowo_translation_yaml_tools_overrides_index', {group: group}) }}">{{ 'overrides.cancel'|trans }}</a>
+    </div>
+</form>
+
+{% if overridden is not empty %}
+    {# Confirmation without JavaScript: the reset button only submits once the checkbox is ticked (checked server-side too). #}
+    <form method="post" action="{{ path('nowo_translation_yaml_tools_overrides_reset', {key: key}) }}" class="card card-body border-warning" data-testid="tyt-overrides-reset">
+        <input type="hidden" name="_token" value="{{ csrf_token(csrf_reset) }}">
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="confirm" value="1" id="nowo-tyt-reset-confirm" required>
+            <label class="form-check-label" for="nowo-tyt-reset-confirm">{{ 'overrides.reset_confirm'|trans({'%locales%': overridden|map(l => l|upper)|join(', ')}) }}</label>
+        </div>
+        <div><button class="btn btn-sm btn-outline-danger" type="submit">{{ 'overrides.reset'|trans }}</button></div>
+    </form>
+{% endif %}
+{% endblock %}

@@ -29,6 +29,8 @@ Ensure `framework.translator` is configured so `translator.default_path` and dis
 
 Optional **runtime missing-key log** (Doctrine table + optional Twig UI) needs **`doctrine/orm`** and **`doctrine/doctrine-bundle`** in your app and is configured under **`missing_translation_log`** — see [Configuration](CONFIGURATION.md) (“Missing translation log”). Twig overrides use **`templates/bundles/NowoTranslationYamlToolsBundle/`** (documented in [Usage](USAGE.md#overriding-templates-req-twig-001)).
 
+Optional **text overrides** (operator-edited texts served at runtime, `overrides`) need the bundle in **all** environments (`composer require nowo-tech/translation-yaml-tools-bundle` without `--dev`, `['all' => true]` in `config/bundles.php`), **`doctrine/orm`** + **`doctrine/doctrine-bundle`**, a host-generated Doctrine migration, and preferably **`symfony/html-sanitizer`** — see [Configuration — Text overrides](CONFIGURATION.md#text-overrides-database).
+
 ### Web UI prerequisites
 
 If you enable **`missing_translation_log.web_ui.enabled`**, you also need:

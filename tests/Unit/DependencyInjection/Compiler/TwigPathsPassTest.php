@@ -199,6 +199,20 @@ final class TwigPathsPassTest extends TestCase
         return [$viewsPath, 'NowoTranslationYamlToolsBundle'];
     }
 
+    public function testProcessRegistersPathWhenOnlyOverridesWebUiEnabled(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('nowo_translation_yaml_tools.overrides.web_ui.enabled', true);
+        $container->setDefinition('twig.loader.native_filesystem', new Definition());
+
+        (new TwigPathsPass())->process($container);
+
+        self::assertSame(
+            [['addPath', $this->expectedVendorAddPathArgs()]],
+            $container->getDefinition('twig.loader.native_filesystem')->getMethodCalls(),
+        );
+    }
+
     private function createContainerWithLoader(string $projectDir, bool $webUiEnabled): ContainerBuilder
     {
         $container = new ContainerBuilder();

@@ -1,0 +1,35 @@
+overrides:
+    title: Site texts
+    intro: Replace any editable message per language without a deploy. Saving the shipped text, or clearing a field, removes the override.
+    override_count: '{0}No overrides yet.|{1}1 override.|]1,Inf[%count% overrides.'
+    search: Search
+    search_placeholder: Key or text…
+    group: Group
+    all_groups: All groups
+    filter: Filter
+    col:
+        key: Key
+        text: Text (%locale%)
+        overridden: Overridden
+        actions: Actions
+    edit: Edit
+    empty: No texts match.
+    edit_title: Edit text
+    edit_intro: One tab per language. Leave a field empty, or keep the shipped text, to use the default.
+    back: ← Back to texts
+    locale_tabs: Languages
+    badge_overridden: edited
+    text_for: Text (%locale%)
+    text_help: Placeholders such as %name% or {count} must be kept. Allowed markup is limited to links and inline emphasis; anything else is removed.
+    shipped: Shipped text
+    save: Save
+    cancel: Cancel
+    reset: Restore shipped text
+    reset_confirm: 'Yes, delete the overrides for %locales%.'
+    flash:
+        saved: Text saved.
+        reset: Shipped text restored.
+        invalid_token: Invalid security token. Please try again.
+        confirm_required: Tick the confirmation box to restore the shipped text.
+    error:
+        too_long: This text is too long (maximum %max% characters).

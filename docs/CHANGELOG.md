@@ -4,6 +4,29 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-09
+
+### Added
+
+- **Text overrides** (opt-in `overrides`, default disabled): operator-edited per-locale replacements for catalogue messages, stored in Doctrine table `{table_prefix}override` (entity `TextOverride\Entity\TranslationOverride`, host generates the migration).
+  - `OverridingTranslator` decorates `translator` (keeps `TranslatorBagInterface`, `LocaleAwareInterface`, `WarmableInterface`; formats parameters / plurals / ICU like catalogue messages; provider resolved lazily).
+  - `TranslationOverrides`: map cached in `overrides.cache_pool` (default `cache.app`, TTL `overrides.cache_ttl` = 3600 s), memoised per request (`ResetInterface`), invalidated on every write; storage failures fall back to shipped texts.
+  - Editable domains / key prefixes by config (`overrides.editable: { messages: ['site.'], SomeBundle: ['x.'] }`); non-`messages` keys addressed as `Domain:key`.
+  - Locales from `overrides.locales`, else `framework.enabled_locales`.
+  - `TranslationOverrideHtmlSanitizerInterface` (`overrides.html_sanitizer`): default inline allowlist via `symfony/html-sanitizer` when installed, else strip all tags; applied on save **and** when the map is loaded.
+  - Web UI (`overrides.web_ui`): list by group + search, edit with one CSS-only tab per locale, reset with a no-JS confirmation checkbox, CSRF on every POST, `access_roles` (default `[ROLE_ADMIN]`), `layout_template` (blocks `title` / `body`), inline `<style>` carries the `csp_nonce` request attribute. Compile-time checks for SecurityBundle, CSRF and Twig (`TextOverrideWebUiPass`).
+  - `TranslationOverrideEditor`: form bridge for host forms (`currentTexts()`, `save()`, `reset()`).
+  - UI translations (`NowoTranslationYamlToolsBundle` domain): en, es.
+- Spec `specs/002-text-overrides/spec.md`.
+
+### Changed
+
+- `TwigPathsPass` also registers the bundle Twig namespace when only the text-overrides Web UI is enabled.
+
+### Dependencies
+
+- Dev: `symfony/html-sanitizer`, `symfony/css-selector`, `symfony/cache` (explicit). `symfony/html-sanitizer` added to `suggest`.
+
 ## [1.5.1] - 2026-10-09
 
 ### Changed
@@ -16,6 +39,7 @@ All notable changes to this project are documented in this file.
 - Dev tooling: `doctrine/orm` 3.7.4 (#43), `igor-php/igor-php` ^0.10 (v0.10.1, #44), `nowo-tech/phpstan-frankenphp` v1.2.3 (#45), phpstan group (#42) -> `phpstan/phpstan` 2.3.1, `phpstan/phpstan-phpunit` 2.1.1, `phpstan/phpstan-symfony` 2.1.0; `rector/rector` 2.7.0, `phpunit/phpunit` 10.5.66.
 - Demo (Symfony 8): `doctrine/orm` 3.7.4, `doctrine/dbal` 4.5.0, `nowo-tech/ui-kit-bundle` v1.9.1, `twig/twig` v3.30.0, `twig/extra-bundle` v3.29.0, `nowo-tech/hot-reload-bundle` v1.5.5, `nowo-tech/twig-inspector-bundle` v1.1.7.
 
+[1.6.0]: https://github.com/nowo-tech/TranslationYamlToolsBundle/releases/tag/v1.6.0
 [1.5.1]: https://github.com/nowo-tech/TranslationYamlToolsBundle/releases/tag/v1.5.1
 
 ## [1.5.0] - 2026-09-28

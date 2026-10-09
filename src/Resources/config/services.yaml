@@ -21,6 +21,7 @@ services:
             - '../../Twig/'
             - '../../EventSubscriber/'
             - '../../Security/'
+            - '../../TextOverride/'
 
     Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper:
         arguments:

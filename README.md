@@ -23,6 +23,7 @@ This bundle is **FrankenPHP worker mode friendly**.
   - **`nowo:translation-yaml:missing-log-list`**
   - **`nowo:translation-yaml:missing-log-mark-added`**
   - **`nowo:translation-yaml:missing-log-validate`**
+- **Text overrides** (opt-in `overrides`): operators replace editable catalogue messages per locale from a Web UI (search + groups, one tab per locale, reset, CSRF, no inline JS); a `translator` decorator serves them everywhere (Twig, forms, mails). Editable domains/prefixes by config, cached map, markup sanitized on save and load, form bridge for host forms. Needs Doctrine and the bundle in **all** environments — see [Configuration — Text overrides](docs/CONFIGURATION.md#text-overrides-database).
 - Configurable **YAML indent** (`yaml_tree_indent`) and **leaf-prefix suffix** (`yaml_tree_leaf_prefix_suffix` for `tree --fix-leaf-prefix`) for dumps / renames.
 
 ## Version information
