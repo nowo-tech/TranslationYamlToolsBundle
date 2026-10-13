@@ -21,6 +21,8 @@ use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\HttpKernel\KernelInterface;
 
+use function sprintf;
+
 #[CoversClass(TranslationYamlAuditCommand::class)]
 final class TranslationYamlAuditCommandTest extends TestCase
 {
@@ -217,5 +219,63 @@ final class TranslationYamlAuditCommandTest extends TestCase
         self::assertSame(Command::FAILURE, $exit);
         self::assertStringContainsString('Source:', $tester->getDisplay());
         self::assertStringNotContainsString('YAML error:', $tester->getDisplay());
+    }
+
+    public function testNonStrictIgnoresExtraAndEmptyKeys(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_audit_ns_' . uniqid();
+        $deps    = $this->createDeps($project, [
+            'messages.en.yaml' => "a: One\nb: Two\n",
+            'messages.es.yaml' => "a: Uno\nb: ''\nz: Extra\n",
+        ]);
+        $cmd = $this->auditCommand($deps);
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+
+        self::assertSame(Command::SUCCESS, $tester->execute(['--source-locale' => 'en']));
+        self::assertStringContainsString('no missing keys vs en', $tester->getDisplay());
+        self::assertStringNotContainsString('no extra keys', $tester->getDisplay());
+    }
+
+    public function testStrictFailsOnMissingExtraAndEmptyKeys(): void
+    {
+        $extra = '';
+        for ($i = 0; $i < 22; ++$i) {
+            $extra .= sprintf("z%02d: Extra\n", $i);
+        }
+        $project = sys_get_temp_dir() . '/tyt_audit_strict_' . uniqid();
+        $deps    = $this->createDeps($project, [
+            'messages.en.yaml' => "a: One\nb: Two\nc: Three\n",
+            'messages.es.yaml' => "a: Uno\nc: ''\n" . $extra,
+        ]);
+        $cmd = $this->auditCommand($deps);
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+
+        self::assertSame(Command::FAILURE, $tester->execute(['--source-locale' => 'en', '--strict' => true]));
+        $display = $tester->getDisplay();
+        self::assertStringContainsString('1 missing key(s) vs en', $display);
+        self::assertStringContainsString('missing: b', $display);
+        self::assertStringContainsString('22 extra key(s) not in en', $display);
+        self::assertStringContainsString('extra: z00', $display);
+        self::assertStringContainsString('extra: … and 2 more', $display);
+        self::assertStringNotContainsString('extra: z21', $display);
+        self::assertStringContainsString('1 empty value(s)', $display);
+        self::assertStringContainsString('empty: c', $display);
+    }
+
+    public function testStrictSucceedsWhenCataloguesMatch(): void
+    {
+        $project = sys_get_temp_dir() . '/tyt_audit_strict_ok_' . uniqid();
+        $deps    = $this->createDeps($project, [
+            'messages.en.yaml' => "a: One\n",
+            'messages.es.yaml' => "a: Uno\n",
+        ]);
+        $cmd = $this->auditCommand($deps);
+        $this->bind($cmd);
+        $tester = new CommandTester($cmd);
+
+        self::assertSame(Command::SUCCESS, $tester->execute(['--source-locale' => 'en', '--strict' => true]));
+        self::assertStringContainsString('no extra keys, no empty values', $tester->getDisplay());
     }
 }

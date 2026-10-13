@@ -174,6 +174,35 @@ final class TranslationYamlAuditorTest extends TestCase
         self::assertSame('en', $reports[0]['locales'][0]['locale']);
     }
 
+    public function testStrictOkReflectsExtraAndEmptyKeys(): void
+    {
+        $project = sys_get_temp_dir() . '/tytb_audit_' . bin2hex(random_bytes(4));
+        mkdir($project . '/translations', 0777, true);
+        file_put_contents($project . '/translations/messages.en.yaml', "a: One\nb: Two\n");
+        file_put_contents($project . '/translations/messages.es.yaml', "a: Uno\nb: ''\nz: Extra\n");
+
+        $reports = $this->createAuditor($project)->audit('en');
+
+        self::assertTrue($reports[0]['all_ok']);
+        self::assertFalse($reports[0]['strict_ok']);
+        $es = $reports[0]['locales'][1];
+        self::assertSame([], $es['missing_keys']);
+        self::assertSame(['z'], $es['extra_keys']);
+        self::assertSame(['b'], $es['empty_keys']);
+    }
+
+    public function testStrictOkWhenCataloguesMatch(): void
+    {
+        $project = sys_get_temp_dir() . '/tytb_audit_' . bin2hex(random_bytes(4));
+        mkdir($project . '/translations', 0777, true);
+        file_put_contents($project . '/translations/messages.en.yaml', "a: One\n");
+        file_put_contents($project . '/translations/messages.es.yaml', "a: Uno\n");
+
+        $reports = $this->createAuditor($project)->audit('en');
+
+        self::assertTrue($reports[0]['strict_ok']);
+    }
+
     private function createAuditor(string $project): TranslationYamlAuditor
     {
         $kernel = $this->createMock(KernelInterface::class);

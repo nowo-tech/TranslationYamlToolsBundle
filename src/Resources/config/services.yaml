@@ -22,6 +22,7 @@ services:
             - '../../EventSubscriber/'
             - '../../Security/'
             - '../../TextOverride/'
+            - '../../Testing/'
 
     Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper:
         arguments:

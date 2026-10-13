@@ -15,6 +15,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use function array_slice;
+use function count;
 use function implode;
 use function in_array;
 use function is_string;
@@ -22,6 +24,7 @@ use function sprintf;
 
 /**
  * Prints a short audit of translation YAML: tree convertibility, alphabetical order, and missing keys vs the source locale.
+ * With `--strict`, extra keys vs the source locale and empty values also fail (exit 1).
  */
 #[AsCommand(
     name: 'nowo:translation-yaml:audit',
@@ -29,6 +32,8 @@ use function sprintf;
 )]
 final class TranslationYamlAuditCommand extends AbstractTranslationYamlCommand
 {
+    private const STRICT_SAMPLE_LIMIT = 20;
+
     public function __construct(
         TranslationYamlCatalog $catalog,
         FrameworkTranslationPathsResolver $pathsResolver,
@@ -43,7 +48,8 @@ final class TranslationYamlAuditCommand extends AbstractTranslationYamlCommand
     {
         $this
             ->addOption('domain', 'd', InputOption::VALUE_REQUIRED, 'Limit audit to one domain')
-            ->addOption('source-locale', null, InputOption::VALUE_REQUIRED, 'Source locale for missing-key comparison (default: Symfony default locale unless overridden in bundle config)');
+            ->addOption('source-locale', null, InputOption::VALUE_REQUIRED, 'Source locale for missing-key comparison (default: Symfony default locale unless overridden in bundle config)')
+            ->addOption('strict', null, InputOption::VALUE_NONE, 'Also fail on keys present in a locale but not in the source locale (extra) and on empty values; lists the offending keys');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -73,10 +79,11 @@ final class TranslationYamlAuditCommand extends AbstractTranslationYamlCommand
             return Command::SUCCESS;
         }
 
+        $strict   = (bool) $input->getOption('strict');
         $anyIssue = false;
         foreach ($reports as $report) {
-            if ($report['all_ok']) {
-                $output->writeln(sprintf('<info>✓ %s</info> — tree-safe, alphabetically sorted, no missing keys vs %s', $report['domain'], $sourceLocale));
+            if ($strict ? $report['strict_ok'] : $report['all_ok']) {
+                $output->writeln(sprintf('<info>✓ %s</info> — tree-safe, alphabetically sorted, no missing keys vs %s%s', $report['domain'], $sourceLocale, $strict ? ', no extra keys, no empty values' : ''));
                 continue;
             }
 
@@ -107,6 +114,17 @@ final class TranslationYamlAuditCommand extends AbstractTranslationYamlCommand
                 }
                 if ($row['missing_vs_source'] !== null && $row['missing_vs_source'] > 0) {
                     $bullets[] = sprintf('%d missing key(s) vs %s', $row['missing_vs_source'], $sourceLocale);
+                    if ($strict) {
+                        $subLines = [...$subLines, ...$this->samples('missing', $row['missing_keys'])];
+                    }
+                }
+                if ($strict && $row['extra_keys'] !== []) {
+                    $bullets[] = sprintf('%d extra key(s) not in %s', count($row['extra_keys']), $sourceLocale);
+                    $subLines  = [...$subLines, ...$this->samples('extra', $row['extra_keys'])];
+                }
+                if ($strict && $row['empty_keys'] !== []) {
+                    $bullets[] = sprintf('%d empty value(s)', count($row['empty_keys']));
+                    $subLines  = [...$subLines, ...$this->samples('empty', $row['empty_keys'])];
                 }
 
                 if ($bullets === [] && $subLines === []) {
@@ -125,5 +143,23 @@ final class TranslationYamlAuditCommand extends AbstractTranslationYamlCommand
         }
 
         return $anyIssue ? Command::FAILURE : Command::SUCCESS;
+    }
+
+    /**
+     * @param list<string> $keys
+     *
+     * @return list<string>
+     */
+    private function samples(string $label, array $keys): array
+    {
+        $lines = [];
+        foreach (array_slice($keys, 0, self::STRICT_SAMPLE_LIMIT) as $key) {
+            $lines[] = sprintf('%s: %s', $label, $key);
+        }
+        if (count($keys) > self::STRICT_SAMPLE_LIMIT) {
+            $lines[] = sprintf('%s: … and %d more', $label, count($keys) - self::STRICT_SAMPLE_LIMIT);
+        }
+
+        return $lines;
     }
 }

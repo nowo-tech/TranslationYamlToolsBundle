@@ -5,6 +5,9 @@
 - [Commands overview](#commands-overview)
 - [Interactive selection](#interactive-selection)
 - [Examples](#examples)
+- [Strict parity in CI and PHPUnit](#strict-parity-in-ci-and-phpunit)
+  - [`audit --strict`](#audit---strict)
+  - [PHPUnit trait](#phpunit-trait)
 - [When tree conversion is impossible](#when-tree-conversion-is-impossible)
 - [File naming](#file-naming)
 - [Twig — missing translation log Web UI](#twig--missing-translation-log-web-ui)
@@ -21,7 +24,7 @@
 | `nowo:translation-yaml:flatten` | Same pattern; flattens nested maps to a **single-level** map whose keys are **dot paths** (e.g. `demo.title`). Omit **`--locale`** to flatten **all** locale files for the domain. |
 | `nowo:translation-yaml:sort` | Same pattern; sorts associative keys recursively. Omit **`--locale`** to sort **all** locale files for the domain. |
 | `nowo:translation-yaml:fill-missing` | Uses the **default source locale** (see [Configuration](CONFIGURATION.md)) and a **target locale** file; translates missing keys via the configured backend (**Google**, **DeepL**, or **LibreTranslate**). |
-| `nowo:translation-yaml:audit` | Read-only **audit** of all domains (or `--domain`): tree convertibility (with `leaf_and_prefix` conflict counts and samples), recursive **alphabetical** key order, and **missing keys** vs `--source-locale` (default: Symfony default). Domains that pass every check show **one** summary line (no per-locale breakdown). Exits **non-zero** if any domain has issues. |
+| `nowo:translation-yaml:audit` | Read-only **audit** of all domains (or `--domain`): tree convertibility (with `leaf_and_prefix` conflict counts and samples), recursive **alphabetical** key order, and **missing keys** vs `--source-locale` (default: Symfony default). Domains that pass every check show **one** summary line (no per-locale breakdown). Exits **non-zero** if any domain has issues. **`--strict`** also fails on **extra** keys and **empty** values and lists the keys (see [Strict parity](#strict-parity-in-ci-and-phpunit)). |
 
 The write commands (`tree`, `flatten`, `sort`, `fill-missing`) accept **`--inline`**: dump translations as compact **YAML flow style** (e.g. `{ demo: { title: … } }` or `{ demo.title: … }`) instead of expanded blocks and multi-line literals.
 
@@ -102,6 +105,7 @@ Audit every domain (CI-friendly; fails if anything is wrong):
 ```bash
 php bin/console nowo:translation-yaml:audit
 php bin/console nowo:translation-yaml:audit --source-locale=en --domain=messages
+php bin/console nowo:translation-yaml:audit --strict   # also extra keys and empty values
 ```
 
 Fill and write nested YAML:
@@ -109,6 +113,60 @@ Fill and write nested YAML:
 ```bash
 php bin/console nowo:translation-yaml:fill-missing --domain=messages --target-locale=es --tree
 ```
+
+## Strict parity in CI and PHPUnit
+
+### `audit --strict`
+
+```bash
+php bin/console nowo:translation-yaml:audit --strict --source-locale=en
+```
+
+On top of the normal audit, `--strict` fails (exit 1) when a locale has keys that are **missing** from it or **extra** (absent from the source locale), or **empty** values (blank string, `null`, empty map — source locale included). The offending keys are listed (`missing:`, `extra:`, `empty:`; first 20 per kind, then `… and N more`). Without `--strict` the output and exit code are unchanged.
+
+### PHPUnit trait
+
+`Nowo\TranslationYamlToolsBundle\Testing\TranslationParityAssertions` runs the same checks on a translation directory, without booting the kernel. It needs `phpunit/phpunit` (suggested, not required by the bundle).
+
+```php
+use Nowo\TranslationYamlToolsBundle\Testing\TranslationParityAssertions;
+use PHPUnit\Framework\TestCase;
+
+final class TranslationParityTest extends TestCase
+{
+    use TranslationParityAssertions;
+
+    private const DIR = __DIR__ . '/../translations';
+
+    public function testEveryLocaleHasTheSourceKeys(): void
+    {
+        self::assertTranslationKeyParity(
+            self::DIR,
+            sourceLocale: 'en',
+            locales: ['en', 'es', 'fr'],            // expected locales: a missing file reports every key
+            allowedDifferences: ['fr' => ['messages:beta.*']],
+        );
+    }
+
+    public function testNoEnglishSentenceLeftUntranslated(): void
+    {
+        self::assertNoUntranslatedValues(
+            self::DIR,
+            domains: ['messages', 'form'],
+            allowedSameAsSource: ['*' => ['messages:browser.chrome.name']],
+        );
+    }
+}
+```
+
+| Method | Parameters (defaults) | Fails on |
+|--------|----------------------|----------|
+| `assertTranslationKeyParity()` | `string $translationDir`, `string $sourceLocale = 'en'`, `?array $domains = null` (all found), `?array $locales = null` (all found; absent files skipped), `array $allowedDifferences = []`, `bool $checkEmpty = true`, `string $message = ''` | `missing`, `extra`, `empty` keys; `source_missing` (no or empty source file for a domain); `yaml_error` |
+| `assertNoUntranslatedValues()` | `string $translationDir`, `string $sourceLocale = 'en'`, `?array $domains = null`, `?array $locales = null`, `array $allowedSameAsSource = []`, `bool $multiWordOnly = true`, `string $message = ''` | `untranslated`: target value identical to the source value. With `$multiWordOnly`, only source values containing a space and not starting with `%` or `{` are checked |
+
+Allowlists map a locale (or `*` for every locale) to `domain:key` entries; `fnmatch()` patterns are accepted (`messages:legal.*`). The failure message lists one line per violation, e.g. `es messages: missing key "app.title"`.
+
+The underlying service `Nowo\TranslationYamlToolsBundle\Service\TranslationParityChecker` (`checkParity()`, `checkUntranslated()`, `missingKeys()`, `extraKeys()`, `emptyKeys()`, `untranslatedKeys()`, `format()`) can be used directly from scripts.
 
 ## When tree conversion is impossible
 

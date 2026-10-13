@@ -13,11 +13,19 @@
 
 ### Next planned tag
 
-- Suggested tag: **`v1.4.6`** (patch) or **`v1.5.0`** (minor) as needed after **1.4.5**
+- Suggested tag: **`v1.9.1`** (patch) or **`v1.10.0`** (minor) as needed after **1.9.0**
 - Checklist focus for the next release:
   - `docs/CHANGELOG.md`: move **`[Unreleased]`** items into a dated **`[X.Y.Z]`** section
   - `docs/UPGRADING.md`: add migration notes when users must change config or code
   - `make release-check` green before tagging
+
+### Example: v1.9.0
+
+```bash
+git tag -a v1.9.0 -m "Release v1.9.0: audit --strict and TranslationParityAssertions"
+git push origin main
+git push origin v1.9.0
+```
 
 ### Example: v1.4.5
 

@@ -6,7 +6,6 @@ namespace Nowo\TranslationYamlToolsBundle\Service;
 
 use Throwable;
 
-use function array_key_exists;
 use function array_map;
 use function array_slice;
 use function count;
@@ -15,6 +14,8 @@ use function sprintf;
 
 /**
  * Builds a per-domain report of tree convertibility, key sorting, and missing keys vs a source locale.
+ *
+ * `strict_ok` additionally requires no extra keys vs the source locale and no empty values (`audit --strict`).
  */
 final class TranslationYamlAuditor
 {
@@ -23,6 +24,7 @@ final class TranslationYamlAuditor
         private readonly TranslationYamlFileHandler $fileHandler,
         private readonly DotKeyTreeAnalyzer $dotKeyTreeAnalyzer,
         private readonly YamlArraySorter $yamlArraySorter,
+        private readonly TranslationParityChecker $parityChecker = new TranslationParityChecker(),
     ) {
     }
 
@@ -30,6 +32,7 @@ final class TranslationYamlAuditor
      * @return list<array{
      *     domain: string,
      *     all_ok: bool,
+     *     strict_ok: bool,
      *     source_error: ?string,
      *     locales: list<array{
      *         locale: string,
@@ -39,7 +42,10 @@ final class TranslationYamlAuditor
      *         tree_conflict_count: int,
      *         tree_conflict_samples: list<string>,
      *         sorted: bool,
-     *         missing_vs_source: ?int
+     *         missing_vs_source: ?int,
+     *         missing_keys: list<string>,
+     *         extra_keys: list<string>,
+     *         empty_keys: list<string>
      *     }>
      * }>
      */
@@ -62,6 +68,7 @@ final class TranslationYamlAuditor
      * @return array{
      *     domain: string,
      *     all_ok: bool,
+     *     strict_ok: bool,
      *     source_error: ?string,
      *     locales: list<array{
      *         locale: string,
@@ -71,7 +78,10 @@ final class TranslationYamlAuditor
      *         tree_conflict_count: int,
      *         tree_conflict_samples: list<string>,
      *         sorted: bool,
-     *         missing_vs_source: ?int
+     *         missing_vs_source: ?int,
+     *         missing_keys: list<string>,
+     *         extra_keys: list<string>,
+     *         empty_keys: list<string>
      *     }>
      * }
      */
@@ -111,6 +121,9 @@ final class TranslationYamlAuditor
                 'tree_conflict_samples' => [],
                 'sorted'                => true,
                 'missing_vs_source'     => null,
+                'missing_keys'          => [],
+                'extra_keys'            => [],
+                'empty_keys'            => [],
             ];
 
             try {
@@ -137,21 +150,22 @@ final class TranslationYamlAuditor
             );
             $row['sorted'] = $this->yamlArraySorter->isRecursivelySorted($data);
 
+            $row['empty_keys'] = $this->parityChecker->emptyKeys($flat);
             if ($canCompareMissing && $locale !== $sourceLocale) {
-                $missing = 0;
-                foreach (array_keys($sourceFlat) as $k) {
-                    if (!array_key_exists($k, $flat)) {
-                        ++$missing;
-                    }
-                }
-                $row['missing_vs_source'] = $missing;
+                $row['missing_keys']      = $this->parityChecker->missingKeys($sourceFlat, $flat);
+                $row['extra_keys']        = $this->parityChecker->extraKeys($sourceFlat, $flat);
+                $row['missing_vs_source'] = count($row['missing_keys']);
             }
 
             $localeRows[] = $row;
         }
 
-        $allOk = $sourceError === null;
+        $allOk    = $sourceError === null;
+        $strictOk = true;
         foreach ($localeRows as $r) {
+            if ($r['extra_keys'] !== [] || $r['empty_keys'] !== []) {
+                $strictOk = false;
+            }
             if ($r['yaml_error'] !== null) {
                 $allOk = false;
             }
@@ -169,6 +183,7 @@ final class TranslationYamlAuditor
         return [
             'domain'       => $domain,
             'all_ok'       => $allOk,
+            'strict_ok'    => $allOk && $strictOk,
             'source_error' => $sourceError,
             'locales'      => $localeRows,
         ];

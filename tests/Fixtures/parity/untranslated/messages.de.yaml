@@ -1,0 +1,5 @@
+cmd: '%count% Elemente übrig'
+icu: '{count, plural, one {# Element} other {# Elemente}}'
+label: Slack
+name: Product name here
+sentence: Änderungen speichern

@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [From 1.8.0 to 1.9.0](#from-180-to-190)
 - [From 1.7.0 to 1.8.0](#from-170-to-180)
 - [From 1.6.1 to 1.7.0](#from-161-to-170)
 - [From 1.6.0 to 1.6.1](#from-160-to-161)
@@ -49,6 +50,18 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## From 1.8.0 to 1.9.0
+
+From **1.8.0** — new opt-in strict parity checks; no configuration change, no BC break.
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
+
+- `nowo:translation-yaml:audit` without `--strict` behaves exactly as before. Add `--strict` in CI to also fail on extra keys and empty values.
+- To replace hand-written translation parity / completeness tests, `use Nowo\TranslationYamlToolsBundle\Testing\TranslationParityAssertions;` in a `TestCase` and keep only your allowlists (see [Usage — Strict parity](USAGE.md#strict-parity-in-ci-and-phpunit)). The trait needs `phpunit/phpunit` (already present in test suites).
+- If you call `TranslationYamlAuditor::audit()` directly, rows carry the new `missing_keys`, `extra_keys`, `empty_keys` lists and reports a `strict_ok` flag; existing fields are unchanged.
 
 ## From 1.7.0 to 1.8.0
 

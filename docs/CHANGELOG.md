@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.9.0] - 2026-10-13](#190---2026-10-13)
 - [[1.8.0] - 2026-10-13](#180---2026-10-13)
 - [[1.7.0] - 2026-10-13](#170---2026-10-13)
 - [[1.6.1] - 2026-10-13](#161---2026-10-13)
@@ -45,6 +46,15 @@ All notable changes to this project are documented in this file.
 - [[0.1.0] - 2026-04-09](#010---2026-04-09)
 
 ## [Unreleased]
+
+## [1.9.0] - 2026-10-13
+
+### Added
+
+- **`nowo:translation-yaml:audit --strict`**: also fails (exit 1) on keys present in a locale but not in the source locale (**extra**) and on **empty** values (blank string, `null`, empty map) in any locale, and lists the offending keys (`missing:` / `extra:` / `empty:`, first 20 per kind). Without `--strict` the output and exit code are unchanged.
+- **`Service\TranslationParityChecker`**: container-free checks over a translation directory — missing / extra / empty keys vs a source locale (`checkParity()`) and values copied untranslated from the source (`checkUntranslated()`), with per-locale `domain:key` allowlists (`fnmatch()` patterns, `*` = every locale).
+- **`Testing\TranslationParityAssertions`** PHPUnit trait: `assertTranslationKeyParity()` and `assertNoUntranslatedValues()` for host test suites (`phpunit/phpunit` is a suggestion, not a runtime requirement). See [Usage — Strict parity](USAGE.md#strict-parity-in-ci-and-phpunit) and `specs/003-strict-parity`.
+- `TranslationYamlAuditor` report rows now include `missing_keys`, `extra_keys`, `empty_keys`; reports include `strict_ok`.
 
 ## [1.8.0] - 2026-10-13
 

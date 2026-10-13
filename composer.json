@@ -131,6 +131,7 @@
     },
     "suggest": {
         "symfony/flex": "For automatic recipe installation (config and bundles.php)",
+        "phpunit/phpunit": "Required only to use Testing\\TranslationParityAssertions in host test suites",
         "doctrine/orm": "Required with doctrine/doctrine-bundle to use missing_translation_log (runtime DB table for missing keys) or overrides (operator text overrides)",
         "doctrine/doctrine-bundle": "Required to use missing_translation_log (entity mapping is prepended when the feature is enabled)",
         "symfony/twig-bundle": "Required for missing_translation_log.web_ui (HTML list and mark-added forms)",
