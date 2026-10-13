@@ -2,12 +2,25 @@
 
 ## Table of contents
 
+- [From 1.6.1 to 1.7.0](#from-161-to-170)
 - [From 1.6.0 to 1.6.1](#from-160-to-161)
 - [From 1.5.x to 1.6.0](#from-15x-to-160)
 - [From 1.5.0 to 1.5.1](#from-150-to-151)
 - [From 1.4.6 to 1.5.0](#from-146-to-150)
 - [From 1.4.4 to 1.4.5](#from-144-to-145)
 - [From 1.4.3 to 1.4.4](#from-143-to-144)
+
+## From 1.6.1 to 1.7.0
+
+From **1.6.1** — fixes - missing-translation log mapping, ICU overrides, flush on console/worker.
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
+
+- With `missing_translation_log: ~` or `true` the `MissingTranslationLog` entity is now mapped: schema diffs/migrations will include its table.
+- Overrides of ICU (`+intl-icu`) messages are now formatted with `formatIntl()`.
+- The table-prefix metadata listener now applies to every Doctrine connection (no longer only `default`).
 
 ## From 1.6.0 to 1.6.1
 
