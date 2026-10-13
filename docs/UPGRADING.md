@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [From 1.7.0 to 1.8.0](#from-170-to-180)
 - [From 1.6.1 to 1.7.0](#from-161-to-170)
 - [From 1.6.0 to 1.6.1](#from-160-to-161)
 - [From 1.5.x to 1.6.0](#from-15x-to-160)
@@ -11,6 +12,14 @@
 - [From 1.4.3 to 1.4.4](#from-143-to-144)
 
 ## Unreleased
+
+## From 1.7.0 to 1.8.0
+
+From **1.7.0** — Symfony >=7.4 (lowest tested).
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
 
 - **Requirements:** Symfony **7.4** or **8.x** is now required (`^7.4 || ^8.0`, was `^7.0 || ^8.0`). Apps on Symfony 7.0–7.3 must upgrade to 7.4 LTS first (`composer update "symfony/*" --with-all-dependencies`).
 
