@@ -2,11 +2,22 @@
 
 ## Table of contents
 
+- [From 1.6.0 to 1.6.1](#from-160-to-161)
 - [From 1.5.x to 1.6.0](#from-15x-to-160)
 - [From 1.5.0 to 1.5.1](#from-150-to-151)
 - [From 1.4.6 to 1.5.0](#from-146-to-150)
 - [From 1.4.4 to 1.4.5](#from-144-to-145)
 - [From 1.4.3 to 1.4.4](#from-143-to-144)
+
+## From 1.6.0 to 1.6.1
+
+From **1.6.0** — dependency refresh and repository maintenance.
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
+
+- No breaking changes. No application upgrade steps.
 
 ## From 1.5.x to 1.6.0
 
@@ -95,7 +106,6 @@ From **1.4.0** — test fixture only (UiKit in missing-log kernel). No host migr
 ```bash
 composer update nowo-tech/translation-yaml-tools-bundle
 ```
-
 
 ## 1.x
 
@@ -304,7 +314,6 @@ php bin/console cache:clear
 ```
 
 - No application upgrade steps for require-dev Igor tooling (REQ-CS-008). Consumers do not pull `igor-php/igor-php` transitively.
-
 
 ## To 1.4.0
 
