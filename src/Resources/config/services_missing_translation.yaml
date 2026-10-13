@@ -7,7 +7,7 @@ services:
         arguments:
             $tablePrefix: '%nowo_translation_yaml_tools.missing_translation_log.table_prefix%'
         tags:
-            - { name: doctrine.event_listener, event: loadClassMetadata, connection: default }
+            - { name: doctrine.event_listener, event: loadClassMetadata }
 
     Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository:
         arguments:

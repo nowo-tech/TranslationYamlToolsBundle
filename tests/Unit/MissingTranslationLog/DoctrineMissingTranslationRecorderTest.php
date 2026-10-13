@@ -13,13 +13,23 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use ReflectionMethod;
 use RuntimeException;
+use stdClass;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\ConsoleEvents;
+use Symfony\Component\Console\Event\ConsoleTerminateEvent;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
+use Symfony\Component\Messenger\Event\WorkerMessageHandledEvent;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 use function array_key_exists;
+use function array_keys;
 use function array_values;
 use function count;
 
@@ -262,12 +272,51 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
 
     public function testFlushListenerRunsLateInKernelTerminate(): void
     {
-        $attributes = (new ReflectionMethod(DoctrineMissingTranslationRecorder::class, 'flushBuffer'))->getAttributes(AsEventListener::class);
-        self::assertCount(1, $attributes);
-        $listener = $attributes[0]->newInstance();
+        $listeners = $this->flushListeners();
 
-        self::assertSame(KernelEvents::TERMINATE, $listener->event);
-        self::assertSame(DoctrineMissingTranslationRecorder::TERMINATE_PRIORITY, $listener->priority);
-        self::assertLessThan(0, $listener->priority);
+        self::assertArrayHasKey(KernelEvents::TERMINATE, $listeners);
+        foreach ($listeners as $priority) {
+            self::assertSame(DoctrineMissingTranslationRecorder::TERMINATE_PRIORITY, $priority);
+            self::assertLessThan(0, $priority);
+        }
+    }
+
+    public function testBufferIsFlushedOnConsoleTerminateAndMessengerWorkerEvents(): void
+    {
+        $listeners = $this->flushListeners();
+
+        self::assertSame([KernelEvents::TERMINATE, ConsoleEvents::TERMINATE, WorkerMessageHandledEvent::class, WorkerMessageFailedEvent::class], array_keys($listeners));
+
+        foreach ([
+            ConsoleEvents::TERMINATE         => new ConsoleTerminateEvent(new Command('app:demo'), new ArrayInput([]), new NullOutput(), 0),
+            WorkerMessageHandledEvent::class => new WorkerMessageHandledEvent(new Envelope(new stdClass()), 'async'),
+            WorkerMessageFailedEvent::class  => new WorkerMessageFailedEvent(new Envelope(new stdClass()), 'async', new RuntimeException('boom')),
+        ] as $eventName => $event) {
+            $repository = $this->createMock(MissingTranslationLogRepository::class);
+            $repository->expects(self::once())->method('persistBuffer');
+
+            $recorder   = new DoctrineMissingTranslationRecorder($repository);
+            $dispatcher = new EventDispatcher();
+            foreach ($listeners as $listenedEvent => $priority) {
+                $dispatcher->addListener($listenedEvent, $recorder->flushBuffer(...), $priority);
+            }
+
+            $recorder->record('worker.key', 'messages', 'en');
+            $dispatcher->dispatch($event, $eventName);
+        }
+    }
+
+    /**
+     * @return array<string, int> event name => priority
+     */
+    private function flushListeners(): array
+    {
+        $listeners = [];
+        foreach ((new ReflectionMethod(DoctrineMissingTranslationRecorder::class, 'flushBuffer'))->getAttributes(AsEventListener::class) as $attribute) {
+            $listener                             = $attribute->newInstance();
+            $listeners[(string) $listener->event] = $listener->priority;
+        }
+
+        return $listeners;
     }
 }

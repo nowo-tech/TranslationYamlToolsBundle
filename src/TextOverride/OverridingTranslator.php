@@ -7,20 +7,25 @@ namespace Nowo\TranslationYamlToolsBundle\TextOverride;
 use Closure;
 use InvalidArgumentException;
 use Symfony\Component\HttpKernel\CacheWarmer\WarmableInterface;
+use Symfony\Component\Translation\Formatter\IntlFormatterInterface;
 use Symfony\Component\Translation\Formatter\MessageFormatterInterface;
+use Symfony\Component\Translation\MessageCatalogue;
 use Symfony\Component\Translation\MessageCatalogueInterface;
 use Symfony\Component\Translation\TranslatorBagInterface;
 use Symfony\Contracts\Translation\LocaleAwareInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function sprintf;
+use function str_ends_with;
+use function strlen;
 
 /**
  * Serves operator text overrides before the catalogues (decorates the {@code translator} service).
  *
  * Twig |trans, forms, mails and PHP trans() all see the edited text. Only an exact
  * (locale, domain, key) match is replaced; parameters, plurals and ICU messages are formatted with
- * the framework message formatter, like catalogue messages. Catalogue access, locale handling and
+ * the framework message formatter, like catalogue messages: an override of a key shipped in an ICU
+ * catalogue ({@code <domain>+intl-icu}) is formatted with {@see IntlFormatterInterface::formatIntl()}. Catalogue access, locale handling and
  * cache warm-up are delegated unchanged, so {@see getCatalogue()} keeps returning the shipped text.
  *
  * The provider is resolved lazily (service closure) so building the translator never touches
@@ -60,13 +65,36 @@ final class OverridingTranslator implements TranslatorInterface, TranslatorBagIn
         $id = (string) $id;
         if ($id !== '') {
             $locale ??= $this->inner->getLocale();
-            $text = ($this->overrides)()->get($locale, $domain ?? 'messages', $id);
+            $domain ??= 'messages';
+            $text = ($this->overrides)()->get($locale, $domain, $id);
             if ($text !== null) {
+                if ($this->formatter instanceof IntlFormatterInterface && $this->isIntlMessage($id, $domain, $locale)) {
+                    return $this->formatter->formatIntl($text, $locale, $parameters);
+                }
+
                 return $this->formatter->format($text, $locale, $parameters);
             }
         }
 
         return $this->inner->trans($id, $parameters, $domain, $locale);
+    }
+
+    /**
+     * Same rule as Symfony's Translator: the domain itself carries the ICU suffix, or the catalogue that defines
+     * the key (following fallback catalogues) defines it in the ICU variant of the domain.
+     */
+    private function isIntlMessage(string $id, string $domain, string $locale): bool
+    {
+        if (strlen($domain) > strlen(MessageCatalogue::INTL_DOMAIN_SUFFIX) && str_ends_with($domain, MessageCatalogue::INTL_DOMAIN_SUFFIX)) {
+            return true;
+        }
+
+        $catalogue = $this->inner->getCatalogue($locale);
+        while (!$catalogue->defines($id, $domain) && ($fallback = $catalogue->getFallbackCatalogue()) !== null) {
+            $catalogue = $fallback;
+        }
+
+        return $catalogue->defines($id, $domain . MessageCatalogue::INTL_DOMAIN_SUFFIX);
     }
 
     public function getCatalogue(?string $locale = null): MessageCatalogueInterface

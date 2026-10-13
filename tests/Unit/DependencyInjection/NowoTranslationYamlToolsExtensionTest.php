@@ -6,7 +6,9 @@ namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\DependencyInjection;
 
 use Doctrine\Bundle\DoctrineBundle\DependencyInjection\DoctrineExtension;
 use Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController;
+use Nowo\TranslationYamlToolsBundle\DependencyInjection\Configuration;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\NowoTranslationYamlToolsExtension;
+use Nowo\TranslationYamlToolsBundle\Doctrine\MissingTranslationLogMetadataListener;
 use Nowo\TranslationYamlToolsBundle\EventSubscriber\MissingLogUiAccessSubscriber;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslatorInterface;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\ThrottledMachineTranslator;
@@ -17,11 +19,13 @@ use Nowo\TranslationYamlToolsBundle\Security\MissingLogUiAccessCheckerInterface;
 use Nowo\TranslationYamlToolsBundle\Translation\RecordingTranslatorDecorator;
 use Nowo\TranslationYamlToolsBundle\Twig\MissingTranslationLogExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use ReflectionProperty;
 use stdClass;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
+use Symfony\Component\Config\Definition\Processor;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
@@ -313,6 +317,15 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         self::assertTrue($container->hasDefinition(MissingTranslationBufferDoctrinePersistListener::class));
     }
 
+    public function testMissingLogMetadataListenerIsNotBoundToTheDefaultConnection(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoTranslationYamlToolsExtension())->load([['missing_translation_log' => ['enabled' => true]]], $container);
+
+        $tags = $container->getDefinition(MissingTranslationLogMetadataListener::class)->getTag('doctrine.event_listener');
+        self::assertSame([['event' => 'loadClassMetadata']], $tags);
+    }
+
     public function testLoadWithMissingTranslationLogFalseSkipsExtraYaml(): void
     {
         $container = new ContainerBuilder();
@@ -391,6 +404,51 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
             'missing_translation_log' => ['enabled' => true],
         ]);
         self::assertTrue($reflection->invoke($extension2, $container2));
+    }
+
+    /**
+     * @return iterable<string, array{list<mixed>, ?bool}>
+     */
+    public static function missingLogRawConfigProvider(): iterable
+    {
+        yield 'null (~) enables' => [[['missing_translation_log' => null]], true];
+        yield 'true enables' => [[['missing_translation_log' => true]], true];
+        yield 'false disables' => [[['missing_translation_log' => false]], false];
+        // Depends on the symfony/config version (auto_enable on merge since 7.4): only agreement with load() is asserted.
+        yield 'array without enabled follows processed config' => [[['missing_translation_log' => ['table_prefix' => 'x_']]], null];
+        yield 'array enabled false' => [[['missing_translation_log' => ['enabled' => false]]], false];
+        yield 'later false wins' => [[['missing_translation_log' => true], ['missing_translation_log' => false]], false];
+        yield 'later ~ wins over enabled false' => [[['missing_translation_log' => ['enabled' => false]], ['missing_translation_log' => null]], true];
+        yield 'array without enabled keeps earlier true' => [[['missing_translation_log' => true], ['missing_translation_log' => ['table_prefix' => 'x_']]], true];
+        yield 'not configured' => [[['default_locale' => 'en']], false];
+    }
+
+    /**
+     * @param list<mixed> $chunks
+     */
+    #[DataProvider('missingLogRawConfigProvider')]
+    public function testRawConfigEnablesMissingTranslationLogMatchesProcessedConfig(array $chunks, ?bool $expected): void
+    {
+        $container = new ContainerBuilder();
+        $container->registerExtension(new DoctrineExtension());
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+        foreach ($chunks as $chunk) {
+            $container->loadFromExtension('nowo_translation_yaml_tools', $chunk);
+        }
+
+        $extension->prepend($container);
+
+        $merged = array_merge_recursive(...$container->getExtensionConfig('doctrine'));
+        $mapped = isset($merged['orm']['mappings']['NowoTranslationYamlToolsMissingLog']);
+
+        /** @var list<array<string, mixed>> $configs */
+        $configs   = $container->getExtensionConfig('nowo_translation_yaml_tools');
+        $processed = (new Processor())->processConfiguration(new Configuration(), $configs);
+        self::assertSame($processed['missing_translation_log']['enabled'], $mapped, 'entity mapping must follow the processed enabled flag');
+        if ($expected !== null) {
+            self::assertSame($expected, $mapped);
+        }
     }
 
     public function testRawConfigEnablesMissingTranslationLogSkipsNonArrayChunks(): void

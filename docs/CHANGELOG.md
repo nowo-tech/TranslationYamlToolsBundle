@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- `missing_translation_log: ~` / `missing_translation_log: true` enabled the recorder services but the Doctrine ORM mapping for `MissingTranslationLog` was not prepended; the prepend check now follows the same rules as the processed configuration.
+- Text overrides of keys shipped in ICU catalogues (`<domain>+intl-icu`, or an explicit `+intl-icu` domain) are now formatted with `formatIntl()` like the catalogue message, so ICU plurals/selects and `{name}` placeholders render instead of the raw pattern.
+- The missing-translation buffer is now also flushed on `console.terminate` and after every Messenger worker message (handled or failed); previously keys recorded in commands were only persisted via `kernel.terminate` and keys recorded by workers were dropped when services were reset.
+- The missing-translation table-prefix metadata listener is no longer bound to the `default` Doctrine connection; it now applies to every connection (entity managers on other connections get the configured table name).
+
 ## [1.6.1] - 2026-10-13
 
 ### Changed

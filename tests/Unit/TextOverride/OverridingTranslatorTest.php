@@ -10,7 +10,9 @@ use Nowo\TranslationYamlToolsBundle\TextOverride\OverridingTranslator;
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideProviderInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Translation\Formatter\IntlFormatterInterface;
 use Symfony\Component\Translation\Formatter\MessageFormatter;
+use Symfony\Component\Translation\Formatter\MessageFormatterInterface;
 use Symfony\Component\Translation\Loader\ArrayLoader;
 use Symfony\Component\Translation\MessageCatalogue;
 use Symfony\Component\Translation\MessageCatalogueInterface;
@@ -71,6 +73,46 @@ final class OverridingTranslatorTest extends TestCase
         self::assertSame([], $bare->getFallbackLocales());
     }
 
+    public function testOverrideOfIcuMessageIsFormattedWithFormatIntl(): void
+    {
+        $formatter  = $this->recordingFormatter();
+        $translator = new OverridingTranslator($this->icuInner(), $this->provider([
+            'en' => ['messages' => ['site.items' => '{count, plural, one {# item (edited)} other {# items (edited)}}', 'site.hello' => 'Hi %name%']],
+            'es' => ['messages' => ['site.items' => '{count, plural, other {# elementos}}']],
+        ]), $formatter);
+
+        self::assertSame('intl:{count, plural, one {# item (edited)} other {# items (edited)}}', $translator->trans('site.items', ['count' => 2], null, 'en'));
+        self::assertSame('intl:{count, plural, other {# elementos}}', $translator->trans('site.items', ['count' => 2], null, 'es'), 'ICU key found through the fallback catalogue');
+        self::assertSame('plain:Hi %name%', $translator->trans('site.hello', ['%name%' => 'Ana'], null, 'en'), 'Non-ICU keys keep format()');
+    }
+
+    public function testOverrideInExplicitIcuDomainIsFormattedWithFormatIntl(): void
+    {
+        $translator = new OverridingTranslator($this->bareInner(), $this->provider([
+            'en' => ['messages+intl-icu' => ['site.items' => '{count} items']],
+        ]), $this->recordingFormatter());
+
+        self::assertSame('intl:{count} items', $translator->trans('site.items', ['count' => 2], 'messages+intl-icu', 'en'));
+    }
+
+    public function testIcuOverrideFallsBackToFormatWhenFormatterHasNoIntlSupport(): void
+    {
+        $formatter = new class implements MessageFormatterInterface {
+            /**
+             * @param array<array-key, mixed> $parameters
+             */
+            public function format(string $message, string $locale, array $parameters = []): string
+            {
+                return 'plain:' . $message;
+            }
+        };
+        $translator = new OverridingTranslator($this->icuInner(), $this->provider([
+            'en' => ['messages' => ['site.items' => '{count} items']],
+        ]), $formatter);
+
+        self::assertSame('plain:{count} items', $translator->trans('site.items', ['count' => 2], null, 'en'));
+    }
+
     public function testRejectsTranslatorWithoutBagOrLocale(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -95,6 +137,38 @@ final class OverridingTranslatorTest extends TestCase
         $inner->addResource('array', ['site.hello' => 'Otro dominio'], 'es', 'forms');
 
         return $inner;
+    }
+
+    private function icuInner(): Translator
+    {
+        $inner = new Translator('en');
+        $inner->setFallbackLocales(['en']);
+        $inner->addLoader('array', new ArrayLoader());
+        $inner->addResource('array', ['site.items' => '{count, plural, one {# item} other {# items}}'], 'en', 'messages+intl-icu');
+        $inner->addResource('array', ['site.hello' => 'Hello %name%'], 'en');
+
+        return $inner;
+    }
+
+    private function recordingFormatter(): MessageFormatterInterface&IntlFormatterInterface
+    {
+        return new class implements MessageFormatterInterface, IntlFormatterInterface {
+            /**
+             * @param array<array-key, mixed> $parameters
+             */
+            public function format(string $message, string $locale, array $parameters = []): string
+            {
+                return 'plain:' . $message;
+            }
+
+            /**
+             * @param array<array-key, mixed> $parameters
+             */
+            public function formatIntl(string $message, string $locale, array $parameters = []): string
+            {
+                return 'intl:' . $message;
+            }
+        };
     }
 
     /**

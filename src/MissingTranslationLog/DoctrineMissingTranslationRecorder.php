@@ -8,6 +8,8 @@ use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
+use Symfony\Component\Messenger\Event\WorkerMessageHandledEvent;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Service\ResetInterface;
@@ -16,7 +18,9 @@ use Throwable;
 use function count;
 
 /**
- * Buffers missing keys during a request and flushes aggregated rows on kernel terminate.
+ * Buffers missing keys during a request, console command or Messenger message and flushes aggregated rows on
+ * {@code kernel.terminate}, {@code console.terminate} and after each message handled (or failed) by a Messenger worker
+ * (before the worker resets services, which would otherwise drop the buffer).
  *
  * The buffer is emptied before every flush and persistence errors are logged, never rethrown: an exception
  * escaping {@code kernel.terminate} would end the FrankenPHP worker loop.
@@ -96,6 +100,9 @@ final class DoctrineMissingTranslationRecorder implements MissingTranslationReco
     }
 
     #[AsEventListener(event: KernelEvents::TERMINATE, priority: self::TERMINATE_PRIORITY)]
+    #[AsEventListener(event: 'console.terminate', priority: self::TERMINATE_PRIORITY)]
+    #[AsEventListener(event: WorkerMessageHandledEvent::class, priority: self::TERMINATE_PRIORITY)]
+    #[AsEventListener(event: WorkerMessageFailedEvent::class, priority: self::TERMINATE_PRIORITY)]
     public function flushBuffer(): void
     {
         if ($this->buffer === []) {

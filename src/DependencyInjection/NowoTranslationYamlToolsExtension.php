@@ -349,22 +349,38 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         return $enabled;
     }
 
+    /**
+     * Whether the processed config will have missing_translation_log.enabled = true, decided before load().
+     *
+     * Only the `enabled` switch of each raw chunk is run through the bundle Configuration, so the result follows
+     * the same canBeDisabled() rules as load() (`~` / `true` enable, `false` disables, array semantics of the
+     * installed symfony/config version, later chunks win) without validating the rest of the raw config.
+     * A non-boolean `enabled` (e.g. an unresolved env placeholder) is treated as disabled.
+     */
     private function rawConfigEnablesMissingTranslationLog(ContainerBuilder $container): bool
     {
+        $switches = [];
         foreach ($container->getExtensionConfig('nowo_translation_yaml_tools') as $chunk) {
-            if (!is_array($chunk)) {
+            if (!is_array($chunk) || !array_key_exists('missing_translation_log', $chunk)) {
                 continue;
             }
-            $missingLog = $chunk['missing_translation_log'] ?? null;
-            if ($missingLog === false) {
-                continue;
-            }
-            if (is_array($missingLog) && ($missingLog['enabled'] ?? false) === true) {
-                return true;
+            $missingLog = $chunk['missing_translation_log'];
+            if ($missingLog === null || is_bool($missingLog)) {
+                $switches[] = ['missing_translation_log' => $missingLog];
+            } elseif (is_array($missingLog)) {
+                $switches[] = ['missing_translation_log' => array_key_exists('enabled', $missingLog)
+                    ? ['enabled' => $missingLog['enabled'] === true]
+                    : []];
             }
         }
 
-        return false;
+        if ($switches === []) {
+            return false;
+        }
+
+        $config = $this->processConfiguration(new Configuration(), $switches);
+
+        return $config['missing_translation_log']['enabled'] === true;
     }
 
     /**

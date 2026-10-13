@@ -32,7 +32,7 @@ Most of the bundle (YAML tree/sort/flatten/audit/fill-missing commands, `Service
 | Doctrine / EntityManager | ✅ (was ⚠️ Medium) | Bundle methods resolve the manager per call and reset it when closed; Web UI reads use `Query::HINT_REFRESH`. Buffer persistence uses DBAL upserts and does not touch the identity map. After `clearAll` / `clearByStatus`, managed `MissingTranslationLog` entities are detached (ORM 3 has no per-class `clear()`). The bundle never calls `EntityManager::clear()` at runtime |
 | Output, headers, `exit`, shutdown functions | ✅ | None in runtime code; `file_put_contents()` only in CLI `TranslationYamlFileHandler` |
 | Resources (files, sockets, cURL) held open | ✅ | None |
-| Memory growth across requests | ✅ | Buffer is bounded per request (deduplicated by hash) and emptied at `kernel.terminate` |
+| Memory growth across requests | ✅ | Buffer is bounded per request (deduplicated by hash) and emptied at `kernel.terminate` (also `console.terminate` and after each Messenger worker message, before `services_resetter` runs; same catch-and-log flush) |
 | Blocking I/O and timeouts | ✅ (was ⚠️ Low) | Sync persistence runs in `kernel.terminate` after the response; exceptions are caught and logged (W-02 resolved). Machine translation HTTP (30 s default, configurable) is CLI only |
 | Third-party static state | ✅ | None |
 | PHPStan FrankenPHP rulesets | ✅ | `ruleset-classic.neon` + `ruleset-worker.neon` included in `phpstan.neon.dist` |
