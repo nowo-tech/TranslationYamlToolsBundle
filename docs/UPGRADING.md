@@ -10,6 +10,10 @@
 - [From 1.4.4 to 1.4.5](#from-144-to-145)
 - [From 1.4.3 to 1.4.4](#from-143-to-144)
 
+## Unreleased
+
+- **Requirements:** Symfony **7.4** or **8.x** is now required (`^7.4 || ^8.0`, was `^7.0 || ^8.0`). Apps on Symfony 7.0–7.3 must upgrade to 7.4 LTS first (`composer update "symfony/*" --with-all-dependencies`).
+
 ## From 1.6.1 to 1.7.0
 
 From **1.6.1** — fixes - missing-translation log mapping, ICU overrides, flush on console/worker.
@@ -294,8 +298,6 @@ There is no earlier semver tag. If you tracked **`dev-main`** or a commit hash:
 - Prefer requiring **`^0.1`** (or an exact **`0.1.x`** tag) in Composer once published on Packagist.
 - Default machine translator remains **`google`**; set **`machine_translator: deepl`** or **`libretranslate`** only if you intend to use those backends (see `docs/CONFIGURATION.md`).
 - **`libretranslate_base_url`** and **`libretranslate_api_key`** are optional and default to the public LibreTranslate origin and an empty key; no change is required for existing Google-only setups.
-
-## Unreleased
 
 ## From 1.5.0 to 1.5.1
 

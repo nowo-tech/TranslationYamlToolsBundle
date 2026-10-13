@@ -1,6 +1,6 @@
 # Translation YAML Tools Bundle
 
-[![CI](https://github.com/nowo-tech/TranslationYamlToolsBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/TranslationYamlToolsBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/translation-yaml-tools-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/translation-yaml-tools-bundle.svg)](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.0%2B%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com)
+[![CI](https://github.com/nowo-tech/TranslationYamlToolsBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/TranslationYamlToolsBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/translation-yaml-tools-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/translation-yaml-tools-bundle.svg)](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com)
 
 > ⭐ **Found this useful?** Install from [Packagist](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) and consider starring [the repository](https://github.com/nowo-tech/TranslationYamlToolsBundle).
 
@@ -43,7 +43,7 @@ Register the bundle in `config/bundles.php` for `dev` (Flex recipe does this). S
 ## Requirements
 
 - PHP `>=8.2 <8.6` (Symfony **8.x** apps need **PHP 8.4+**)
-- Symfony `^7.0 || ^8.0` (FrameworkBundle, Console, HttpClient, Yaml, …)
+- Symfony `^7.4 || ^8.0` (FrameworkBundle, Console, HttpClient, Yaml, …)
 - For **fill-missing**: enable `framework.http_client: true`, choose `machine_translator` in config, and set `GOOGLE_TRANSLATE_API_KEY` (Google) or `DEEPL_AUTH_KEY` (DeepL) when using those backends; **LibreTranslate** needs no paid key for open instances (see `docs/CONFIGURATION.md`).
 
 ## Demos (Symfony 8)

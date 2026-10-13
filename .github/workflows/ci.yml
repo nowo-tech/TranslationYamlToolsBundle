@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         php: ['8.2', '8.3', '8.4', '8.5']
-        symfony: ['7.0', '7.4', '8.0', '8.1']
+        symfony: ['7.4', '8.0', '8.1']
         exclude:
           # Symfony 8.x requires PHP >=8.4 (8.1.x requires PHP >=8.4.1).
           - php: '8.2'
