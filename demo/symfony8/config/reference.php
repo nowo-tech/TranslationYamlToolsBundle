@@ -1324,12 +1324,39 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             },
  *         },
  *     },
+ *     overrides?: bool|array{ // Operator text overrides: per-locale DB replacements for editable catalogue messages, applied by a translator decorator. Requires doctrine/orm + doctrine/doctrine-bundle; the host generates the migration for table {table_prefix}override.
+ *         enabled?: bool|Param, // Default: false
+ *         table_prefix?: scalar|Param|null, // Physical table name = prefix + "override" (e.g. nowo_translation_override). Allowed: [a-z0-9_]+, max 40 chars. // Default: "nowo_translation_"
+ *         editable?: array<string, list<scalar|Param|null>>,
+ *         locales?: list<scalar|Param|null>,
+ *         cache_pool?: scalar|Param|null, // Cache pool (Symfony\Contracts\Cache\CacheInterface) holding the override map. // Default: "cache.app"
+ *         cache_ttl?: int|Param, // Seconds the override map stays cached; writes through the bundle invalidate it immediately (TTL bounds staleness after SQL / restore writes). // Default: 3600
+ *         max_length?: int|Param, // Maximum characters per override text (Web UI validation). // Default: 5000
+ *         html_sanitizer?: scalar|Param|null, // Service id implementing TranslationOverrideHtmlSanitizerInterface. null = symfony/html-sanitizer inline allowlist when installed, else strip all tags. // Default: null
+ *         web_ui?: array{
+ *             enabled?: bool|Param, // Expose the overrides desk (list / edit / reset). Import routes/translation_override_ui.yaml. Requires twig-bundle, security-csrf (+ framework.csrf_protection) and security-bundle. // Default: false
+ *             path_prefix?: scalar|Param|null, // URL prefix for imported routes (must start with /) // Default: "/_translation_yaml_tools/texts"
+ *             layout_template?: scalar|Param|null, // Twig layout the pages extend; must define blocks "title" and "body" (Symfony base.html.twig convention), e.g. your admin layout. // Default: "@NowoTranslationYamlToolsBundle/text_override/layout.html.twig"
+ *             security?: array{
+ *                 access_roles?: list<scalar|Param|null>,
+ *                 allow_unauthenticated?: bool|Param, // DEV/DEMO only: skip the role check (no SecurityBundle needed). Never true in production. // Default: false
+ *             },
+ *         },
+ *     },
  * }
  * @psalm-type NowoUiKitConfig = array{
  *     css_framework?: "bootstrap"|"bootstrap5"|"bootstrap4"|"tailwind"|"foundation"|"custom"|"tabler"|"none"|Param, // Host CSS stack: bootstrap5|bootstrap4|tailwind|foundation|custom|none|tabler (bootstrap alias → bootstrap5). // Default: "bootstrap5"
  *     icon_set?: "bootstrap-icons"|"tabler-icons"|"ux_icon"|"svg_inline"|"none"|Param, // Icon rendering: bootstrap-icons|tabler-icons|ux_icon|svg_inline|none. // Default: "bootstrap-icons"
  *     row_actions_display?: "icon"|"text"|"icon_text"|Param, // Table/list row actions: icon (glyph only) | text (label only) | icon_text (both). // Default: "icon"
  *     panel_path_rewrites?: array<string, scalar|Param|null>,
+ *     release_check?: array{ // Optional GitHub release-version checker (footer dialog + JSON endpoint). Off by default.
+ *         enabled?: bool|Param, // Register the checker service + controller. Also import @NowoUiKitBundle/Resources/config/routes/release_check.yaml. // Default: false
+ *         github_repo?: scalar|Param|null, // Public GitHub repository "owner/name" whose releases are compared (e.g. nowo-tech/my-app). // Default: ""
+ *         current_version?: scalar|Param|null, // Installed version label, clean semver x.y.z with optional "v" (e.g. "%app.version%"). Non-semver values skip the check. // Default: ""
+ *         cache_ttl?: int|Param, // Seconds to cache the GitHub answer (cache.app). Default 12h. // Default: 43200
+ *         default_branch?: scalar|Param|null, // Branch used as compare target when the installed version is already the latest. // Default: "main"
+ *         user_agent?: scalar|Param|null, // User-Agent sent to api.github.com. // Default: "nowo-ui-kit-release-check"
+ *     },
  * }
  * @psalm-type NowoHotReloadConfig = array{
  *     enabled?: bool|Param, // Master switch. When false, nothing is injected even if FRANKENPHP_HOT_RELOAD is set. // Default: true
