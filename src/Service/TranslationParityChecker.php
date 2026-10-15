@@ -4,22 +4,30 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Service;
 
+use FilesystemIterator;
 use Nowo\TranslationYamlToolsBundle\Testing\TranslationParityAssertions;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
 use Throwable;
 
 use function array_key_exists;
 use function array_keys;
 use function basename;
+use function file_get_contents;
 use function fnmatch;
 use function glob;
 use function is_dir;
 use function is_file;
 use function is_string;
 use function preg_match;
+use function preg_match_all;
 use function rtrim;
 use function sort;
 use function sprintf;
 use function str_contains;
+use function strlen;
+use function substr;
 use function trim;
 
 use const FNM_NOESCAPE;
@@ -42,6 +50,14 @@ final class TranslationParityChecker
     public const TYPE_EXTRA          = 'extra';
     public const TYPE_EMPTY          = 'empty';
     public const TYPE_UNTRANSLATED   = 'untranslated';
+
+    public const TYPE_UNKNOWN_LITERAL_KEY = 'unknown literal';
+
+    /** `->trans('a.b')` with at most a parameter argument (default domain) and `addFlash('type', 'a.b')`. */
+    private const LITERAL_KEY_PATTERNS = [
+        '/->trans\\(\\s*\'([a-z0-9_]+(?:\\.[a-z0-9_]+)+)\'\\s*(?:,\\s*(?:\\[[^\\]]*\\]|\\$\\w+))?\\s*\\)/',
+        '/addFlash\\(\\s*\'[a-z]+\'\\s*,\\s*\'([a-z0-9_]+(?:\\.[a-z0-9_]+)+)\'\\s*\\)/',
+    ];
 
     private const FILE_PATTERN = '/^(.+)\.([a-zA-Z0-9_-]+)\.(yaml|yml)$/';
 
@@ -274,6 +290,41 @@ final class TranslationParityChecker
     }
 
     /**
+     * Literal translation keys used in PHP (`->trans('a.b')` on the default domain, `addFlash('type', 'a.b')`)
+     * that the catalogue lacks — parity / completeness checks compare catalogues with each other, so a key
+     * missing everywhere slips through them. Calls with an explicit domain or a computed key are skipped.
+     *
+     * @param array<string, list<string>> $allowed "*" => "domain:key" patterns to ignore
+     *
+     * @return array{checked: int, violations: list<array{type: string, domain: string, locale: string, key: ?string, detail: ?string}>}
+     */
+    public function checkLiteralKeys(string $sourceDir, string $translationDir, string $locale = 'en', string $domain = 'messages', array $allowed = []): array
+    {
+        $catalogue = $this->loadFlat(rtrim($translationDir, '/'), $domain, $locale);
+        if ($catalogue['error'] !== null || $catalogue['flat'] === []) {
+            return ['checked' => 0, 'violations' => [$this->sourceViolation($domain, $locale, $catalogue['error'])]];
+        }
+
+        $checked    = 0;
+        $violations = [];
+        $sourceDir  = rtrim($sourceDir, '/');
+        foreach ($this->phpFiles($sourceDir) as $path) {
+            $code = (string) file_get_contents($path);
+            foreach (self::LITERAL_KEY_PATTERNS as $pattern) {
+                preg_match_all($pattern, $code, $matches);
+                foreach ($matches[1] as $key) {
+                    ++$checked;
+                    if (!array_key_exists($key, $catalogue['flat']) && !$this->isAllowed($allowed, $locale, $domain, $key)) {
+                        $violations[] = $this->violation(self::TYPE_UNKNOWN_LITERAL_KEY, $domain, $locale, sprintf('%s" in "%s', $key, substr($path, strlen($sourceDir) + 1)));
+                    }
+                }
+            }
+        }
+
+        return ['checked' => $checked, 'violations' => $violations];
+    }
+
+    /**
      * One line per violation, e.g. `es messages: missing key "a.b"`.
      *
      * @param list<array{type: string, domain: string, locale: string, key: ?string, detail: ?string}> $violations
@@ -327,6 +378,25 @@ final class TranslationParityChecker
         }
 
         return ['exists' => false, 'flat' => [], 'error' => null];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function phpFiles(string $directory): array
+    {
+        if (!is_dir($directory)) {
+            return [];
+        }
+        $files = [];
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file instanceof SplFileInfo && $file->getExtension() === 'php') {
+                $files[] = $file->getPathname();
+            }
+        }
+        sort($files);
+
+        return $files;
     }
 
     /**

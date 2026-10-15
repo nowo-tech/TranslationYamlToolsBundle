@@ -47,6 +47,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **`TranslationParityAssertions::assertLiteralKeysExist()`** (and `TranslationParityChecker::checkLiteralKeys()`): fails when PHP passes a literal key to `->trans('a.b')` (default domain) or `addFlash('type', 'a.b')` that the source catalogue lacks — a key missing in every locale, which parity / completeness checks cannot detect (Nowo REQ-LOCALE-011 item 5). Reports key + file; allowlist with `domain:key` patterns; `minimumChecked` guards an empty scan.
+
 ## [1.9.0] - 2026-10-13
 
 ### Added

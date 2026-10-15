@@ -19,7 +19,7 @@ This bundle is **FrankenPHP worker mode friendly**.
 - **`nowo:translation-yaml:sort`** — recursive alphabetical sort of associative keys.
 - **`nowo:translation-yaml:fill-missing`** — merges missing keys into a target locale using the configured machine translator (Google, DeepL, or LibreTranslate); optional `--tree` output with the same validation as the tree command.
 - **`nowo:translation-yaml:audit`** — read-only report: tree-safe YAML, alphabetical key order, missing keys vs source locale; compact **OK** line per domain when everything passes. **`--strict`** also fails on extra keys and empty values (CI).
-- **`Testing\TranslationParityAssertions`** — PHPUnit trait for host suites: `assertTranslationKeyParity()` (missing / extra / empty keys vs the source locale) and `assertNoUntranslatedValues()` (values copied from the source), with per-locale allowlists — see [Usage — Strict parity](docs/USAGE.md#strict-parity-in-ci-and-phpunit).
+- **`Testing\TranslationParityAssertions`** — PHPUnit trait for host suites: `assertTranslationKeyParity()` (missing / extra / empty keys vs the source locale) `assertNoUntranslatedValues()` (values copied from the source) and `assertLiteralKeysExist()` (literal `trans()` / `addFlash()` keys present in the catalogue), with per-locale allowlists — see [Usage — Strict parity](docs/USAGE.md#strict-parity-in-ci-and-phpunit).
 - **Missing translation log** (opt-in `missing_translation_log`): persist keys that Twig/PHP requested but were missing, with a **Web UI** and CLI:
   - **`nowo:translation-yaml:missing-log-list`**
   - **`nowo:translation-yaml:missing-log-mark-added`**

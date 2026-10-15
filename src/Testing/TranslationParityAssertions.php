@@ -78,6 +78,36 @@ trait TranslationParityAssertions
         );
     }
 
+    /**
+     * Every literal key PHP passes to the translator (`->trans('a.b')`, default domain) or to a flash
+     * (`addFlash('type', 'a.b')`) exists in the `$domain.$locale` catalogue. `$minimumChecked` guards
+     * against a scan that silently finds nothing (wrong directory or patterns).
+     *
+     * @param array<string, list<string>> $allowed "*" => "domain:key" patterns to ignore
+     */
+    public static function assertLiteralKeysExist(
+        string $sourceDir,
+        string $translationDir,
+        string $locale = 'en',
+        string $domain = 'messages',
+        int $minimumChecked = 1,
+        array $allowed = [],
+        string $message = '',
+    ): void {
+        $result = (new TranslationParityChecker())->checkLiteralKeys($sourceDir, $translationDir, $locale, $domain, $allowed);
+
+        Assert::assertGreaterThanOrEqual(
+            $minimumChecked,
+            $result['checked'],
+            self::translationParityMessage($message, sprintf('The scan of "%s" found %d literal translation key(s); check the source directory.', $sourceDir, $result['checked'])),
+        );
+        Assert::assertSame(
+            [],
+            TranslationParityChecker::format($result['violations']),
+            self::translationParityMessage($message, sprintf('Add these keys to the "%s" %s catalogue (and every locale).', $domain, $locale)),
+        );
+    }
+
     private static function translationParityMessage(string $message, string $default): string
     {
         return $message === '' ? $default : $message . ' ' . $default;
