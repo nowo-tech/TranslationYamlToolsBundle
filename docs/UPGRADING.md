@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.10.0](#to-1100)
 - [From 1.8.0 to 1.9.0](#from-180-to-190)
 - [From 1.7.0 to 1.8.0](#from-170-to-180)
 - [From 1.6.1 to 1.7.0](#from-161-to-170)
@@ -50,6 +51,8 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.10.0
 
 ## From 1.8.0 to 1.9.0
 
