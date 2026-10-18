@@ -48,6 +48,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Allows nowo-tech/ui-kit-bundle 2.x (`^1.4 || ^2.2`); dev lock and demo lock use 2.2.0. No template change: with UiKit 2.x `nowo-ui.css` ships in `@layer nowo-ui`, so in the standalone missing-log layouts the unlayered Bootstrap CDN stylesheet wins equal-specificity conflicts with kit rules; hosts that want the 1.x cascade override the `stylesheets` block and link `css/nowo-ui.unlayered.css` (UiKit 2.x only).
+
 ## [1.10.0] - 2026-10-15
 
 ### Added
