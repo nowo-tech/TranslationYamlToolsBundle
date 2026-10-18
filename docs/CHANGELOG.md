@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.10.1] - 2026-10-18](#1101---2026-10-18)
 - [[1.10.0] - 2026-10-15](#1100---2026-10-15)
 - [[1.9.0] - 2026-10-13](#190---2026-10-13)
 - [[1.8.0] - 2026-10-13](#180---2026-10-13)
@@ -47,6 +48,10 @@ All notable changes to this project are documented in this file.
 - [[0.1.0] - 2026-04-09](#010---2026-04-09)
 
 ## [Unreleased]
+
+## [1.10.1] - 2026-10-18
+
+Allows nowo-tech/ui-kit-bundle 2.x (^1.4 || ^2.2) so hosts can move to UiKit 2.2. See [UPGRADING](UPGRADING.md#to-1101).
 
 ### Changed
 
