@@ -51,6 +51,8 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
+- Dependencies refreshed (Composer and pnpm/npm lock files of the bundle and its demos, campaign 2026-10-19).
+- `.php-cs-fixer.dist.php`: `new ParallelConfig(2)` (REQ-CS-001).
 - Documentation: wave-1 REQ compliance — README badges (GitHub stars, Coverage) and documentation list order, CONTRIBUTING Cursor Agent settings and post-release-commit trailer check, doc TOCs, Spec Kit baseline refresh (85/85: text overrides and strict parity folded into the baseline spec and SPEC-DRIVEN-DEVELOPMENT scope).
 
 ## [1.10.1] - 2026-10-18
