@@ -92,6 +92,8 @@ As a maintainer, I record runtime missing translation keys in Doctrine and revie
 - **FR-MT-002**: `GoogleTranslateMachineTranslator`, `DeeplMachineTranslator`, `LibreTranslateMachineTranslator` backends.
 - **FR-MT-003**: `MachineTranslationLocaleMapper` maps Symfony locales to provider codes.
 - **FR-MT-004**: `RoutingMachineTranslator` selects backend from config and per-locale overrides.
+- **FR-MT-005**: `ThrottledMachineTranslator` optionally paces machine-translation HTTP calls (rate-limit friendly).
+- **FR-MT-006**: `LibreTranslateBaseUrlGuard` restricts LibreTranslate base URLs to an allowlist of hosts (SSRF mitigation).
 
 ### Missing translation log
 
@@ -106,12 +108,28 @@ As a maintainer, I record runtime missing translation keys in Doctrine and revie
 - **FR-MLOG-009**: `MissingTranslationLogExtension` Twig helpers; `MissingLogUiAccessSubscriber` enforces `required_role`.
 - **FR-MLOG-010**: `DoctrineMissingTranslationRecorder` implements `ResetInterface`; `flushBuffer` on `kernel.terminate` at priority `-1024` empties the buffer before persist and never rethrows (logs via optional `LoggerInterface`).
 - **FR-WORKER-001**: HTTP runtime of the missing-log feature MUST be safe under FrankenPHP worker mode when the kernel is not reset between requests (scenario B in `docs/FRANKENPHP-WORKER-AUDIT.md`).
+- **FR-SEC-001**: Missing-log Web UI access goes through `MissingLogUiAccessCheckerInterface` (default `ConfigurableMissingLogUiAccessChecker`, `web_ui.security.*`, REQ-UI-002); `MissingLogWebUiSecurityPass` fails the build when the Web UI is enabled without SecurityBundle.
+
+### Operator text overrides (feature [`002-text-overrides`](../002-text-overrides/spec.md))
+
+- **FR-OVR-001**: Disabled by default (`overrides.enabled: false`); when enabled, `services_overrides.yaml` registers the runtime and `TranslationOverrideMetadataListener` maps `TranslationOverride` to `{table_prefix}override` (unique locale/domain/key).
+- **FR-OVR-002**: `OverridingTranslator` decorates `translator` and serves overrides from `TranslationOverrideProviderInterface` / `TranslationOverrides` (cached map, invalidated on every write) before the catalogues.
+- **FR-OVR-003**: `EditableTranslationKeys` (domain ⇒ prefixes ∩ default-locale keys), `TranslationOverrideLocales` (configured ‖ enabled ‖ default locale) and `TranslationOverrideEditor` (per-locale edit; form bridge for hosts) define what operators may edit.
+- **FR-OVR-004**: Override markup is cleaned by `TranslationOverrideHtmlSanitizerInterface`: `SymfonyTranslationOverrideHtmlSanitizer` (inline allowlist) when symfony/html-sanitizer is installed, else `StripTagsTranslationOverrideHtmlSanitizer`.
+- **FR-OVR-005**: Web UI desk — `TranslationOverrideController` (list/search, edit, reset; CSRF per action and key), routes `translation_override_ui.yaml`, `services_overrides_web.yaml`, views `text_override/*`; `TextOverrideWebUiPass` fails the build when the Web UI is enabled without its dependencies.
+- **FR-OVR-006**: `TranslationOverrideRepository` resolves the EntityManager per call and recovers a closed one (worker safe, FR-WORKER-001).
+- **FR-I18N-001**: Bundle UI strings ship in domain `NowoTranslationYamlToolsBundle` (`en`, `es`).
+
+### Strict parity (feature [`003-strict-parity`](../003-strict-parity/spec.md))
+
+- **FR-PARITY-001**: `TranslationParityChecker` (pure, no container) computes missing / extra / empty keys; `TranslationYamlAuditor` exposes them and `audit --strict` fails on `strict_ok = false`.
+- **FR-PARITY-002**: `TranslationParityAssertions` (PHPUnit trait) exposes `assertTranslationKeyParity()` and `assertNoUntranslatedValues()` for host test suites.
 
 ---
 
 ## Success Criteria
 
-- **SC-001**: 56/56 production files mapped in [`code-inventory.md`](code-inventory.md).
+- **SC-001**: 85/85 production files mapped in [`code-inventory.md`](code-inventory.md).
 - **SC-002**: Config keys documented in `CONFIGURATION.md` match `Configuration.php`.
 - **SC-003**: PHPUnit passes for tree analyzer, sorter, and recorder.
 - **SC-004**: Demo Symfony 8 enables missing log + Web UI without manual wiring errors.

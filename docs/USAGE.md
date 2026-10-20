@@ -12,7 +12,12 @@
 - [File naming](#file-naming)
 - [Twig — missing translation log Web UI](#twig--missing-translation-log-web-ui)
 - [Missing translation log: coverage and call_site](#missing-translation-log-coverage-and-call_site)
+  - [What is recorded (and what is not)](#what-is-recorded-and-what-is-not)
+  - [Call site (`call_site`) and Twig](#call-site-call_site-and-twig)
 - [Text overrides (operator-edited texts)](#text-overrides-operator-edited-texts)
+  - [Web UI desk](#web-ui-desk)
+  - [Form bridge (host forms)](#form-bridge-host-forms)
+  - [HTML sanitizing](#html-sanitizing)
 - [Overriding templates (REQ-TWIG-001)](#overriding-templates-req-twig-001)
 - [Symfony 8 demo](#symfony-8-demo)
 

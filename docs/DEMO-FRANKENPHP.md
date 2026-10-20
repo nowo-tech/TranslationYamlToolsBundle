@@ -4,6 +4,15 @@
 
 The `demo/symfony8` app runs on **FrankenPHP** (Caddy + PHP).
 
+## Table of contents
+
+- [Development](#development)
+- [Production-style (worker)](#production-style-worker)
+- [Start / stop](#start--stop)
+- [Switching classic vs worker (`FRANKENPHP_MODE`)](#switching-classic-vs-worker-frankenphp_mode)
+- [Troubleshooting](#troubleshooting)
+- [FrankenPHP worker mode](#frankenphp-worker-mode)
+
 ## Development
 
 - `APP_ENV=dev` (default in Docker Compose) copies `docker/frankenphp/Caddyfile.dev` over the active Caddyfile (entrypoint): **classic `php_server`** (no worker) so template and YAML changes show up reliably.

@@ -1,6 +1,6 @@
 # Translation YAML Tools Bundle
 
-[![CI](https://github.com/nowo-tech/TranslationYamlToolsBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/TranslationYamlToolsBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/translation-yaml-tools-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/translation-yaml-tools-bundle.svg)](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com)
+[![CI](https://github.com/nowo-tech/TranslationYamlToolsBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/TranslationYamlToolsBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/translation-yaml-tools-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/translation-yaml-tools-bundle.svg)](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/translation-yaml-tools-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/TranslationYamlToolsBundle) [![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** Install from [Packagist](https://packagist.org/packages/nowo-tech/translation-yaml-tools-bundle) and consider starring [the repository](https://github.com/nowo-tech/TranslationYamlToolsBundle).
 
@@ -59,10 +59,8 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 
 ## Documentation
 
-- [GitHub Actions CI requirements](docs/GITHUB_CI.md)
 - [Installation](docs/INSTALLATION.md)
 - [Configuration](docs/CONFIGURATION.md)
-- [PSR evaluation (REQ-CS-007)](docs/PSR.md)
 - [Usage](docs/USAGE.md)
 - [Contributing](docs/CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
@@ -76,6 +74,8 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 
 ### Additional documentation
 
+- [GitHub Actions CI requirements](docs/GITHUB_CI.md)
+- [PSR evaluation (REQ-CS-007)](docs/PSR.md)
 - [Demos](demo/README.md)
 - [FrankenPHP demos](docs/DEMO-FRANKENPHP.md)
 - [FrankenPHP worker audit (no kernel.reset)](docs/FRANKENPHP-WORKER-AUDIT.md)

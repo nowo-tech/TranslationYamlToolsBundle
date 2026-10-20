@@ -1,5 +1,16 @@
 # Installation
 
+## Table of contents
+
+- [Composer](#composer)
+- [Enable the bundle](#enable-the-bundle)
+  - [Symfony Flex](#symfony-flex)
+  - [Manual](#manual)
+  - [Web UI prerequisites](#web-ui-prerequisites)
+- [Environment](#environment)
+- [Demos](#demos)
+- [Twig Extra Bundle (REQ-TWIG-004)](#twig-extra-bundle-req-twig-004)
+
 ## Composer
 
 ```bash

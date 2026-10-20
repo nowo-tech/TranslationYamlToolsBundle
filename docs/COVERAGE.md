@@ -2,6 +2,12 @@
 
 This bundle targets **≥ 99%** PHP line coverage on includable `src/` (see `make test-coverage` / `composer test-coverage`).
 
+## Table of contents
+
+- [PHPUnit source include / exclude](#phpunit-source-include--exclude)
+- [Justified remaining misses / ignores](#justified-remaining-misses--ignores)
+- [How to verify](#how-to-verify)
+
 ## PHPUnit source include / exclude
 
 Configured in [`phpunit.xml.dist`](../phpunit.xml.dist):

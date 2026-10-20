@@ -10,6 +10,17 @@ There is no separate executable spec language (for example Gherkin); tests and s
 
 ---
 
+## Table of contents
+
+- [User stories](#user-stories)
+- [Bundle functional scope](#bundle-functional-scope)
+- [Validating the functional spec](#validating-the-functional-spec)
+- [Requirement identifiers (`REQ-*`)](#requirement-identifiers-req-)
+- [Suggested workflow for contributors](#suggested-workflow-for-contributors)
+- [GitHub Spec Kit (summary)](#github-spec-kit-summary)
+- [Relationship to Engram / external checklists](#relationship-to-engram--external-checklists)
+- [See also](#see-also)
+
 ## User stories
 
 The sections below state **behavior**; this subsection states **intent** in backlog-friendly form.
@@ -29,13 +40,15 @@ The sections below state **behavior**; this subsection states **intent** in back
 
 ## Bundle functional scope
 
-**Goal:** Symfony developer tools for YAML translations: path discovery, nested tree conversion, key sorting, audit reports, machine translation for missing keys (Google, DeepL, LibreTranslate; pluggable), and optional Doctrine-backed **missing translation log** with CLI + Web UI.
+**Goal:** Symfony developer tools for YAML translations: path discovery, nested tree conversion, key sorting, audit reports (including strict parity), machine translation for missing keys (Google, DeepL, LibreTranslate; pluggable), optional Doctrine-backed **missing translation log** with CLI + Web UI, and optional operator **text overrides**.
 
 **In scope**
 
 - Console commands: `tree`, `flatten`, `sort`, `fill-missing`, `audit`, and missing-log maintenance commands.
 - `MachineTranslatorInterface` backends and locale routing configuration.
 - Optional `missing_translation_log` feature: translator decorator, async flush (Messenger or EventDispatcher), Doctrine entity, CLI, and gated Web UI routes.
+- Optional operator **text overrides** (`overrides.enabled`, off by default): Doctrine-stored replacements served by a translator decorator, sanitized markup, and a CSRF-protected Web UI desk ([`specs/002-text-overrides`](../specs/002-text-overrides/spec.md)).
+- Strict translation **parity**: `audit --strict` and the `TranslationParityAssertions` PHPUnit trait for host test suites ([`specs/003-strict-parity`](../specs/003-strict-parity/spec.md)).
 - Documented integration (see root `README.md` and `docs/`).
 - Configuration and runtime behavior described in [`CONFIGURATION.md`](CONFIGURATION.md) and [`USAGE.md`](USAGE.md).
 - Consumer-facing change notes in [`CHANGELOG.md`](CHANGELOG.md) and [`UPGRADING.md`](UPGRADING.md) when applicable.

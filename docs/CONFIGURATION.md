@@ -1,5 +1,19 @@
 # Configuration
 
+## Table of contents
+
+- [Reference (`nowo_translation_yaml_tools`)](#reference-nowo_translation_yaml_tools)
+- [Missing translation log (database)](#missing-translation-log-database)
+- [Text overrides (database)](#text-overrides-database)
+- [Machine translator by locale](#machine-translator-by-locale)
+- [Machine translation locale map](#machine-translation-locale-map)
+- [HTTP client](#http-client)
+- [Symfony translation paths](#symfony-translation-paths)
+- [Google Cloud Translation](#google-cloud-translation)
+- [DeepL](#deepl)
+- [LibreTranslate](#libretranslate)
+- [Replacing the machine translator](#replacing-the-machine-translator)
+
 ## Reference (`nowo_translation_yaml_tools`)
 
 | Option | Type | Default | Description |

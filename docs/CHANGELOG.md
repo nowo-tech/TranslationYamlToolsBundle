@@ -49,6 +49,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Documentation: wave-1 REQ compliance — README badges (GitHub stars, Coverage) and documentation list order, CONTRIBUTING Cursor Agent settings and post-release-commit trailer check, doc TOCs, Spec Kit baseline refresh (85/85: text overrides and strict parity folded into the baseline spec and SPEC-DRIVEN-DEVELOPMENT scope).
+
 ## [1.10.1] - 2026-10-18
 
 Allows nowo-tech/ui-kit-bundle 2.x (^1.4 || ^2.2) so hosts can move to UiKit 2.2. See [UPGRADING](UPGRADING.md#to-1101).

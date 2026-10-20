@@ -1,5 +1,17 @@
 # Security
 
+## Table of contents
+
+- [Scope](#scope)
+- [Attack surface](#attack-surface)
+- [Threat model (examples)](#threat-model-examples)
+- [Web UI checklist](#web-ui-checklist)
+- [Secrets and cryptography](#secrets-and-cryptography)
+- [Logging](#logging)
+- [Dependencies](#dependencies)
+- [Permissions and exposure](#permissions-and-exposure)
+- [Release security checklist (12.4.1)](#release-security-checklist-1241)
+
 ## Scope
 
 This bundle provides:

@@ -9,6 +9,18 @@
 | **Verdict** | ✅ **Viable under scenario B** — the request buffer is emptied on every flush, persistence errors in `kernel.terminate` are logged instead of ending the worker loop, Web UI re-hydrates rows / recovers a closed EntityManager, and DBAL clears detach managed log entities without `kernel.reset` |
 | Remediation (2026-09-23→25) | W-01 and W-02 resolved; W-03 flush moved to terminate priority `-1024`; post-delete detach for managed logs (`src/Repository/MissingTranslationLogRepository.php`, `src/MissingTranslationLog/DoctrineMissingTranslationRecorder.php`, `src/Resources/config/services_missing_translation.yaml`). Regression tests: consecutive requests on the same recorder without `reset()` and DBAL writes between reads without `clear()` (`tests/Unit/MissingTranslationLog/DoctrineMissingTranslationRecorderTest.php`, `tests/Unit/Repository/MissingTranslationLogRepositoryTest.php`) |
 
+## Table of contents
+
+- [Execution model assumed](#execution-model-assumed)
+- [Summary](#summary)
+- [Services reviewed](#services-reviewed)
+- [Findings](#findings)
+  - [W-01 — Web UI relies on Doctrine resetting the EntityManager (Medium)](#w-01--web-ui-relies-on-doctrine-resetting-the-entitymanager-medium)
+  - [W-02 — Exception during buffer persistence escapes the worker loop (Low)](#w-02--exception-during-buffer-persistence-escapes-the-worker-loop-low)
+  - [W-03 — Notes (Info)](#w-03--notes-info)
+- [Usage recommendations in worker mode](#usage-recommendations-in-worker-mode)
+- [Re-audit triggers](#re-audit-triggers)
+
 ## Execution model assumed
 
 FrankenPHP worker mode boots the Symfony kernel once per worker and serves many requests with the same container. This audit assumes the **strict** variant: the kernel is **not** rebooted between requests, so every shared service, static property and PHP global survives from one request to the next. Two scenarios are evaluated:
