@@ -50,6 +50,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Developer tooling: `make release-check` runs the full REQ-MAKE-002 chain with `ensure-up` first, then the Cursor co-author, open-PR and Twig `extra` gates, composer-sync, the new `cs-fix` step, cs-check, rector-dry, phpstan, igor, translations, coverage-check and the demo release-check. `check-no-raw-html-form` (REQ-TWIG-005) is wired once the remaining raw form markup is migrated.
+
 ## [1.11.0] - 2026-10-24
 
 Bundle views render form bodies through the child loop (REQ-TWIG-003). See [UPGRADING](UPGRADING.md#to-1110).
