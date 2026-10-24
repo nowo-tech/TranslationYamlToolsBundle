@@ -3,6 +3,8 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.11.0](#to-1110)
+  - [Web UI forms are Symfony Form types (REQ-TWIG-003 / REQ-TWIG-005)](#web-ui-forms-are-symfony-form-types-req-twig-003--req-twig-005)
 - [To 1.10.1](#to-1101)
 - [To 1.10.0](#to-1100)
 - [From 1.8.0 to 1.9.0](#from-180-to-190)
@@ -52,6 +54,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.11.0
+
+From **1.10.1**:
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
 
 ### Web UI forms are Symfony Form types (REQ-TWIG-003 / REQ-TWIG-005)
 
