@@ -16,7 +16,9 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  *   {@code overrides.web_ui.security.allow_unauthenticated} (dev / demo only);
  * - CSRF protection ({@code security.csrf.token_manager}, i.e. symfony/security-csrf +
  *   {@code framework.csrf_protection});
- * - TwigBundle ({@code twig}).
+ * - TwigBundle ({@code twig});
+ * - the Form component ({@code form.factory}, i.e. symfony/form with {@code framework.form} enabled): the desk
+ *   pages are Symfony forms.
  */
 final class TextOverrideWebUiPass implements CompilerPassInterface
 {
@@ -38,6 +40,10 @@ final class TextOverrideWebUiPass implements CompilerPassInterface
 
         if (!$container->has('twig')) {
             throw new InvalidConfigurationException('overrides.web_ui.enabled requires symfony/twig-bundle.');
+        }
+
+        if (!$container->has('form.factory')) {
+            throw new InvalidConfigurationException('overrides.web_ui.enabled requires the Form component: keep framework.form enabled (symfony/form).');
         }
     }
 }

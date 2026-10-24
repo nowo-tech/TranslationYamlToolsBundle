@@ -12,6 +12,10 @@ use Nowo\TranslationYamlToolsBundle\Tests\Fixtures\MissingTranslationLogTestEnti
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\Form\Extension\Csrf\CsrfExtension;
+use Symfony\Component\Form\Extension\HttpFoundation\HttpFoundationExtension;
+use Symfony\Component\Form\Forms;
+use Symfony\Component\Form\FormView;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -46,11 +50,92 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $container->set('twig', $twig);
 
         $controller = new MissingTranslationLogUiController($repo);
+        $this->withForms($container);
         $controller->setContainer($container);
 
         $response = $controller->index(Request::create('/?status=pending'));
         self::assertSame(200, $response->getStatusCode());
         self::assertStringContainsString('ok', (string) $response->getContent());
+    }
+
+    public function testIndexBuildsOneMarkAddedFormPerPendingRow(): void
+    {
+        $repo = $this->createRepository();
+        $repo->persistBuffer([
+            'a' => [
+                'hits'      => 1,
+                'messageId' => 'm',
+                'domain'    => 'd',
+                'locale'    => 'en',
+                'callSite'  => null,
+            ],
+        ]);
+        $id = $repo->findByStatus(MissingTranslationLogStatus::Pending, 5)[0]->getId();
+        self::assertNotNull($id);
+
+        $context = [];
+        $twig    = $this->createMock(Environment::class);
+        $twig->expects(self::exactly(2))->method('render')->willReturnCallback(static function (string $name, array $vars) use (&$context): string {
+            $context[] = $vars;
+
+            return '<html>ok</html>';
+        });
+
+        $container = new Container();
+        $container->set('twig', $twig);
+        $this->withForms($container);
+
+        $controller = new MissingTranslationLogUiController($repo);
+        $controller->setContainer($container);
+
+        $controller->index(Request::create('/?status=pending'));
+        $controller->index(Request::create('/?status=added'));
+
+        self::assertSame([$id], array_keys($context[0]['mark_added_forms']));
+        $view = $context[0]['mark_added_forms'][$id];
+        self::assertInstanceOf(FormView::class, $view);
+        self::assertSame('missing_log_mark_added_' . $id, $view->vars['name']);
+        self::assertArrayHasKey('_token', $view->children);
+        self::assertInstanceOf(FormView::class, $context[0]['clear_status_form']);
+        self::assertSame('pending', $context[0]['clear_status_form']->children['status']->vars['value']);
+        self::assertSame([], $context[1]['mark_added_forms'], 'Only the pending list has row actions.');
+        self::assertSame('added', $context[1]['clear_form']->children['status']->vars['value']);
+    }
+
+    public function testClearWithoutStatusFallsBackToPending(): void
+    {
+        $repo = $this->createRepository();
+
+        $router = $this->createMock(UrlGeneratorInterface::class);
+        $router->method('generate')->willReturnCallback(static fn (string $route, array $parameters = []): string => $route . '?' . http_build_query($parameters));
+
+        $request = Request::create('/clear', 'POST', ['missing_log_clear_all' => ['_token' => 'any']]);
+        $request->setSession(new Session(new MockArraySessionStorage()));
+
+        $container = new Container();
+        $container->set('twig', $this->createMock(Environment::class));
+        $container->set('router', $router);
+        $container->set('request_stack', new RequestStack([$request]));
+        $this->withForms($container);
+
+        $controller = new MissingTranslationLogUiController($repo);
+        $controller->setContainer($container);
+
+        $response = $controller->clear($request);
+        self::assertSame('nowo_translation_yaml_tools_missing_log_index?status=pending', $response->getTargetUrl());
+    }
+
+    public function testActionWithoutFormDataIsDenied(): void
+    {
+        $container = new Container();
+        $container->set('twig', $this->createMock(Environment::class));
+        $this->withForms($container);
+
+        $controller = new MissingTranslationLogUiController($this->createRepository());
+        $controller->setContainer($container);
+
+        $this->expectException(AccessDeniedException::class);
+        $controller->clearStatus(Request::create('/clear-status', 'POST', ['_token' => 'legacy-field-name']));
     }
 
     public function testMarkAddedRedirectsOnSuccess(): void
@@ -76,7 +161,7 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $router = $this->createMock(UrlGeneratorInterface::class);
         $router->method('generate')->willReturn('/missing-log/');
 
-        $request = Request::create('/' . $id . '/mark-added', 'POST', ['_token' => 'good']);
+        $request = Request::create('/' . $id . '/mark-added', 'POST', ['missing_log_mark_added_' . $id => ['_token' => 'good']]);
         $request->setSession(new Session(new MockArraySessionStorage()));
 
         $requestStack = new RequestStack([$request]);
@@ -88,6 +173,7 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $container->set('request_stack', $requestStack);
 
         $controller = new MissingTranslationLogUiController($repo);
+        $this->withForms($container);
         $controller->setContainer($container);
 
         $response = $controller->markAdded((int) $id, $request);
@@ -112,9 +198,10 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $container->set('request_stack', new RequestStack());
 
         $controller = new MissingTranslationLogUiController($repo);
+        $this->withForms($container);
         $controller->setContainer($container);
 
-        $request = Request::create('/1/mark-added', 'POST', ['_token' => 'bad']);
+        $request = Request::create('/1/mark-added', 'POST', ['missing_log_mark_added_1' => ['_token' => 'bad']]);
 
         $this->expectException(AccessDeniedException::class);
         $controller->markAdded(1, $request);
@@ -134,9 +221,10 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $container->set('request_stack', new RequestStack());
 
         $controller = new MissingTranslationLogUiController($repo);
+        $this->withForms($container);
         $controller->setContainer($container);
 
-        $request = Request::create('/99/mark-added', 'POST', ['_token' => 'ok']);
+        $request = Request::create('/99/mark-added', 'POST', ['missing_log_mark_added_99' => ['_token' => 'ok']]);
 
         $this->expectException(NotFoundHttpException::class);
         $controller->markAdded(99, $request);
@@ -171,7 +259,7 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $router = $this->createMock(UrlGeneratorInterface::class);
         $router->method('generate')->willReturn('/missing-log/');
 
-        $request = Request::create('/clear', 'POST', ['_token' => 'good', 'status' => 'pending']);
+        $request = Request::create('/clear', 'POST', ['missing_log_clear_all' => ['_token' => 'good', 'status' => 'pending']]);
         $request->setSession(new Session(new MockArraySessionStorage()));
 
         $requestStack = new RequestStack([$request]);
@@ -183,6 +271,7 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $container->set('request_stack', $requestStack);
 
         $controller = new MissingTranslationLogUiController($repo);
+        $this->withForms($container);
         $controller->setContainer($container);
 
         $response = $controller->clear($request);
@@ -204,9 +293,10 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $container->set('request_stack', new RequestStack());
 
         $controller = new MissingTranslationLogUiController($repo);
+        $this->withForms($container);
         $controller->setContainer($container);
 
-        $request = Request::create('/clear', 'POST', ['_token' => 'bad']);
+        $request = Request::create('/clear', 'POST', ['missing_log_clear_all' => ['_token' => 'bad']]);
 
         $this->expectException(AccessDeniedException::class);
         $controller->clear($request);
@@ -245,7 +335,7 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $router = $this->createMock(UrlGeneratorInterface::class);
         $router->method('generate')->willReturn('/missing-log/');
 
-        $request = Request::create('/clear-status', 'POST', ['_token' => 'good', 'status' => 'pending']);
+        $request = Request::create('/clear-status', 'POST', ['missing_log_clear_status' => ['_token' => 'good', 'status' => 'pending']]);
         $request->setSession(new Session(new MockArraySessionStorage()));
 
         $requestStack = new RequestStack([$request]);
@@ -257,6 +347,7 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $container->set('request_stack', $requestStack);
 
         $controller = new MissingTranslationLogUiController($repo);
+        $this->withForms($container);
         $controller->setContainer($container);
 
         $response = $controller->clearStatus($request);
@@ -279,9 +370,10 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $container->set('request_stack', new RequestStack());
 
         $controller = new MissingTranslationLogUiController($repo);
+        $this->withForms($container);
         $controller->setContainer($container);
 
-        $request = Request::create('/clear-status', 'POST', ['_token' => 'bad', 'status' => 'pending']);
+        $request = Request::create('/clear-status', 'POST', ['missing_log_clear_status' => ['_token' => 'bad', 'status' => 'pending']]);
 
         $this->expectException(AccessDeniedException::class);
         $controller->clearStatus($request);
@@ -303,6 +395,7 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $container->set('security.token_storage', $storage);
 
         $controller = new MissingTranslationLogUiController($repo, $checker);
+        $this->withForms($container);
         $controller->setContainer($container);
 
         $this->expectException(AccessDeniedException::class);
@@ -332,9 +425,33 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         $container->set('security.token_storage', $storage);
 
         $controller = new MissingTranslationLogUiController($repo, $checker);
+        $this->withForms($container);
         $controller->setContainer($container);
 
         $response = $controller->index(Request::create('/'));
         self::assertSame(200, $response->getStatusCode());
+    }
+
+    /**
+     * Registers a real form factory (CSRF extension backed by the container token manager, or an
+     * always-valid one) and a router stub unless the test already set them.
+     */
+    private function withForms(Container $container): void
+    {
+        $csrf = $container->has('security.csrf.token_manager') ? $container->get('security.csrf.token_manager') : null;
+        if (!$csrf instanceof CsrfTokenManagerInterface) {
+            $csrf = $this->createStub(CsrfTokenManagerInterface::class);
+            $csrf->method('getToken')->willReturnCallback(static fn (string $id): CsrfToken => new CsrfToken($id, 'token-' . $id));
+            $csrf->method('isTokenValid')->willReturn(true);
+        }
+        $container->set('form.factory', Forms::createFormFactoryBuilder()
+            ->addExtension(new HttpFoundationExtension())
+            ->addExtension(new CsrfExtension($csrf))
+            ->getFormFactory());
+        if (!$container->has('router')) {
+            $router = $this->createStub(UrlGeneratorInterface::class);
+            $router->method('generate')->willReturn('/missing-log/action');
+            $container->set('router', $router);
+        }
     }
 }

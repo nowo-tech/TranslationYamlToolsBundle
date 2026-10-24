@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\TextOverride\Controller;
 
+use Nowo\TranslationYamlToolsBundle\Form\TranslationOverrideFilterType;
+use Nowo\TranslationYamlToolsBundle\Form\TranslationOverrideResetType;
+use Nowo\TranslationYamlToolsBundle\Form\TranslationOverrideTextsType;
 use Nowo\TranslationYamlToolsBundle\TextOverride\EditableTranslationKeys;
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideEditor;
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,7 +22,12 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Translation\TranslatorBagInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function array_key_first;
+use function array_map;
+use function assert;
+use function implode;
 use function is_scalar;
+use function strtoupper;
 
 /**
  * Text overrides desk: list editable catalogue messages (group filter + search), edit one message
@@ -25,6 +36,10 @@ use function is_scalar;
  * Enable with {@code overrides.web_ui.enabled} and import
  * {@code @NowoTranslationYamlToolsBundle/Resources/config/routes/translation_override_ui.yaml}.
  * Access: {@code overrides.web_ui.security.access_roles} (any role), CSRF on every POST.
+ *
+ * Forms: {@see TranslationOverrideFilterType} (GET, unnamed: query {@code q} / {@code group}),
+ * {@see TranslationOverrideTextsType} (named {@code texts}: fields {@code texts[<locale>]}) and
+ * {@see TranslationOverrideResetType} (named {@code translation_override_reset}).
  */
 final class TranslationOverrideController extends AbstractController
 {
@@ -52,19 +67,32 @@ final class TranslationOverrideController extends AbstractController
     {
         $this->denyUnlessAllowed();
 
-        $rawQuery  = trim($request->query->getString('q'));
-        $query     = mb_strtolower($rawQuery);
-        $group     = trim($request->query->getString('group'));
         $overrides = $this->overrides->all();
         $locales   = $this->editor->locales();
 
-        $groups = [];
-        $rows   = [];
+        $groups   = [];
+        $messages = [];
         foreach ($this->keys->editableMessages($this->translator->getCatalogue($this->editor->defaultLocale())) as $ref => $text) {
             [$domain, $key]    = $this->keys->parseRef($ref);
             $groupKey          = $this->keys->groupOf($domain, $key);
             $groups[$groupKey] = ($groups[$groupKey] ?? 0) + 1;
+            $messages[]        = [$ref, $domain, $key, $groupKey, $text];
+        }
+        ksort($groups);
 
+        $filter = $this->formFactory()->createNamed('', TranslationOverrideFilterType::class, null, [
+            'action' => $this->generateUrl('nowo_translation_yaml_tools_overrides_index'),
+            'groups' => $groups,
+        ]);
+        $filter->handleRequest($request);
+        $rawQuery = trim((string) $filter->get('q')->getData());
+        $query    = mb_strtolower($rawQuery);
+        // View data: an unknown group (stale bookmark) still filters (to no row) instead of being dropped.
+        $groupValue = $filter->get('group')->getViewData();
+        $group      = trim(is_scalar($groupValue) ? (string) $groupValue : '');
+
+        $rows = [];
+        foreach ($messages as [$ref, $domain, $key, $groupKey, $text]) {
             if ($group !== '' && $groupKey !== $group) {
                 continue;
             }
@@ -82,7 +110,6 @@ final class TranslationOverrideController extends AbstractController
                 )),
             ];
         }
-        ksort($groups);
 
         $overrideCount = 0;
         foreach ($overrides as $domains) {
@@ -97,6 +124,7 @@ final class TranslationOverrideController extends AbstractController
 
         return $this->render('@NowoTranslationYamlToolsBundle/text_override/index.html.twig', [
             'layout_template' => $this->layoutTemplate,
+            'filter_form'     => $filter->createView(),
             'rows'            => $rows,
             'groups'          => $groups,
             'group'           => $group,
@@ -115,25 +143,35 @@ final class TranslationOverrideController extends AbstractController
         [$domain, $key] = $this->resolveEditable($ref);
         $shipped        = $this->editor->shippedTexts($domain, $key);
         $texts          = $this->editor->currentTexts($domain, $key);
+        $locales        = $this->editor->locales();
         $errors         = [];
 
-        if ($request->isMethod('POST')) {
-            if (!$this->isCsrfTokenValid($this->csrfId('edit', $ref), $request->request->getString('_token'))) {
+        $form = $this->formFactory()->createNamed('texts', TranslationOverrideTextsType::class, $texts, [
+            'action'        => $this->generateUrl('nowo_translation_yaml_tools_overrides_edit', ['key' => $ref]),
+            'locales'       => $locales,
+            'max_length'    => $this->maxLength,
+            'csrf_token_id' => $this->csrfId('edit', $ref),
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted()) {
+            // Without symfony/validator the only root-level error is the CSRF one.
+            if ($form->getErrors()->count() > 0) {
                 $this->addFlash('error', $this->t('overrides.flash.invalid_token'));
 
                 return $this->redirectToRoute('nowo_translation_yaml_tools_overrides_edit', ['key' => $ref]);
             }
 
-            $submitted = $request->request->all('texts');
-            foreach ($this->editor->locales() as $locale) {
-                $value          = $submitted[$locale] ?? '';
+            foreach ($locales as $locale) {
+                $value          = $form->get($locale)->getData();
                 $texts[$locale] = is_scalar($value) ? (string) $value : '';
                 if (mb_strlen($texts[$locale]) > $this->maxLength) {
                     $errors[$locale] = $this->t('overrides.error.too_long', ['%max%' => $this->maxLength]);
+                    $form->get($locale)->addError(new FormError($errors[$locale]));
                 }
             }
 
-            if ($errors === []) {
+            if ($errors === [] && $form->isValid()) {
                 $this->editor->save($domain, $key, $texts, true, $this->userIdentifier());
                 $this->addFlash('success', $this->t('overrides.flash.saved'));
 
@@ -141,20 +179,23 @@ final class TranslationOverrideController extends AbstractController
             }
         }
 
+        $overridden = $this->editor->overriddenLocales($domain, $key);
+
         return $this->render('@NowoTranslationYamlToolsBundle/text_override/edit.html.twig', [
             'layout_template' => $this->layoutTemplate,
             'key'             => $ref,
             'group'           => $this->keys->groupOf($domain, $key),
-            'locales'         => $this->editor->locales(),
+            'locales'         => $locales,
             'default_locale'  => $this->editor->defaultLocale(),
+            'active_locale'   => $errors !== [] ? array_key_first($errors) : ($locales[0] ?? null),
             'texts'           => $texts,
             'shipped'         => $shipped,
             'errors'          => $errors,
             'max_length'      => $this->maxLength,
-            'overridden'      => $this->editor->overriddenLocales($domain, $key),
-            'csrf_edit'       => $this->csrfId('edit', $ref),
-            'csrf_reset'      => $this->csrfId('reset', $ref),
-        ], new Response(null, $errors === [] ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+            'overridden'      => $overridden,
+            'form'            => $form->createView(),
+            'reset_form'      => $overridden === [] ? null : $this->resetForm($ref, $overridden)->createView(),
+        ], new Response(null, $form->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
     }
 
     #[Route('/reset', name: 'nowo_translation_yaml_tools_overrides_reset', methods: ['POST'])]
@@ -165,9 +206,12 @@ final class TranslationOverrideController extends AbstractController
         $ref            = $request->query->getString('key');
         [$domain, $key] = $this->resolveEditable($ref);
 
-        if (!$this->isCsrfTokenValid($this->csrfId('reset', $ref), $request->request->getString('_token'))) {
+        $form = $this->resetForm($ref, $this->editor->overriddenLocales($domain, $key));
+        $form->handleRequest($request);
+
+        if (!$form->isSubmitted() || $form->getErrors()->count() > 0) {
             $this->addFlash('error', $this->t('overrides.flash.invalid_token'));
-        } elseif ($request->request->getString('confirm') !== '1') {
+        } elseif ($form->get('confirm')->getData() !== true) {
             $this->addFlash('error', $this->t('overrides.flash.confirm_required'));
         } else {
             $this->editor->reset($domain, $key);
@@ -188,6 +232,28 @@ final class TranslationOverrideController extends AbstractController
         }
 
         return [$domain, $key];
+    }
+
+    /**
+     * @param list<string> $overridden
+     *
+     * @return FormInterface<mixed>
+     */
+    private function resetForm(string $ref, array $overridden): FormInterface
+    {
+        return $this->formFactory()->create(TranslationOverrideResetType::class, null, [
+            'action'             => $this->generateUrl('nowo_translation_yaml_tools_overrides_reset', ['key' => $ref]),
+            'csrf_token_id'      => $this->csrfId('reset', $ref),
+            'overridden_locales' => implode(', ', array_map(strtoupper(...), $overridden)),
+        ]);
+    }
+
+    private function formFactory(): FormFactoryInterface
+    {
+        $factory = $this->container->get('form.factory');
+        assert($factory instanceof FormFactoryInterface);
+
+        return $factory;
     }
 
     private function csrfId(string $action, string $ref): string

@@ -53,6 +53,21 @@
 
 ## Unreleased
 
+### Web UI forms are Symfony Form types (REQ-TWIG-003 / REQ-TWIG-005)
+
+`symfony/form` is now required (Composer installs it; `framework.form` is enabled automatically when the component is present). If you disabled `framework.form`, re-enable it before turning on `overrides.web_ui` or the missing-log Web UI.
+
+The controllers now pass `FormView`s to the templates and bind POSTs with `handleRequest()`. **If you override any of these templates** under `templates/bundles/NowoTranslationYamlToolsBundle/`, re-copy them from the bundle (or apply the same change): replace the raw `<form>` / hidden `<input>` markup by `form_start(<form>)`, the child loop and `form_end(<form>)`.
+
+| Template | New variables | Request fields (before → after) |
+|----------|---------------|---------------------------------|
+| `missing_translation_log/index.html.twig` | `clear_status_form`, `clear_form` | `_token`, `status` → `missing_log_clear_status[_token]`, `missing_log_clear_status[status]` / `missing_log_clear_all[_token]`, `missing_log_clear_all[status]` |
+| `missing_translation_log/_table.html.twig` | `mark_added_forms` (map row id → `FormView`, pending list only) | `_token` → `missing_log_mark_added_<id>[_token]` |
+| `text_override/index.html.twig` | `filter_form` (unnamed GET form) | unchanged: `q`, `group` |
+| `text_override/edit.html.twig` | `form` (named `texts`), `reset_form` (`null` when nothing is overridden), `active_locale`; `csrf_edit` / `csrf_reset` were removed | `_token`, `texts[<locale>]`, `_tab` → `texts[_token]`, `texts[<locale>]`, `texts[_tab]`; reset `_token`, `confirm` → `translation_override_reset[_token]`, `translation_override_reset[confirm]` |
+
+CSRF token ids are unchanged (`missing_log_mark_added`, `missing_log_clear`, `missing_log_clear_status`, `nowo_tyt_override_{edit,reset}_<key>`). A POST that still uses the old field names is rejected like an invalid token (missing log: 403; overrides desk: error flash + redirect). The overrides desk pages apply `bootstrap_5_layout.html.twig` to their forms (the desk layout is Bootstrap); the edit textareas now have Symfony ids (`texts_<locale>`) while the tab radios keep `nowo-tyt-tab-<n>` and the panels `nowo-tyt-panel-<n>`.
+
 ## To 1.10.1
 
 From **1.10.0**:

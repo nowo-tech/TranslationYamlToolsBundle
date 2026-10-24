@@ -17,16 +17,23 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
             <h1 class="h3 mb-0">Missing translation log</h1>
             <div class="d-flex flex-wrap align-items-center gap-2">
-                <form method="post" action="{{ path('nowo_translation_yaml_tools_missing_log_clear_status') }}" class="d-inline" onsubmit="return confirm('Delete rows with status {{ status }}? This action cannot be undone.');">
-                    <input type="hidden" name="_token" value="{{ csrf_token('missing_log_clear_status') }}">
-                    <input type="hidden" name="status" value="{{ status }}">
+                {# CSRF-only action forms (MissingTranslationLogActionType): hidden children via the child loop, button outside it. #}
+                {{ form_start(clear_status_form, {attr: {class: 'd-inline', onsubmit: 'return confirm(\'Delete rows with status ' ~ status ~ '? This action cannot be undone.\');'}}) }}
+                    {% for child in clear_status_form %}
+                        {% if not child.rendered %}
+                            {{ form_row(child) }}
+                        {% endif %}
+                    {% endfor %}
                     <button type="submit" class="btn btn-sm btn-outline-warning">Clear current status</button>
-                </form>
-                <form method="post" action="{{ path('nowo_translation_yaml_tools_missing_log_clear') }}" class="d-inline" onsubmit="return confirm('Delete all missing-log rows? This action cannot be undone.');">
-                    <input type="hidden" name="_token" value="{{ csrf_token('missing_log_clear') }}">
-                    <input type="hidden" name="status" value="{{ status }}">
+                {{ form_end(clear_status_form) }}
+                {{ form_start(clear_form, {attr: {class: 'd-inline', onsubmit: 'return confirm(\'Delete all missing-log rows? This action cannot be undone.\');'}}) }}
+                    {% for child in clear_form %}
+                        {% if not child.rendered %}
+                            {{ form_row(child) }}
+                        {% endif %}
+                    {% endfor %}
                     <button type="submit" class="btn btn-sm btn-outline-danger">Clear all rows</button>
-                </form>
+                {{ form_end(clear_form) }}
             </div>
         </div>
     {% endblock %}

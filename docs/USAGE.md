@@ -188,6 +188,8 @@ Files must follow Symfony’s usual pattern:
 
 When **`missing_translation_log.web_ui.enabled`** is **`true`**, the bundle exposes HTML under the imported route prefix (see [Configuration](CONFIGURATION.md)). The controller renders **`@NowoTranslationYamlToolsBundle/missing_translation_log/index.html.twig`**. Optional layout integration with **NowoDashboardMenuBundle** / **NowoBreadcrumbKitBundle** uses the bridge templates and **`web_ui.layout_template`** (see [Configuration](CONFIGURATION.md)).
 
+**Forms (REQ-TWIG-003 / REQ-TWIG-005):** every Web UI form (missing log and text overrides) is a Symfony Form type under `Nowo\TranslationYamlToolsBundle\Form\` with CSRF on, created in the controller and rendered with `form_start(form)`, the child loop `{% for child in form %}{% if not child.rendered %}{{ form_row(child) }}{% endif %}{% endfor %}` and `form_end(form)`; submit buttons stay outside the loop. When you override a template, keep that pattern — do not reintroduce raw `<form>` / `<input>` markup (see [UPGRADING](UPGRADING.md#unreleased) for the template variables and field names).
+
 The log table enforces one row per **`(message_id, domain, locale)`**; from **0.3.2** onward, flushes use duplicate-safe persistence. From **1.2.1** onward, the common engines use a native UPSERT so conflict does not throw a SQL duplicate-key exception (details in [Configuration](CONFIGURATION.md#missing-translation-log-database)).
 
 ## Missing translation log: coverage and call_site
@@ -222,7 +224,7 @@ Opt-in (`overrides.enabled`, see [CONFIGURATION — Text overrides](CONFIGURATIO
 
 ### Web UI desk
 
-`GET {path_prefix}/` lists every editable message of the default locale (filter by **group** — first two key segments, e.g. `site.footer` or `NowoUiKitBundle:loader` — and full-text **search** over key + current text), with badges for the locales that have an override. `GET {path_prefix}/edit?key=site.footer.tagline` shows one textarea per locale in CSS-only tabs plus the shipped text; saving a text equal to the shipped one (or blank) deletes that locale's override. The reset form deletes every locale's override after a confirmation checkbox. Templates: `@NowoTranslationYamlToolsBundle/text_override/{layout,index,edit}.html.twig` (override them under `templates/bundles/NowoTranslationYamlToolsBundle/text_override/`). UI strings live in the `NowoTranslationYamlToolsBundle` domain (en, es).
+`GET {path_prefix}/` lists every editable message of the default locale (filter by **group** — first two key segments, e.g. `site.footer` or `NowoUiKitBundle:loader` — and full-text **search** over key + current text), with badges for the locales that have an override. `GET {path_prefix}/edit?key=site.footer.tagline` shows one textarea per locale in CSS-only tabs plus the shipped text; saving a text equal to the shipped one (or blank) deletes that locale's override. The reset form deletes every locale's override after a confirmation checkbox. Templates: `@NowoTranslationYamlToolsBundle/text_override/{layout,index,edit}.html.twig` (override them under `templates/bundles/NowoTranslationYamlToolsBundle/text_override/`). UI strings live in the `NowoTranslationYamlToolsBundle` domain (en, es). The edit page also uses `text_override/form_theme.html.twig` (CSS-only locale tab radios).
 
 ### Form bridge (host forms)
 
@@ -286,7 +288,7 @@ templates/bundles/NowoTranslationYamlToolsBundle/missing_translation_log/index.h
 | `missing_translation_log/base.html.twig` | Extends the configurable layout; flashes and blocks `missing_log_breadcrumb`, `missing_log_body`. |
 | `missing_translation_log/index.html.twig` | Missing-log list page; blocks for heading, filters, table. |
 | `missing_translation_log/_status_filters.html.twig` | Pending / Added / Validated pill links. |
-| `missing_translation_log/_table.html.twig` | Data table and “Mark added” forms. |
+| `missing_translation_log/_table.html.twig` | Data table and “Mark added” forms (`mark_added_forms[row.id]`). |
 | `missing_translation_log/layout_integrate_dashboard_menu.html.twig` | Bridge extending **NowoDashboardMenuBundle** dashboard layout (optional). |
 | `missing_translation_log/layout_integrate_breadcrumb_kit.html.twig` | Bridge extending **NowoBreadcrumbKitBundle** dashboard layout (optional). |
 

@@ -47,6 +47,13 @@ final class TranslationOverrideWebUiTest extends WebTestCase
 
         $client->request('GET', '/_translation_yaml_tools/texts/?q=no-such-text-anywhere');
         self::assertSelectorTextContains('[data-testid="tyt-overrides-table"]', 'No texts match');
+        self::assertSelectorExists('[data-testid="tyt-overrides-filter"] input[type="search"][name="q"][value="no-such-text-anywhere"]');
+        self::assertSelectorExists('[data-testid="tyt-overrides-filter"] select[name="group"] option[value="site.topline"]');
+
+        // A stale bookmark with an unknown group still filters (to no row) instead of listing everything.
+        $client->request('GET', '/_translation_yaml_tools/texts/?group=no.such.group');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-table"]', 'No texts match');
 
         $crawler = $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . self::KEY);
         self::assertResponseIsSuccessful();
@@ -75,7 +82,7 @@ final class TranslationOverrideWebUiTest extends WebTestCase
         // Reset without the confirmation box is refused.
         $crawler = $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . self::KEY);
         $reset   = $crawler->filter('[data-testid="tyt-overrides-reset"]')->form();
-        $confirm = $reset->get('confirm');
+        $confirm = $reset->get('translation_override_reset[confirm]');
         self::assertInstanceOf(ChoiceFormField::class, $confirm);
         $confirm->untick();
         $client->submit($reset);
@@ -84,7 +91,7 @@ final class TranslationOverrideWebUiTest extends WebTestCase
 
         $crawler = $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . self::KEY);
         $reset   = $crawler->filter('[data-testid="tyt-overrides-reset"]')->form();
-        $confirm = $reset->get('confirm');
+        $confirm = $reset->get('translation_override_reset[confirm]');
         self::assertInstanceOf(ChoiceFormField::class, $confirm);
         $confirm->tick();
         $client->submit($reset);
@@ -128,10 +135,16 @@ final class TranslationOverrideWebUiTest extends WebTestCase
             self::assertResponseStatusCodeSame(404, $ref);
         }
 
-        $client->request('POST', '/_translation_yaml_tools/texts/reset?key=' . self::KEY, ['_token' => 'forged', 'confirm' => '1']);
+        $client->request('POST', '/_translation_yaml_tools/texts/reset?key=' . self::KEY, ['translation_override_reset' => ['_token' => 'forged', 'confirm' => '1']]);
         self::assertResponseRedirects('/_translation_yaml_tools/texts/edit?key=' . self::KEY);
-        $client->request('POST', '/_translation_yaml_tools/texts/edit?key=' . self::KEY, ['_token' => 'forged', 'texts' => ['en' => 'Hacked']]);
+        $client->followRedirect();
+        self::assertSelectorTextContains('.alert-danger', 'Invalid security token');
+        $client->request('POST', '/_translation_yaml_tools/texts/reset?key=' . self::KEY, ['_token' => 'legacy-field-names', 'confirm' => '1']);
         self::assertResponseRedirects('/_translation_yaml_tools/texts/edit?key=' . self::KEY);
+        $client->request('POST', '/_translation_yaml_tools/texts/edit?key=' . self::KEY, ['texts' => ['_token' => 'forged', 'en' => 'Hacked']]);
+        self::assertResponseRedirects('/_translation_yaml_tools/texts/edit?key=' . self::KEY);
+        $client->followRedirect();
+        self::assertSelectorTextContains('.alert-danger', 'Invalid security token');
         self::assertCount(0, $this->entityManager()->getRepository(TranslationOverride::class)->findAll());
 
         $crawler           = $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . self::KEY);
@@ -141,6 +154,15 @@ final class TranslationOverrideWebUiTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#nowo-tyt-tab-2[checked]');
         self::assertSelectorTextContains('.invalid-feedback', '5000');
+        self::assertCount(0, $this->entityManager()->getRepository(TranslationOverride::class)->findAll());
+
+        // A forged tab value fails the form (no save) even when every text is valid.
+        $form = $crawler->filter('[data-testid="tyt-overrides-form"]')->form();
+        $form->disableValidation();
+        $form['texts[en]']   = 'Valid';
+        $form['texts[_tab]'] = 'xx';
+        $client->submit($form);
+        self::assertResponseStatusCodeSame(422);
         self::assertCount(0, $this->entityManager()->getRepository(TranslationOverride::class)->findAll());
     }
 

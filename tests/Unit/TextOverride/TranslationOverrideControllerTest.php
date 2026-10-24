@@ -17,6 +17,9 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
+use Symfony\Component\Form\Extension\Csrf\CsrfExtension;
+use Symfony\Component\Form\Extension\HttpFoundation\HttpFoundationExtension;
+use Symfony\Component\Form\Forms;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -73,7 +76,7 @@ final class TranslationOverrideControllerTest extends TestCase
         $csrf->method('isTokenValid')->willReturn(true);
         $router = $this->createMock(UrlGeneratorInterface::class);
         $router->method('generate')->willReturn('/texts/edit?key=site.a');
-        $request = Request::create('/edit?key=site.a', 'POST', ['_token' => 'ok', 'texts' => ['en' => 'Edited']]);
+        $request = Request::create('/edit?key=site.a', 'POST', ['texts' => ['_token' => 'ok', 'en' => 'Edited']]);
         $request->setSession(new Session(new MockArraySessionStorage()));
         $stack = new RequestStack([$request]);
 
@@ -84,6 +87,10 @@ final class TranslationOverrideControllerTest extends TestCase
         $container->set('router', $router);
         $container->set('request_stack', $stack);
         $container->set('twig', $this->createStub(Environment::class));
+        $container->set('form.factory', Forms::createFormFactoryBuilder()
+            ->addExtension(new HttpFoundationExtension())
+            ->addExtension(new CsrfExtension($csrf))
+            ->getFormFactory());
 
         $repository = $this->createMock(TranslationOverrideRepository::class);
         $repository->method('findOne')->willReturn(null);

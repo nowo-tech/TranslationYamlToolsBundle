@@ -42,9 +42,16 @@ final class TextOverrideWebUiPassTest extends TestCase
         (new TextOverrideWebUiPass())->process($this->container(true, true, ['security.csrf.token_manager']));
     }
 
+    public function testRequiresForm(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('Form component');
+        (new TextOverrideWebUiPass())->process($this->container(true, true, ['security.csrf.token_manager', 'twig']));
+    }
+
     public function testPassesWithAllRequirements(): void
     {
-        (new TextOverrideWebUiPass())->process($this->container(true, false, ['security.authorization_checker', 'security.csrf.token_manager', 'twig']));
+        (new TextOverrideWebUiPass())->process($this->container(true, false, ['security.authorization_checker', 'security.csrf.token_manager', 'twig', 'form.factory']));
         $this->addToAssertionCount(1);
     }
 

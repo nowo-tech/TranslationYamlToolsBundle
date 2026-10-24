@@ -32,10 +32,15 @@
                 <td><small>{{ row.lastSeenAt|date('c') }}</small></td>
                 {% if status == 'pending' %}
                     <td>
-                        <form method="post" action="{{ path('nowo_translation_yaml_tools_missing_log_mark_added', { id: row.id }) }}" class="d-inline">
-                            <input type="hidden" name="_token" value="{{ csrf_token('missing_log_mark_added') }}">
+                        {% set mark_added_form = mark_added_forms[row.id] %}
+                        {{ form_start(mark_added_form, {attr: {class: 'd-inline'}}) }}
+                            {% for child in mark_added_form %}
+                                {% if not child.rendered %}
+                                    {{ form_row(child) }}
+                                {% endif %}
+                            {% endfor %}
                             <button type="submit" class="btn btn-sm btn-outline-primary">Mark added</button>
-                        </form>
+                        {{ form_end(mark_added_form) }}
                     </td>
                 {% endif %}
             </tr>
