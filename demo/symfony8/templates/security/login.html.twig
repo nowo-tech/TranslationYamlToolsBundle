@@ -12,18 +12,15 @@
             <p style="color: #b00020;" role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
         {% endif %}
 
-        <form method="post" action="{{ path('app_login') }}">
-            <p>
-                <label for="username">Username</label><br>
-                <input type="text" id="username" name="_username" value="{{ last_username }}" required autocomplete="username">
-            </p>
-            <p>
-                <label for="password">Password</label><br>
-                <input type="password" id="password" name="_password" required autocomplete="current-password">
-            </p>
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+        {# REQ-TWIG-005 rule 8: LoginFormType maps _username / _password / _csrf_token (authenticate). #}
+        {{ form_start(form) }}
+            {% for child in form %}
+                {% if not child.rendered %}
+                    {{ form_row(child) }}
+                {% endif %}
+            {% endfor %}
             <button type="submit">Sign in</button>
-        </form>
+        {{ form_end(form) }}
 
         <p style="margin-top: 1.5rem;"><a href="{{ path('demo_home') }}">← Back to home</a></p>
     </main>

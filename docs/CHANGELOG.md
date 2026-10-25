@@ -50,9 +50,15 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `make check-no-raw-html-form` (`.scripts/check-no-raw-html-form.sh`) fails on raw `<form>` / `<input>` / `<textarea>` / `<select>` in bundle views and demo templates (the `text_override/form_theme.html.twig` form theme is the only allowlisted file) and runs in `release-check` (REQ-TWIG-005).
+
 ### Changed
 
-- Developer tooling: `make release-check` runs the full REQ-MAKE-002 chain with `ensure-up` first, then the Cursor co-author, open-PR and Twig `extra` gates, composer-sync, the new `cs-fix` step, cs-check, rector-dry, phpstan, igor, translations, coverage-check and the demo release-check. `check-no-raw-html-form` (REQ-TWIG-005) is wired once the remaining raw form markup is migrated.
+- Demo: the login page renders a `LoginFormType` Symfony Form (`_username`, `_password`, `_csrf_token` / `authenticate`) with `form_start` / child loop / `form_end` instead of raw inputs (REQ-TWIG-005).
+
+- Developer tooling: `make release-check` runs the full REQ-MAKE-002 chain with `ensure-up` first, then the Cursor co-author, open-PR and Twig `extra` gates, composer-sync, the new `cs-fix` step, cs-check, rector-dry, phpstan, igor, translations, coverage-check and the demo release-check.
 
 ## [1.11.0] - 2026-10-24
 

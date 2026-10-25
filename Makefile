@@ -7,7 +7,7 @@ COMPOSE_BIN := $(shell docker compose version >/dev/null 2>&1 && echo "docker co
 COMPOSE     := $(COMPOSE_BIN) -f $(COMPOSE_FILE)
 SERVICE_PHP := php
 
-.PHONY: help up down down-dev build shell install test test-coverage test-coverage-100 coverage-check cs-check cs-fix qa clean release-check release-check-demos demo-smoke composer-sync rector rector-dry phpstan igor update validate validate-translations assets check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history setup-hooks check-twig-extra
+.PHONY: help up down down-dev build shell install test test-coverage test-coverage-100 coverage-check cs-check cs-fix qa clean release-check release-check-demos demo-smoke composer-sync rector rector-dry phpstan igor update validate validate-translations assets check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history setup-hooks check-twig-extra check-no-raw-html-form
 
 help:
 	@echo "Translation YAML Tools Bundle"
@@ -29,6 +29,7 @@ help:
 	@echo "  demo-smoke     Demo release-check"
 	@echo "  release-check  Full pre-release chain (REQ-MAKE-002)"
 	@echo "  release-check-demos  demo verify (Symfony 8 Docker)"
+	@echo "  check-no-raw-html-form  Fail on raw <form>/<input>/<textarea>/<select> in Twig (REQ-TWIG-005)"
 	@echo "  validate-translations  lint YAML in demo translation dirs (requires demo containers)"
 	@echo "  composer-sync  validate + composer update --no-install"
 	@echo "  clean          remove vendor, caches, coverage"
@@ -105,13 +106,17 @@ check-twig-extra:
 	@chmod +x .scripts/check-twig-extra.sh
 	@./.scripts/check-twig-extra.sh
 
+# REQ-TWIG-005 — no raw <form>/<input>/<textarea>/<select> in bundle views or demo templates (form theme allowlisted).
+check-no-raw-html-form:
+	@chmod +x .scripts/check-no-raw-html-form.sh
+	@./.scripts/check-no-raw-html-form.sh
+
 # Run Igor worker-state audit (REQ-CS-008)
 igor: ensure-up
 	$(COMPOSE) exec -T php composer igor
 
 # REQ-MAKE-002 order (coverage gate: coverage-check → test-coverage-100).
-# check-no-raw-html-form (REQ-TWIG-005) is wired once the remaining raw form markup is migrated
-release-check: ensure-up check-no-cursor-coauthor check-open-prs check-twig-extra composer-sync cs-fix cs-check rector-dry phpstan igor validate-translations coverage-check release-check-demos
+release-check: ensure-up check-no-cursor-coauthor check-open-prs check-twig-extra check-no-raw-html-form composer-sync cs-fix cs-check rector-dry phpstan igor validate-translations coverage-check release-check-demos
 
 release-check-demos:
 	@$(MAKE) -C demo release-check
