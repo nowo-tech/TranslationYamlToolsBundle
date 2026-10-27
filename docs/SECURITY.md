@@ -39,7 +39,7 @@ This bundle provides:
 | **Path traversal (fill-missing)** | Domain/locale constrained to `[a-zA-Z0-9_-]+`; new YAML paths must resolve under configured translation directories. |
 | **SSRF via LibreTranslate URL** | `libretranslate_base_url` host must be in `libretranslate_allowed_hosts` (default `libretranslate.com`); HTTPS-only unless `libretranslate_allow_http`. |
 | **MT quota / hang DoS** | Optional `machine_translation_min_interval_ms` pacing, `machine_translation_max_requests_per_run` cap, and `machine_translation_http_timeout` (default 30s) on all backends. |
-| **CSRF on UI mutations** | POST actions require CSRF tokens (`missing_log_mark_added`, clear, clear-status). |
+| **CSRF on UI mutations** | POST actions require CSRF tokens (`missing_log_mark_added`, clear, clear-status; overrides desk save / delete). **Fails closed**: `TextOverrideWebUiPass` and `MissingLogWebUiSecurityPass` (via `FormCsrfRequirement`) refuse to compile the container when either Web UI is enabled without `security.csrf.token_manager` + `form.type_extension.csrf`, or with `framework.form.csrf_protection: false` — also with `allow_unauthenticated` (action forms declaring their own CSRF options would otherwise accept tokenless POSTs). |
 
 ## Web UI checklist
 

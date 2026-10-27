@@ -50,6 +50,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Security
+
+- CSRF fails closed for both Web UIs: new `FormCsrfRequirement` (used by `TextOverrideWebUiPass` and `MissingLogWebUiSecurityPass`) makes the container refuse to compile when `overrides.web_ui.enabled` or `missing_translation_log.web_ui.enabled` is on and `security.csrf.token_manager` or `form.type_extension.csrf` is missing, or `framework.form.csrf_protection` is false. Before, the overrides pass only checked the token manager (form CSRF could still be disabled) and the missing-log UI had no check at all, so mark added / clear log (`MissingTranslationLogActionType` declares its own CSRF options) accepted tokenless cross-site POSTs in that configuration. See [UPGRADING](UPGRADING.md#unreleased) and [SECURITY](SECURITY.md#threat-model-examples).
+
 ### Added
 
 - `make check-no-raw-html-form` (`.scripts/check-no-raw-html-form.sh`) fails on raw `<form>` / `<input>` / `<textarea>` / `<select>` in bundle views and demo templates (the `text_override/form_theme.html.twig` form theme is the only allowlisted file) and runs in `release-check` (REQ-TWIG-005).

@@ -55,6 +55,10 @@
 
 ## Unreleased
 
+### Web UIs require form CSRF protection at compile time
+
+With `overrides.web_ui.enabled` or `missing_translation_log.web_ui.enabled` set to `true`, the container no longer compiles without form CSRF protection (`InvalidConfigurationException`: "requires CSRF protection") — including `allow_unauthenticated` demo setups and `framework.form.csrf_protection: false`. Standard Flex hosts (`symfony/security-csrf` installed, `framework.csrf_protection` enabled) need no change. Otherwise `composer require symfony/security-csrf`, enable `framework.csrf_protection: true` (also in the `test` environment of functional suites that enable a Web UI), or disable the Web UI.
+
 ## To 1.11.0
 
 From **1.10.1**:

@@ -14,8 +14,9 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  *
  * - SecurityBundle ({@code security.authorization_checker}) unless
  *   {@code overrides.web_ui.security.allow_unauthenticated} (dev / demo only);
- * - CSRF protection ({@code security.csrf.token_manager}, i.e. symfony/security-csrf +
- *   {@code framework.csrf_protection});
+ * - CSRF protection ({@code security.csrf.token_manager} and the form CSRF extension
+ *   {@code form.type_extension.csrf}, i.e. symfony/security-csrf + {@code framework.csrf_protection} without
+ *   {@code framework.form.csrf_protection: false}) — see {@see FormCsrfRequirement};
  * - TwigBundle ({@code twig});
  * - the Form component ({@code form.factory}, i.e. symfony/form with {@code framework.form} enabled): the desk
  *   pages are Symfony forms.
@@ -34,9 +35,7 @@ final class TextOverrideWebUiPass implements CompilerPassInterface
             throw new InvalidConfigurationException('overrides.web_ui.enabled requires symfony/security-bundle (security.authorization_checker), or set overrides.web_ui.security.allow_unauthenticated: true (dev/demo only — never in production).');
         }
 
-        if (!$container->has('security.csrf.token_manager')) {
-            throw new InvalidConfigurationException('overrides.web_ui.enabled requires CSRF protection: install symfony/security-csrf and enable framework.csrf_protection.');
-        }
+        FormCsrfRequirement::assert($container, 'overrides.web_ui.enabled');
 
         if (!$container->has('twig')) {
             throw new InvalidConfigurationException('overrides.web_ui.enabled requires symfony/twig-bundle.');

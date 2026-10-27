@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\DependencyInjection\Compiler;
 
 use Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController;
+use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\FormCsrfRequirement;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\MissingLogWebUiSecurityPass;
 use Nowo\TranslationYamlToolsBundle\EventSubscriber\MissingLogUiAccessSubscriber;
 use Nowo\TranslationYamlToolsBundle\Security\MissingLogUiAccessCheckerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -16,6 +18,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 
 #[CoversClass(MissingLogWebUiSecurityPass::class)]
+#[CoversClass(FormCsrfRequirement::class)]
 final class MissingLogWebUiSecurityPassTest extends TestCase
 {
     public function testSkipsWhenWebUiDisabled(): void
@@ -72,6 +75,50 @@ final class MissingLogWebUiSecurityPassTest extends TestCase
         self::assertTrue($container->hasDefinition(MissingLogUiAccessSubscriber::class));
     }
 
+    /**
+     * @return iterable<string, array{bool}>
+     */
+    public static function authenticationModeProvider(): iterable
+    {
+        yield 'authenticated UI' => [false];
+        yield 'allow_unauthenticated (demo)' => [true];
+    }
+
+    #[DataProvider('authenticationModeProvider')]
+    public function testFailsClosedWithoutTheFormCsrfExtension(bool $allowUnauthenticated): void
+    {
+        $container = $this->baseContainer(enabled: true, allowUnauthenticated: $allowUnauthenticated, csrf: false);
+        $container->setDefinition('security.authorization_checker', new Definition(stdClass::class));
+        $container->setDefinition('security.csrf.token_manager', new Definition(stdClass::class));
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('missing_translation_log.web_ui.enabled requires CSRF protection');
+
+        (new MissingLogWebUiSecurityPass())->process($container);
+    }
+
+    public function testFailsClosedWhenFormCsrfIsDisabled(): void
+    {
+        $container = $this->baseContainer(enabled: true, allowUnauthenticated: true);
+        $container->setParameter('form.type_extension.csrf.enabled', false);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('requires CSRF protection');
+
+        (new MissingLogWebUiSecurityPass())->process($container);
+    }
+
+    public function testFailsClosedWithoutTheTokenManager(): void
+    {
+        $container = $this->baseContainer(enabled: true, allowUnauthenticated: true, csrf: false);
+        $container->setDefinition('form.type_extension.csrf', new Definition(stdClass::class));
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('requires CSRF protection');
+
+        (new MissingLogWebUiSecurityPass())->process($container);
+    }
+
     public function testSkipsWhenWebUiEnabledParameterMissing(): void
     {
         $container = new ContainerBuilder();
@@ -112,8 +159,14 @@ final class MissingLogWebUiSecurityPassTest extends TestCase
         bool $allowUnauthenticated = false,
         array $accessRoles = ['ROLE_ADMIN'],
         bool $customChecker = false,
+        bool $csrf = true,
     ): ContainerBuilder {
         $container = new ContainerBuilder();
+        if ($csrf) {
+            $container->setDefinition('security.csrf.token_manager', new Definition(stdClass::class));
+            $container->setDefinition('form.type_extension.csrf', new Definition(stdClass::class));
+            $container->setParameter('form.type_extension.csrf.enabled', true);
+        }
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled', $enabled);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.allow_unauthenticated', $allowUnauthenticated);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.security.allow_unauthenticated', $allowUnauthenticated);

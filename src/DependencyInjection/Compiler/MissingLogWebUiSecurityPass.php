@@ -13,7 +13,8 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 
 /**
- * Enforces SecurityBundle for the missing-log Web UI after all extensions are merged.
+ * Enforces SecurityBundle and form CSRF protection ({@see FormCsrfRequirement}) for the missing-log Web UI after
+ * all extensions are merged.
  *
  * Cannot run in {@see NowoTranslationYamlToolsExtension::load()} — Symfony loads each
  * extension against an isolated container where {@code hasExtension('security')} is false.
@@ -37,6 +38,9 @@ final class MissingLogWebUiSecurityPass implements CompilerPassInterface
         if (!$hasSecurity && !$allowUnauthenticated) {
             throw new InvalidConfigurationException('missing_translation_log.web_ui.enabled requires symfony/security-bundle (security.authorization_checker), or set missing_translation_log.web_ui.security.allow_unauthenticated: true (dev/demo only — never in production).');
         }
+
+        // Fail closed on CSRF (mark added / clear log) whatever the authentication mode.
+        FormCsrfRequirement::assert($container, 'missing_translation_log.web_ui.enabled');
 
         if ($allowUnauthenticated) {
             return;

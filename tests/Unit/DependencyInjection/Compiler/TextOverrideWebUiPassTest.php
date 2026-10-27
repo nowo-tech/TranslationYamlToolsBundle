@@ -35,6 +35,23 @@ final class TextOverrideWebUiPassTest extends TestCase
         (new TextOverrideWebUiPass())->process($this->container(true, false, ['security.authorization_checker', 'twig']));
     }
 
+    public function testRequiresTheFormCsrfExtension(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('requires CSRF protection');
+        (new TextOverrideWebUiPass())->process($this->container(true, false, ['security.authorization_checker', 'security.csrf.token_manager', 'twig', 'form.factory'], csrfExtension: false));
+    }
+
+    public function testRequiresFormCsrfEnabled(): void
+    {
+        $container = $this->container(true, false, ['security.authorization_checker', 'security.csrf.token_manager', 'twig', 'form.factory']);
+        $container->setParameter('form.type_extension.csrf.enabled', false);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('requires CSRF protection');
+        (new TextOverrideWebUiPass())->process($container);
+    }
+
     public function testRequiresTwig(): void
     {
         $this->expectException(InvalidConfigurationException::class);
@@ -58,13 +75,17 @@ final class TextOverrideWebUiPassTest extends TestCase
     /**
      * @param list<string> $services
      */
-    private function container(bool $enabled, bool $allowUnauthenticated, array $services): ContainerBuilder
+    private function container(bool $enabled, bool $allowUnauthenticated, array $services, bool $csrfExtension = true): ContainerBuilder
     {
         $container = new ContainerBuilder();
         $container->setParameter('nowo_translation_yaml_tools.overrides.web_ui.enabled', $enabled);
         $container->setParameter('nowo_translation_yaml_tools.overrides.web_ui.security.allow_unauthenticated', $allowUnauthenticated);
         foreach ($services as $id) {
             $container->setDefinition($id, new Definition());
+        }
+        if ($csrfExtension) {
+            $container->setDefinition('form.type_extension.csrf', new Definition());
+            $container->setParameter('form.type_extension.csrf.enabled', true);
         }
 
         return $container;
