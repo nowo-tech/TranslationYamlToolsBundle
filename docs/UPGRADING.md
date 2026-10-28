@@ -3,6 +3,8 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.12.0](#to-1120)
+  - [Web UIs require form CSRF protection at compile time](#web-uis-require-form-csrf-protection-at-compile-time)
 - [To 1.11.0](#to-1110)
   - [Web UI forms are Symfony Form types (REQ-TWIG-003 / REQ-TWIG-005)](#web-ui-forms-are-symfony-form-types-req-twig-003--req-twig-005)
 - [To 1.10.1](#to-1101)
@@ -54,6 +56,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.12.0
+
+From **1.11.0**:
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
 
 ### Web UIs require form CSRF protection at compile time
 

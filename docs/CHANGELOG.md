@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.12.0] - 2026-10-28](#1120---2026-10-28)
 - [[1.11.0] - 2026-10-24](#1110---2026-10-24)
 - [[1.10.1] - 2026-10-18](#1101---2026-10-18)
 - [[1.10.0] - 2026-10-15](#1100---2026-10-15)
@@ -49,6 +50,10 @@ All notable changes to this project are documented in this file.
 - [[0.1.0] - 2026-04-09](#010---2026-04-09)
 
 ## [Unreleased]
+
+## [1.12.0] - 2026-10-28
+
+Security: the admin UI refuses to compile without form CSRF protection (CsrfProtectionPass, fail closed). See [UPGRADING](UPGRADING.md#to-1120).
 
 ### Security
 
