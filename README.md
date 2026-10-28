@@ -10,6 +10,19 @@ Symfony developer tools for **YAML translation files**: discover configured tran
 
 This bundle is **FrankenPHP worker mode friendly**.
 
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/images/demo/translation-insights.webp" alt="Demo insights page: default and enabled locales, resolved translation directories and YAML files per domain" />
+      <br /><sub>Translation paths, locales and missing YAML files per domain</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/images/demo/missing-log-ui.webp" alt="Missing translation log Web UI listing keys requested at runtime with call site, route and hit count" />
+      <br /><sub>Missing translation log — runtime keys with call site, route and hits</sub>
+    </td>
+  </tr>
+</table>
+
 ## Features
 
 - Resolves translation paths from **`translator.default_path`** and from **`config/packages/**/translation.yaml`** (`framework.translator.default_path` and `paths`).
@@ -54,6 +67,8 @@ FrankenPHP sample app under [`demo/`](demo/README.md): Web Profiler, **Twig Insp
 ```bash
 make -C demo up-symfony8   # default PORT 8038 — see demo/symfony8/.env.example
 ```
+
+The screenshots at the top of this README come from this demo; refresh them with `make -C demo/symfony8 demo-screenshots` (`make -C demo/symfony8 test-e2e` runs the Playwright happy path).
 
 FrankenPHP worker mode: Supported in production Caddyfile; development uses `Caddyfile.dev` without worker (see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md)).
 

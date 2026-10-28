@@ -19,6 +19,7 @@ help:
 	@echo "  make update-bundle"
 	@echo "  make missing-log-schema — doctrine:schema:update (dev missing-log table)"
 	@echo "  make reset-db — delete demo SQLite + recreate schema"
+	@echo "  make test-e2e / demo-screenshots — Playwright e2e + README WebP screenshots (REQ-DEMO-013)"
 
 up:
 	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || true; fi
@@ -117,6 +118,40 @@ verify:
 	$(COMPOSE) up -d 2>/dev/null; sleep 8; \
 	code=$$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$$port 2>/dev/null || echo "000"); \
 	if [ "$$code" = "200" ]; then echo "OK (HTTP $$code)"; else echo "Failed (HTTP $$code)"; exit 1; fi
+
+
+# REQ-DEMO-013: Playwright e2e + README screenshots (official Playwright image, host network).
+PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v1.63.0-jammy
+E2E_PORT = PORT=$$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
+	[ -z "$$PORT" ] && PORT=$$(grep -E '^PORT=' .env.example 2>/dev/null | cut -d= -f2 | tr -d '\r'); PORT=$${PORT:-8038}
+
+.PHONY: test-e2e demo-screenshots e2e-prepare
+
+# Missing-log table must exist (ensure-up does not run the schema update that `up` does).
+e2e-prepare: ensure-up
+	@$(COMPOSE) exec -T php php bin/console doctrine:schema:update --force --no-interaction >/dev/null
+
+test-e2e: e2e-prepare
+	@mkdir -p e2e/node_modules
+	@$(E2E_PORT); \
+	docker run --rm --network host \
+		-v "$(CURDIR)/e2e:/e2e" -w /e2e \
+		-e DEMO_BASE_URL=http://127.0.0.1:$$PORT \
+		$(PLAYWRIGHT_IMAGE) \
+		bash -lc 'npm install --no-fund --no-audit && npx playwright test --project=chromium'
+
+demo-screenshots: e2e-prepare
+	@mkdir -p ../../docs/images/demo e2e/node_modules
+	@$(E2E_PORT); \
+	docker run --rm --network host \
+		-v "$(CURDIR)/e2e:/e2e" \
+		-v "$(CURDIR)/../../docs/images/demo:/screenshots" \
+		-w /e2e \
+		-e DEMO_BASE_URL=http://127.0.0.1:$$PORT \
+		-e SCREENSHOT_DIR=/screenshots \
+		$(PLAYWRIGHT_IMAGE) \
+		bash -lc 'npm install --no-fund --no-audit && npx playwright test --project=screenshots && node scripts/to-webp.mjs /screenshots'
+	@echo "Screenshots written under docs/images/demo/ (WebP)"
 
 
 # REQ-MAKE-008: update-deps (REQ-MAKE-008)
