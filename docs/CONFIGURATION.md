@@ -8,6 +8,7 @@
 - [Machine translator by locale](#machine-translator-by-locale)
 - [Machine translation locale map](#machine-translation-locale-map)
 - [HTTP client](#http-client)
+  - [Timeouts (REQ-RUNTIME-001)](#timeouts-req-runtime-001)
 - [Symfony translation paths](#symfony-translation-paths)
 - [Google Cloud Translation](#google-cloud-translation)
 - [DeepL](#deepl)
@@ -24,7 +25,7 @@
 | `machine_translator` | `string` | `google` | **Default** backend for `fill-missing` when `machine_translator_by_locale` does not match: `google`, `deepl`, or `libretranslate`. |
 | `machine_translation_min_interval_ms` | `int` | `0` | Minimum delay between MT HTTP calls (`0` = no pacing). Use e.g. `100`–`250` for public LibreTranslate quotas. |
 | `machine_translation_max_requests_per_run` | `int` | `0` | Max string translations per `fill-missing` run (`0` = unlimited). |
-| `machine_translation_http_timeout` | `float` | `30` | HTTP timeout (seconds) for Google / DeepL / LibreTranslate requests. |
+| `machine_translation_http_timeout` | `float` | `30` | Deadline (seconds, 1–300) for every Google / DeepL / LibreTranslate request: sent as both the HttpClient idle `timeout` and the total `max_duration`. See [Timeouts](#timeouts-req-runtime-001). |
 | `machine_translator_by_locale` | `array<string, string>` | `{}` | Override the backend **per Symfony locale** (`google`, `deepl`, or `libretranslate`). The **target** locale is checked first, then the **source** locale, then `machine_translator`. Keys match like `machine_translation_locale_map` (`pt_BR` ≡ `pt-br`). |
 | `deepl_endpoint` | `string` | `https://api.deepl.com/v2/translate` | DeepL translate URL. Use `https://api-free.deepl.com/v2/translate` if your key is on the **Free** plan. |
 | `libretranslate_base_url` | `string` | `https://libretranslate.com` | Origin of the LibreTranslate server (no `/translate` path). Host must appear in **`libretranslate_allowed_hosts`**. Prefer **self-hosting** for reliability; the public demo enforces strict limits. |
@@ -243,6 +244,21 @@ If two YAML keys normalize to the same canonical key (e.g. `pt_BR` and `pt-br`),
 framework:
     http_client: true
 ```
+
+### Timeouts (REQ-RUNTIME-001)
+
+Every machine-translation request sets **`timeout`** (idle: no bytes received for that long) **and** **`max_duration`** (total wall time, including connect) to `machine_translation_http_timeout` (default **30 s**). A request that exceeds either deadline fails with a Symfony HttpClient `TransportException`; `fill-missing` stops with `Translation failed for key "…"` and exits non-zero without writing the target file, so a hung backend never blocks a PHP thread indefinitely.
+
+`fill-missing` is a console command (no `max_execution_time` in the CLI SAPI), so the HTTP deadline is the only bound per call. If you run it from a web request or a FrankenPHP worker (for example through a custom controller), keep this hierarchy, innermost first:
+
+| Layer | Default / demo value | Rule |
+|-------|----------------------|------|
+| `machine_translation_http_timeout` | 30 s | Fires first; the request is aborted |
+| PHP `max_execution_time` / `max_input_time` | 60 s (demo) | Strictly greater than the HTTP timeout |
+| Caddy `servers.timeouts.write` (FrankenPHP) | 90 s (demo) | Strictly greater than PHP |
+| FrankenPHP `max_wait_time` | 30 s (demo) | Caps the wait for a free PHP thread (then 504) |
+
+When you raise `machine_translation_http_timeout`, raise the PHP and Caddy deadlines in the same change. The demo values live in `demo/symfony8/docker/frankenphp/Caddyfile*` (see [DEMO-FRANKENPHP.md](DEMO-FRANKENPHP.md#timeout-hierarchy-req-runtime-001)).
 
 ## Symfony translation paths
 

@@ -1,0 +1,35 @@
+overrides:
+    title: Sitteksten
+    intro: Vervang elk bewerkbaar bericht per taal zonder deployment. Het opslaan van de oorspronkelijke tekst, of het leegmaken van een veld, verwijdert de aanpassing.
+    override_count: '{0}Nog geen aangepaste teksten.|{1}1 aangepaste tekst.|]1,Inf[%count% aangepaste teksten.'
+    search: Zoeken
+    search_placeholder: Sleutel of tekst…
+    group: Groep
+    all_groups: Alle groepen
+    filter: Filteren
+    col:
+        key: Sleutel
+        text: Tekst (%locale%)
+        overridden: Aangepast
+        actions: Acties
+    edit: Bewerken
+    empty: Geen teksten gevonden.
+    edit_title: Tekst bewerken
+    edit_intro: Eén tabblad per taal. Laat een veld leeg, of behoud de oorspronkelijke tekst, om de standaardwaarde te gebruiken.
+    back: ← Terug naar de teksten
+    locale_tabs: Talen
+    badge_overridden: bewerkt
+    text_for: Tekst (%locale%)
+    text_help: Plaatsaanduidingen zoals %name% of {count} moeten behouden blijven. Alleen links en inline nadruk zijn toegestaan; overige opmaak wordt verwijderd.
+    shipped: Oorspronkelijke tekst
+    save: Opslaan
+    cancel: Annuleren
+    reset: Oorspronkelijke tekst herstellen
+    reset_confirm: 'Ja, verwijder de aanpassingen voor %locales%.'
+    flash:
+        saved: Tekst opgeslagen.
+        reset: Oorspronkelijke tekst hersteld.
+        invalid_token: Ongeldig beveiligingstoken. Probeer het opnieuw.
+        confirm_required: Vink het bevestigingsvakje aan om de oorspronkelijke tekst te herstellen.
+    error:
+        too_long: Deze tekst is te lang (maximaal %max% tekens).

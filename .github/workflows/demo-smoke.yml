@@ -1,0 +1,31 @@
+# REQ-TEST-011 — Demo smoke: boot the FrankenPHP demo and assert HTTP 200.
+# Every push/PR runs the same job in ci.yml; this workflow re-runs it nightly against main (catches drift from
+# `composer update` in the demo and new FrankenPHP/MySQL images) and on release tags.
+name: Demo smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * *"
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  demo-smoke:
+    name: Demo smoke (HTTP 200)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Docker Compose version
+        run: docker compose version
+
+      - name: Run demo smoke (REQ-TEST-011)
+        run: make demo-smoke

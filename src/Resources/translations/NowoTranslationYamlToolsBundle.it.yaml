@@ -1,0 +1,35 @@
+overrides:
+    title: Testi del sito
+    intro: Sostituisci qualsiasi messaggio modificabile per lingua senza un rilascio. Salvare il testo originale, o svuotare un campo, rimuove la personalizzazione.
+    override_count: '{0}Nessun testo personalizzato.|{1}1 testo personalizzato.|]1,Inf[%count% testi personalizzati.'
+    search: Cerca
+    search_placeholder: Chiave o testo…
+    group: Gruppo
+    all_groups: Tutti i gruppi
+    filter: Filtra
+    col:
+        key: Chiave
+        text: Testo (%locale%)
+        overridden: Personalizzato
+        actions: Azioni
+    edit: Modifica
+    empty: Nessun testo corrisponde.
+    edit_title: Modifica testo
+    edit_intro: Una scheda per lingua. Lascia un campo vuoto, o mantieni il testo originale, per usare quello predefinito.
+    back: ← Torna ai testi
+    locale_tabs: Lingue
+    badge_overridden: modificato
+    text_for: Testo (%locale%)
+    text_help: I segnaposto come %name% o {count} devono essere mantenuti. Sono ammessi solo link ed enfasi in linea; il resto del markup viene rimosso.
+    shipped: Testo originale
+    save: Salva
+    cancel: Annulla
+    reset: Ripristina testo originale
+    reset_confirm: 'Sì, elimina le personalizzazioni per %locales%.'
+    flash:
+        saved: Testo salvato.
+        reset: Testo originale ripristinato.
+        invalid_token: Token di sicurezza non valido. Riprova.
+        confirm_required: Seleziona la casella di conferma per ripristinare il testo originale.
+    error:
+        too_long: Questo testo è troppo lungo (massimo %max% caratteri).

@@ -18,6 +18,7 @@
   - [Web UI desk](#web-ui-desk)
   - [Form bridge (host forms)](#form-bridge-host-forms)
   - [HTML sanitizing](#html-sanitizing)
+- [Bundle translations: locales and overrides](#bundle-translations-locales-and-overrides)
 - [Overriding templates (REQ-TWIG-001)](#overriding-templates-req-twig-001)
 - [Symfony 8 demo](#symfony-8-demo)
 
@@ -261,6 +262,29 @@ nowo_translation_yaml_tools:
     overrides:
         html_sanitizer: App\Text\AppTextSanitizer
 ```
+
+## Bundle translations: locales and overrides
+
+The text-overrides Web UI labels use the translation domain **`NowoTranslationYamlToolsBundle`** (REQ-I18N-003). The bundle ships **`src/Resources/translations/NowoTranslationYamlToolsBundle.<locale>.yaml`** for **en** (reference), **es**, **it**, **fr**, **pt**, **de** and **nl** (REQ-I18N-002); every locale has exactly the keys of `en`, checked by `make validate-translations` and by `tests/Unit/Resources/TranslationCataloguesTest.php`. Other locales fall back to your `framework.translator.fallbacks`.
+
+**Override a label (app wins, bundle is the fallback — REQ-I18N-001):**
+
+1. Use the same domain, `NowoTranslationYamlToolsBundle`.
+2. Create **`translations/NowoTranslationYamlToolsBundle.<locale>.yaml`** in your app (your `translator.default_path`, usually `translations/`).
+3. Put only the keys you want to change; any key you leave out keeps the bundle text.
+4. Clear the cache: `php bin/console cache:clear`.
+
+Example — `translations/NowoTranslationYamlToolsBundle.es.yaml`:
+
+```yaml
+overrides:
+    title: Textos editables
+    save: Guardar cambios
+    flash:
+        saved: Cambios guardados.
+```
+
+To add a locale the bundle does not ship (e.g. `ca`), create `translations/NowoTranslationYamlToolsBundle.ca.yaml` with the keys from the `en` catalogue. Application translation files are loaded after bundle files, so the same key in your app always takes priority.
 
 ## Overriding templates (REQ-TWIG-001)
 

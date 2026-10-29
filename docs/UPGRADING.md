@@ -57,6 +57,11 @@
 
 ## Unreleased
 
+No configuration change is required.
+
+- `machine_translation_http_timeout` is now also the **total** duration of each machine-translation request (`max_duration`), not only the idle timeout. If you set it low and a backend streams slowly, raise the value.
+- The bundle now ships `it`, `fr`, `pt`, `de` and `nl` labels for the text-overrides Web UI. If your app already has `translations/NowoTranslationYamlToolsBundle.<locale>.yaml` for one of these locales, your keys still win.
+
 ## To 1.12.0
 
 From **1.11.0**:

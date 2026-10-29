@@ -6,7 +6,7 @@ PAUSE ?= 3
 
 .PHONY: help clean test-all test-coverage-all verify-all release-check release-verify
 .PHONY: $(foreach d,$(DEMOS),up-$d down-$d restart-$d build-$d install-$d update-bundle-$d shell-$d logs-$d test-$d test-coverage-$d verify-$d validate-translations-$d translation-yaml-demos-$d translation-yaml-inline-preview-$d translation-yaml-walkthrough-$d)
-.PHONY: up down restart build install update-bundle test shell logs test-coverage verify validate-translations
+.PHONY: up down restart build install update-bundle test shell logs test-coverage verify validate-translations demo-smoke
 .PHONY: translation-yaml-demos-all translation-yaml-inline-preview-all translation-yaml-walkthrough-all
 
 help:
@@ -14,7 +14,7 @@ help:
 	@echo ""
 	@echo "Per demo: make up-symfony8, down-symfony8, test-symfony8, verify-symfony8, validate-translations-symfony8, …"
 	@echo "Bundle CLI: make translation-yaml-walkthrough-symfony8 (all commands + pauses; PAUSE=$(PAUSE)s), translation-yaml-demos-all, …"
-	@echo "Aggregate: make test-all | verify-all | release-check"
+	@echo "Aggregate: make test-all | verify-all | release-check | demo-smoke"
 	@echo "Generic: make up DEMO=symfony8"
 	@echo "Ports: see demo/symfony8/.env.example (8038)."
 
@@ -88,6 +88,28 @@ verify-all:
 
 validate-translations:
 	@$(MAKE) validate-translations-symfony8
+
+# REQ-TEST-011: boot symfony8, wait for a final HTTP 200 on / (redirects followed), always tear down.
+COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+demo-smoke:
+	@PORT=$$(grep "^PORT=" symfony8/.env 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
+	[ -z "$$PORT" ] && PORT=$$(grep "^PORT=" symfony8/.env.example 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
+	[ -z "$$PORT" ] && PORT=8038; \
+	echo "Demo smoke: symfony8 (http://127.0.0.1:$$PORT/)"; \
+	$(MAKE) -C symfony8 up || { $(MAKE) -C symfony8 down 2>/dev/null; exit 1; }; \
+	code=000; \
+	i=0; \
+	while [ $$i -lt 45 ]; do \
+		code=$$(curl -sL -o /dev/null -w "%{http_code}" "http://127.0.0.1:$$PORT/" || true); \
+		[ -z "$$code" ] && code=000; \
+		if [ "$$code" = "200" ]; then break; fi; \
+		i=$$((i+1)); \
+		sleep 2; \
+	done; \
+	if [ "$$code" != "200" ]; then (cd symfony8 && $(COMPOSE) ps -a && $(COMPOSE) logs --tail=80 php) || true; fi; \
+	$(MAKE) -C symfony8 down 2>/dev/null || true; \
+	if [ "$$code" != "200" ]; then echo "symfony8 failed with HTTP $$code"; exit 1; fi; \
+	echo "symfony8 OK (HTTP $$code)"
 
 release-check: test-all release-verify
 	@echo "All demos passed release-check."

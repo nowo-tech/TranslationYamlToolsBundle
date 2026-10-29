@@ -140,6 +140,11 @@ Paths are relative to `src/`. Every tracked file under `src/` is a production un
 | --- | --- | --- |
 | `Resources/translations/NowoTranslationYamlToolsBundle.en.yaml` | UI strings (en) | FR-I18N-001 |
 | `Resources/translations/NowoTranslationYamlToolsBundle.es.yaml` | UI strings (es) | FR-I18N-001 |
+| `Resources/translations/NowoTranslationYamlToolsBundle.it.yaml` | UI strings (it) | FR-I18N-001 |
+| `Resources/translations/NowoTranslationYamlToolsBundle.fr.yaml` | UI strings (fr) | FR-I18N-001 |
+| `Resources/translations/NowoTranslationYamlToolsBundle.pt.yaml` | UI strings (pt) | FR-I18N-001 |
+| `Resources/translations/NowoTranslationYamlToolsBundle.de.yaml` | UI strings (de) | FR-I18N-001 |
+| `Resources/translations/NowoTranslationYamlToolsBundle.nl.yaml` | UI strings (nl) | FR-I18N-001 |
 
 ## Coverage summary
 

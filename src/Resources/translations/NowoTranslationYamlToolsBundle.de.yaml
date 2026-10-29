@@ -1,0 +1,35 @@
+overrides:
+    title: Website-Texte
+    intro: Ersetzen Sie jede bearbeitbare Meldung pro Sprache ohne Deployment. Das Speichern des Originaltexts oder das Leeren eines Felds entfernt die Anpassung.
+    override_count: '{0}Noch keine angepassten Texte.|{1}1 angepasster Text.|]1,Inf[%count% angepasste Texte.'
+    search: Suchen
+    search_placeholder: Schlüssel oder Text…
+    group: Gruppe
+    all_groups: Alle Gruppen
+    filter: Filtern
+    col:
+        key: Schlüssel
+        text: Text (%locale%)
+        overridden: Angepasst
+        actions: Aktionen
+    edit: Bearbeiten
+    empty: Keine passenden Texte.
+    edit_title: Text bearbeiten
+    edit_intro: Ein Tab pro Sprache. Lassen Sie ein Feld leer oder behalten Sie den Originaltext, um den Standard zu verwenden.
+    back: ← Zurück zu den Texten
+    locale_tabs: Sprachen
+    badge_overridden: bearbeitet
+    text_for: Text (%locale%)
+    text_help: Platzhalter wie %name% oder {count} müssen erhalten bleiben. Erlaubt sind nur Links und Hervorhebungen im Fließtext; übriges Markup wird entfernt.
+    shipped: Originaltext
+    save: Speichern
+    cancel: Abbrechen
+    reset: Originaltext wiederherstellen
+    reset_confirm: 'Ja, die Anpassungen für %locales% löschen.'
+    flash:
+        saved: Text gespeichert.
+        reset: Originaltext wiederhergestellt.
+        invalid_token: Ungültiges Sicherheitstoken. Bitte versuchen Sie es erneut.
+        confirm_required: Aktivieren Sie das Bestätigungsfeld, um den Originaltext wiederherzustellen.
+    error:
+        too_long: Dieser Text ist zu lang (maximal %max% Zeichen).

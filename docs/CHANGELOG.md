@@ -51,6 +51,23 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Translations for **it**, **fr**, **pt**, **de** and **nl** (`NowoTranslationYamlToolsBundle.<locale>.yaml`), with the same keys as `en` (REQ-I18N-002).
+- `make validate-translations` now runs in the root container: `yaml-lint` plus `.scripts/validate-translations.php` (the 7 required locales exist and have the same keys as `en`; no empty messages). A PHPUnit test runs the same check. The old demo lint moved to `make validate-translations-demos` (REQ-MAKE-004).
+- `make demo-smoke` boots `demo/symfony8`, waits for a final HTTP 200 on `/` and tears the stack down. It runs as the `demo-smoke` CI job on every push / PR, nightly and on tags (`.github/workflows/demo-smoke.yml`), and in `release-check` (REQ-TEST-011).
+- Demo Caddyfiles declare the timeout hierarchy: PHP `max_execution_time` / `max_input_time` 60 s, Caddy `servers.timeouts.write` 90 s, FrankenPHP `max_wait_time` 30 s (REQ-RUNTIME-001).
+- Docs: the timeout hierarchy (CONFIGURATION, DEMO-FRANKENPHP), the demo smoke URL, the supported locales and how to override bundle labels from `translations/` (USAGE, REQ-I18N-001).
+
+### Changed
+
+- Machine-translation requests (Google, DeepL, LibreTranslate) now send `max_duration` as well as `timeout`, both set to `machine_translation_http_timeout`. Before, a backend that kept sending bytes slowly could exceed the configured timeout; now the setting is a total deadline. Tests cover the timeout failure path (REQ-RUNTIME-001).
+- `rector.php` targets PHP 8.2 (`PhpVersion::PHP_82`) and `phpstan.neon.dist` sets `phpVersion: 80200`, matching the `php >=8.2` floor (REQ-CS-003 / REQ-SF-001).
+
+### Fixed
+
+- Demo `make up` waits for the entrypoint's own `composer install` to finish (PID 1 becomes FrankenPHP) before running `composer install` again, so a fresh checkout no longer races two installs on `vendor/`.
+
 ## [1.12.0] - 2026-10-28
 
 Security: the admin UI refuses to compile without form CSRF protection (CsrfProtectionPass, fail closed). See [UPGRADING](UPGRADING.md#to-1120).

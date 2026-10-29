@@ -52,9 +52,10 @@ final class LibreTranslateMachineTranslator implements MachineTranslatorInterfac
         }
 
         $response = $this->httpClient->request('POST', $url, [
-            'timeout' => $this->httpTimeout,
-            'headers' => ['Content-Type' => 'application/json'],
-            'json'    => $payload,
+            'timeout'      => $this->httpTimeout,
+            'max_duration' => $this->httpTimeout,
+            'headers'      => ['Content-Type' => 'application/json'],
+            'json'         => $payload,
         ]);
 
         $status = $response->getStatusCode();

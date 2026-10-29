@@ -1,0 +1,35 @@
+overrides:
+    title: Textes du site
+    intro: Remplacez n'importe quel message modifiable par langue sans déploiement. Enregistrer le texte d'origine, ou vider un champ, supprime la personnalisation.
+    override_count: '{0}Aucun texte personnalisé.|{1}1 texte personnalisé.|]1,Inf[%count% textes personnalisés.'
+    search: Rechercher
+    search_placeholder: Clé ou texte…
+    group: Groupe
+    all_groups: Tous les groupes
+    filter: Filtrer
+    col:
+        key: Clé
+        text: Texte (%locale%)
+        overridden: Personnalisé
+        actions: Actions
+    edit: Modifier
+    empty: Aucun texte ne correspond.
+    edit_title: Modifier le texte
+    edit_intro: Un onglet par langue. Laissez un champ vide, ou conservez le texte d'origine, pour utiliser la valeur par défaut.
+    back: ← Retour aux textes
+    locale_tabs: Langues
+    badge_overridden: modifié
+    text_for: Texte (%locale%)
+    text_help: Les marqueurs comme %name% ou {count} doivent être conservés. Seuls les liens et l'emphase en ligne sont autorisés ; le reste du balisage est supprimé.
+    shipped: Texte d'origine
+    save: Enregistrer
+    cancel: Annuler
+    reset: Restaurer le texte d'origine
+    reset_confirm: 'Oui, supprimer les personnalisations pour %locales%.'
+    flash:
+        saved: Texte enregistré.
+        reset: Texte d'origine restauré.
+        invalid_token: Jeton de sécurité invalide. Veuillez réessayer.
+        confirm_required: Cochez la case de confirmation pour restaurer le texte d'origine.
+    error:
+        too_long: Ce texte est trop long (%max% caractères maximum).

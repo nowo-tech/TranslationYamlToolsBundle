@@ -40,10 +40,11 @@ final class GoogleTranslateMachineTranslator implements MachineTranslatorInterfa
         }
 
         $response = $this->httpClient->request('POST', self::ENDPOINT, [
-            'timeout' => $this->httpTimeout,
-            'query'   => ['key' => $this->apiKey],
-            'headers' => ['Content-Type' => 'application/json'],
-            'json'    => [
+            'timeout'      => $this->httpTimeout,
+            'max_duration' => $this->httpTimeout,
+            'query'        => ['key' => $this->apiKey],
+            'headers'      => ['Content-Type' => 'application/json'],
+            'json'         => [
                 'q'      => [$text],
                 'source' => $this->resolveLocaleForApi($sourceLocale),
                 'target' => $this->resolveLocaleForApi($targetLocale),

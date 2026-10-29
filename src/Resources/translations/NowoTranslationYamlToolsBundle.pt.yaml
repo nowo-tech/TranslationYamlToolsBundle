@@ -1,0 +1,35 @@
+overrides:
+    title: Textos do site
+    intro: Substitua qualquer mensagem editável por idioma sem uma implementação. Guardar o texto original, ou esvaziar um campo, remove a personalização.
+    override_count: '{0}Ainda não há textos personalizados.|{1}1 texto personalizado.|]1,Inf[%count% textos personalizados.'
+    search: Pesquisar
+    search_placeholder: Chave ou texto…
+    group: Grupo
+    all_groups: Todos os grupos
+    filter: Filtrar
+    col:
+        key: Chave
+        text: Texto (%locale%)
+        overridden: Personalizado
+        actions: Ações
+    edit: Editar
+    empty: Nenhum texto corresponde.
+    edit_title: Editar texto
+    edit_intro: Um separador por idioma. Deixe um campo vazio, ou mantenha o texto original, para usar o predefinido.
+    back: ← Voltar aos textos
+    locale_tabs: Idiomas
+    badge_overridden: editado
+    text_for: Texto (%locale%)
+    text_help: Os marcadores como %name% ou {count} devem ser mantidos. Só são permitidos links e ênfase em linha; o resto da marcação é removido.
+    shipped: Texto original
+    save: Guardar
+    cancel: Cancelar
+    reset: Restaurar texto original
+    reset_confirm: 'Sim, eliminar as personalizações de %locales%.'
+    flash:
+        saved: Texto guardado.
+        reset: Texto original restaurado.
+        invalid_token: Token de segurança inválido. Tente novamente.
+        confirm_required: Marque a caixa de confirmação para restaurar o texto original.
+    error:
+        too_long: Este texto é demasiado longo (máximo de %max% caracteres).

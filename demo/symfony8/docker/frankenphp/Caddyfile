@@ -1,6 +1,22 @@
+# REQ-RUNTIME-001 timeout hierarchy (innermost -> outermost):
+#   machine_translation_http_timeout (bundle, default 30s)
+#   < PHP max_execution_time / max_input_time (60s)
+#   < Caddy servers.timeouts.write (90s);
+#   max_wait_time 30s caps the wait for a free PHP thread (then 504).
+# Raise all of them in the same change when raising the bundle HTTP timeout.
 {
 	order mercure after encode
 	skip_install_trust
+	servers {
+		timeouts {
+			write 90s
+		}
+	}
+	frankenphp {
+		php_ini max_execution_time 60
+		php_ini max_input_time 60
+		max_wait_time 30s
+	}
 }
 
 :80 {

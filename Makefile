@@ -7,7 +7,7 @@ COMPOSE_BIN := $(shell docker compose version >/dev/null 2>&1 && echo "docker co
 COMPOSE     := $(COMPOSE_BIN) -f $(COMPOSE_FILE)
 SERVICE_PHP := php
 
-.PHONY: help up down down-dev build shell install test test-coverage test-coverage-100 coverage-check cs-check cs-fix qa clean release-check release-check-demos demo-smoke composer-sync rector rector-dry phpstan igor update validate validate-translations assets check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history setup-hooks check-twig-extra check-no-raw-html-form
+.PHONY: help up down down-dev build shell install test test-coverage test-coverage-100 coverage-check cs-check cs-fix qa clean release-check release-check-demos demo-smoke composer-sync rector rector-dry phpstan igor update validate validate-translations validate-translations-demos assets check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history setup-hooks check-twig-extra check-no-raw-html-form
 
 help:
 	@echo "Translation YAML Tools Bundle"
@@ -26,11 +26,12 @@ help:
 	@echo "  cs-check / cs-fix / rector / rector-dry / phpstan"
 	@echo "  qa             cs-check + test"
 	@echo "  check-open-prs Fail if unresolved GitHub PRs (REQ-REL-003)"
-	@echo "  demo-smoke     Demo release-check"
+	@echo "  demo-smoke     Boot demo/symfony8 and expect HTTP 200 (REQ-TEST-011)"
 	@echo "  release-check  Full pre-release chain (REQ-MAKE-002)"
 	@echo "  release-check-demos  demo verify (Symfony 8 Docker)"
 	@echo "  check-no-raw-html-form  Fail on raw <form>/<input>/<textarea>/<select> in Twig (REQ-TWIG-005)"
-	@echo "  validate-translations  lint YAML in demo translation dirs (requires demo containers)"
+	@echo "  validate-translations  YAML lint + 7-locale key parity of src/Resources/translations"
+	@echo "  validate-translations-demos  lint YAML in demo translation dirs (requires demo containers)"
 	@echo "  composer-sync  validate + composer update --no-install"
 	@echo "  clean          remove vendor, caches, coverage"
 	@echo ""
@@ -116,12 +117,18 @@ igor: ensure-up
 	$(COMPOSE) exec -T php composer igor
 
 # REQ-MAKE-002 order (coverage gate: coverage-check → test-coverage-100).
-release-check: ensure-up check-no-cursor-coauthor check-open-prs check-twig-extra check-no-raw-html-form composer-sync cs-fix cs-check rector-dry phpstan igor validate-translations coverage-check release-check-demos
+release-check: ensure-up check-no-cursor-coauthor check-open-prs check-twig-extra check-no-raw-html-form composer-sync cs-fix cs-check rector-dry phpstan igor validate-translations coverage-check demo-smoke release-check-demos
 
 release-check-demos:
 	@$(MAKE) -C demo release-check
 
-validate-translations:
+# REQ-MAKE-004 / REQ-I18N-002: YAML syntax + key parity of the 7 required bundle locales (en reference).
+validate-translations: ensure-up
+	$(COMPOSE) exec -T $(SERVICE_PHP) php vendor/bin/yaml-lint src/Resources/translations
+	$(COMPOSE) exec -T $(SERVICE_PHP) php .scripts/validate-translations.php
+
+# Lint the demo app translation dirs (requires the demo containers).
+validate-translations-demos:
 	@$(MAKE) -C demo validate-translations
 
 composer-sync: ensure-up
@@ -154,8 +161,9 @@ check-open-prs:
 	@chmod +x .scripts/check-open-prs.sh
 	@GH_REPO=nowo-tech/TranslationYamlToolsBundle ./.scripts/check-open-prs.sh
 
+# REQ-TEST-011: boot demo/symfony8, expect a final HTTP 200 on / (redirects followed), tear down.
 demo-smoke:
-	@if [ -f demo/Makefile ]; then $(MAKE) -C demo release-check; else echo "No demo/Makefile — skip demo-smoke"; fi
+	@$(MAKE) -C demo demo-smoke
 
 strip-cursor-coauthor-from-history:
 	@chmod +x .scripts/strip-cursor-coauthor-from-history.sh

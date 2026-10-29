@@ -27,6 +27,12 @@ up:
 	$(COMPOSE) up -d
 	@echo "Waiting for container to be ready..."
 	@sleep 5
+	@# On a fresh checkout the entrypoint runs its own composer install before exec'ing FrankenPHP; wait for it
+	@# (PID 1 becomes frankenphp) so two concurrent installs do not race on vendor/ (REQ-TEST-011 demo-smoke in CI).
+	@i=0; until [ "$$($(COMPOSE) exec -T php cat /proc/1/comm 2>/dev/null | tr -d '\r')" = "frankenphp" ]; do \
+		i=$$((i+1)); if [ $$i -ge 150 ]; then echo "Timed out waiting for the entrypoint (composer install)"; $(COMPOSE) logs --tail=40 php; exit 1; fi; \
+		sleep 2; \
+	done
 	@echo "Installing dependencies..."
 	@$(COMPOSE) exec -T -e COMPOSER_MEMORY_LIMIT=-1 php composer install --no-interaction
 	@rm -f .env.dev
