@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.13.0](#to-1130)
 - [To 1.12.0](#to-1120)
   - [Web UIs require form CSRF protection at compile time](#web-uis-require-form-csrf-protection-at-compile-time)
 - [To 1.11.0](#to-1110)
@@ -56,6 +57,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.13.0
+
+From **1.12.0**:
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
 
 No configuration change is required.
 

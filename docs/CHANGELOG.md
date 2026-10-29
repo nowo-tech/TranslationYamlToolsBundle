@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.13.0] - 2026-10-29](#1130---2026-10-29)
 - [[1.12.0] - 2026-10-28](#1120---2026-10-28)
 - [[1.11.0] - 2026-10-24](#1110---2026-10-24)
 - [[1.10.1] - 2026-10-18](#1101---2026-10-18)
@@ -50,6 +51,10 @@ All notable changes to this project are documented in this file.
 - [[0.1.0] - 2026-04-09](#010---2026-04-09)
 
 ## [Unreleased]
+
+## [1.13.0] - 2026-10-29
+
+TranslationYamlTools: HTTP deadlines on machine translation, 7 bundle locales with parity check, demo smoke in CI See [UPGRADING](UPGRADING.md#to-1130).
 
 ### Added
 
