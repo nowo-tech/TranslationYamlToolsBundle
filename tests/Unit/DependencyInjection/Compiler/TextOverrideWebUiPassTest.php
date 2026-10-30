@@ -66,6 +66,13 @@ final class TextOverrideWebUiPassTest extends TestCase
         (new TextOverrideWebUiPass())->process($this->container(true, true, ['security.csrf.token_manager', 'twig']));
     }
 
+    public function testRequiresUiKit(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('overrides.web_ui.enabled requires NowoUiKitBundle');
+        (new TextOverrideWebUiPass())->process($this->container(true, false, ['security.authorization_checker', 'security.csrf.token_manager', 'twig', 'form.factory'], uiKit: false));
+    }
+
     public function testPassesWithAllRequirements(): void
     {
         (new TextOverrideWebUiPass())->process($this->container(true, false, ['security.authorization_checker', 'security.csrf.token_manager', 'twig', 'form.factory']));
@@ -75,9 +82,10 @@ final class TextOverrideWebUiPassTest extends TestCase
     /**
      * @param list<string> $services
      */
-    private function container(bool $enabled, bool $allowUnauthenticated, array $services, bool $csrfExtension = true): ContainerBuilder
+    private function container(bool $enabled, bool $allowUnauthenticated, array $services, bool $csrfExtension = true, bool $uiKit = true): ContainerBuilder
     {
         $container = new ContainerBuilder();
+        $container->setParameter('kernel.bundles', $uiKit ? ['NowoUiKitBundle' => 'Nowo\\UiKitBundle\\NowoUiKitBundle'] : []);
         $container->setParameter('nowo_translation_yaml_tools.overrides.web_ui.enabled', $enabled);
         $container->setParameter('nowo_translation_yaml_tools.overrides.web_ui.security.allow_unauthenticated', $allowUnauthenticated);
         foreach ($services as $id) {

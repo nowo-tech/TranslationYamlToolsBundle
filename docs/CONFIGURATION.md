@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Reference (`nowo_translation_yaml_tools`)](#reference-nowo_translation_yaml_tools)
+- [Web UI layout and theme (REQ-UI-003)](#web-ui-layout-and-theme-req-ui-003)
 - [Missing translation log (database)](#missing-translation-log-database)
 - [Text overrides (database)](#text-overrides-database)
 - [Machine translator by locale](#machine-translator-by-locale)
@@ -40,15 +41,16 @@
 | `missing_translation_log.record_request_context` | `bool` | `true` | When **`true`** and an HTTP **`Request`** exists, the row also stores **`request_route`** (from **`_route`** when set), **`request_method`**, and **`request_path`** (**`getPathInfo()`** when non-empty). CLI / workers have no request, so those columns stay **`NULL`**. Set **`false`** if you do not want route or path persisted (privacy). |
 | `missing_translation_log.async_persist` | `bool` | `false` | When **`true`**, flush uses **`async_persist_strategy`** instead of calling **`persistBuffer`** directly in the recorder. If the chosen strategy is unavailable (no bus, no **`event_dispatcher`**), the recorder **falls back** to synchronous **`persistBuffer`**. |
 | `missing_translation_log.async_persist_strategy` | `string` | `messenger` | Only when **`async_persist`** is **`true`**: **`messenger`** dispatches **`MissingTranslationBufferMessage`** (needs **`symfony/messenger`** + **`messenger.default_bus`**; route the message to an async transport for workers). **`event_dispatcher`** dispatches **`MissingTranslationBufferEvent`** on the app **`event_dispatcher`**; the bundle registers **`MissingTranslationBufferDoctrinePersistListener`** at priority **-1024** to call **`persistBuffer`** unless a listener with higher priority called **`stopPropagation()`** (use that to enqueue the buffer and persist later without Messenger). |
-| `missing_translation_log.web_ui.enabled` | `bool` | `false` | When **`true`** (and the log is enabled), registers **`MissingTranslationLogUiController`** and runs **`TwigPathsPass`**: if **`templates/bundles/NowoTranslationYamlToolsBundle/`** exists, that path is prepended on the native Twig loader with namespace **`NowoTranslationYamlToolsBundle`**, then the bundle **`src/Resources/views`** path is appended with the same namespace so overrides win without **`twig.paths`** (see [USAGE](USAGE.md#overriding-templates-req-twig-001)). Requires **`symfony/twig-bundle`**. Also requires **`symfony/security-bundle`** unless **`security.allow_unauthenticated: true`**. |
+| `missing_translation_log.web_ui.enabled` | `bool` | `false` | When **`true`** (and the log is enabled), registers **`MissingTranslationLogUiController`** (a UiKit list page, REQ-UI-003 — see [TEMPLATES](TEMPLATES.md); **`NowoUiKitBundle`** must be registered, checked at compile time) and runs **`TwigPathsPass`**: if **`templates/bundles/NowoTranslationYamlToolsBundle/`** exists, that path is prepended on the native Twig loader with namespace **`NowoTranslationYamlToolsBundle`**, then the bundle **`src/Resources/views`** path is appended with the same namespace so overrides win without **`twig.paths`** (see [USAGE](USAGE.md#overriding-templates-req-twig-001)). Requires **`symfony/twig-bundle`**. Also requires **`symfony/security-bundle`** unless **`security.allow_unauthenticated: true`**. |
 | `missing_translation_log.web_ui.path_prefix` | `string` | `/_translation_yaml_tools/missing-log` | URL prefix for the routes you import (must start with **`/`**). Use a **trailing slash** on the list URL if your router enforces strict trailing slashes. |
-| `missing_translation_log.web_ui.layout_template` | `string` | `@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig` | Twig layout extended by **`missing_translation_log/base.html.twig`**. Exposed as Twig global **`nowo_translation_yaml_tools_missing_log_layout_template`**. Use **`.../layout_integrate_dashboard_menu.html.twig`** or **`.../layout_integrate_breadcrumb_kit.html.twig`** to align with those dashboards. |
-| `missing_translation_log.web_ui.css_framework` | `string` | `bootstrap5` | Host CSS stack hint (REQ-UI-001): `bootstrap5`, `bootstrap`, `bootstrap4`, `tabler`, `tailwind`, `foundation`, `custom`, `none`. Twig global **`nowo_translation_yaml_tools_css_framework`**. Demo layout loads Bootstrap 5 CDN when the value is Bootstrap/Tabler-compatible. |
+| `missing_translation_log.web_ui.layout_template` | `string\|null` | `null` | Layout the page scaffold extends (REQ-UI-001 / REQ-UI-003). **`null`** = **`nowo_ui_kit.layouts.admin`** (set it once for every Nowo bundle). A host layout renders the UiKit canonical blocks; a **1.x layout** that renders `{% block nowo_translation_yaml_tools_missing_log_content %}` (e.g. the deprecated **`layout_integrate_dashboard_menu.html.twig`** / **`layout_integrate_breadcrumb_kit.html.twig`**) is wrapped in a deprecated bridge. The former default **`@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig`** (removed) means `null`. |
+| `missing_translation_log.web_ui.templates.index` | `string` | `@NowoTranslationYamlToolsBundle/missing_translation_log/index.html.twig` | Per-page template override (REQ-UI-003): a host template that extends `@!NowoTranslationYamlToolsBundle/missing_translation_log/index.html.twig` and overrides one data block (see [TEMPLATES](TEMPLATES.md#per-page-overrides)). |
+| `missing_translation_log.web_ui.css_framework` | `string` | `bootstrap5` | **Deprecated since 1.14** — set **`nowo_ui_kit.css_framework`** once for every bundle. Until 2.0 it only seeds `nowo_ui_kit.css_framework` (and `icon_set`) when the host leaves them unset; the pages read the UiKit theme only. Twig global **`nowo_translation_yaml_tools_css_framework`** (deprecated). |
 | `missing_translation_log.web_ui.security.access_roles` | `list<string>` | `[ROLE_ADMIN]` | User must be granted **at least one** role for **`nowo_translation_yaml_tools_missing_log_*`** routes (REQ-UI-002). Empty list disables bundle-level role checks (firewall / custom checker only). |
 | `missing_translation_log.web_ui.security.access_checker` | `string\|null` | `null` | Optional service id implementing **`MissingLogUiAccessCheckerInterface`**. **`null`** = built-in role checker (`ConfigurableMissingLogUiAccessChecker`). |
 | `missing_translation_log.web_ui.security.allow_unauthenticated` | `bool` | `false` | **Dev/demo only.** When **`false`** (default), enabling the Web UI without **`security.authorization_checker`** fails container compilation. Set **`true`** only for local demos/tests that intentionally omit SecurityBundle — **never in production**. |
-| `missing_translation_log.web_ui.required_role` | `string\|null` | `ROLE_ADMIN` | **Deprecated BC alias.** Mapped to **`security.access_roles`** (`null` / empty → empty list). Prefer **`security.access_roles`**. |
-| `missing_translation_log.web_ui.allow_unauthenticated` | `bool` | `false` | **Deprecated BC alias** for **`security.allow_unauthenticated`**. |
+| `missing_translation_log.web_ui.required_role` | `string\|null` | `ROLE_ADMIN` | **Deprecated BC alias** (deprecation notice when set since 1.14). Mapped to **`security.access_roles`** (`null` / empty → empty list). Prefer **`security.access_roles`**. |
+| `missing_translation_log.web_ui.allow_unauthenticated` | `bool` | `false` | **Deprecated BC alias** for **`security.allow_unauthenticated`** (deprecation notice when set since 1.14). |
 | `overrides` | `array` | see below | **Operator text overrides** (opt-in): per-locale DB replacements for editable catalogue messages, served by a `translator` decorator. See [Text overrides](#text-overrides-database). |
 | `overrides.enabled` | `bool` | `false` | When **`true`**, decorates **`translator`** with **`OverridingTranslator`** (decoration priority **5**, outside the missing-log recorder) and prepends the ORM mapping for **`TextOverride\Entity\TranslationOverride`**. Requires **`doctrine/orm`** + **`doctrine/doctrine-bundle`** and the bundle registered in **every** environment where texts must apply (usually **all**, not only `dev`). |
 | `overrides.table_prefix` | `string` | `nowo_translation_` | Physical table name = **`{table_prefix}override`** (`[a-z0-9_]`, max 40 chars). |
@@ -58,9 +60,11 @@
 | `overrides.cache_ttl` | `int` | `3600` | Seconds the map stays cached. Writes through the bundle invalidate it at once; the TTL bounds staleness after SQL / backup-restore writes. |
 | `overrides.max_length` | `int` | `5000` | Max characters per text in the Web UI (HTTP 422 with a field error when exceeded). |
 | `overrides.html_sanitizer` | `string\|null` | `null` | Service id implementing **`TranslationOverrideHtmlSanitizerInterface`**. `null` ⇒ **`SymfonyTranslationOverrideHtmlSanitizer`** (inline allowlist via **`symfony/html-sanitizer`**) when installed, else **`StripTagsTranslationOverrideHtmlSanitizer`** (drops every tag). Values containing `<` are sanitized on save **and** when the map is loaded. |
-| `overrides.web_ui.enabled` | `bool` | `false` | Registers **`TranslationOverrideController`** (list / edit / reset). Requires **`symfony/twig-bundle`**, **`symfony/security-csrf`** + **`framework.csrf_protection`**, and **`symfony/security-bundle`** unless `allow_unauthenticated` (compile-time check). |
+| `overrides.web_ui.enabled` | `bool` | `false` | Registers **`TranslationOverrideController`** (list / edit / reset; UiKit list + form pages, REQ-UI-003 — see [TEMPLATES](TEMPLATES.md)). Requires **`symfony/twig-bundle`**, **`symfony/security-csrf`** + **`framework.csrf_protection`**, **`NowoUiKitBundle`** registered, and **`symfony/security-bundle`** unless `allow_unauthenticated` (compile-time check). |
 | `overrides.web_ui.path_prefix` | `string` | `/_translation_yaml_tools/texts` | URL prefix for the imported routes (list URL ends with `/`). |
-| `overrides.web_ui.layout_template` | `string` | `@NowoTranslationYamlToolsBundle/text_override/layout.html.twig` | Layout the pages extend; it must define blocks **`title`** and **`body`** (Symfony `base.html.twig` convention), so your admin layout usually works as-is. |
+| `overrides.web_ui.layout_template` | `string\|null` | `null` | Layout the page scaffolds extend (REQ-UI-001 / REQ-UI-003). **`null`** = **`nowo_ui_kit.layouts.admin`**. A host layout renders the UiKit canonical blocks; a **1.x layout** that renders `{% block body %}` (and `title` / `stylesheets` / `javascripts`, the Symfony `base.html.twig` convention) is wrapped in a deprecated bridge. The former default **`@NowoTranslationYamlToolsBundle/text_override/layout.html.twig`** (removed) means `null`. |
+| `overrides.web_ui.templates.index` / `.edit` | `string` | the bundle pages | Per-page template overrides (REQ-UI-003), see [TEMPLATES](TEMPLATES.md#per-page-overrides). |
+| `overrides.web_ui.form_themes` | `list<string>` | `['@NowoUiKit/form/nowo_ui_layout.html.twig']` | Form themes of the edit page (UiKit `FormPage::$formThemes`). `[]` = only the host `twig.form_themes`. |
 | `overrides.web_ui.security.access_roles` | `list<string>` | `[ROLE_ADMIN]` | User needs **at least one** (checked with `isGranted()`, so voter attributes work too). Empty ⇒ deny everyone. |
 | `overrides.web_ui.security.allow_unauthenticated` | `bool` | `false` | **Dev/demo only**: skip the role check (no SecurityBundle needed). Never in production. |
 
@@ -85,8 +89,41 @@ nowo_translation_yaml_tools:
     #     web_ui:
     #         enabled: true
     #         path_prefix: '/_translation_yaml_tools/missing-log'
-    #         # layout_template: '@NowoTranslationYamlToolsBundle/missing_translation_log/layout_integrate_dashboard_menu.html.twig'
+    #         # layout_template: null   # default: nowo_ui_kit.layouts.admin (REQ-UI-003)
 ```
+
+## Web UI layout and theme (REQ-UI-003)
+
+Both opt-in Web UIs (missing-translation log, text-overrides desk) are UiKit page scaffolds (list / form) fed by view
+models; the bundle ships no HTML shell, no CSS and no CDN link. Register **`Nowo\UiKitBundle\NowoUiKitBundle`**
+(`nowo-tech/ui-kit-bundle` ^2.17, a dependency of this bundle) and configure the host **once** for every Nowo bundle:
+
+```yaml
+# config/packages/nowo_ui_kit.yaml
+nowo_ui_kit:
+    css_framework: bootstrap5            # the stack your layout loads (bootstrap5 | tailwind | none | …)
+    layouts:
+        admin: 'layouts/admin.html.twig'  # your admin layout or a one-file bridge (below)
+    # theme: { classes: {…}, tokens: {…} } # class map / design tokens for every bundle page
+```
+
+One-file bridge into an existing `base.html.twig` (the reference integration):
+
+```twig
+{# templates/layouts/admin.html.twig #}
+{% extends '@NowoUiKit/layout/admin.html.twig' %}
+
+{% block nowo_ui_styles %}
+    <link rel="stylesheet" href="{{ asset('build/app.css') }}">
+    {{ parent() }}
+{% endblock %}
+
+{% block nowo_ui_navigation %}{{ include('_partials/admin_menu.html.twig') }}{% endblock %}
+```
+
+Per-bundle exceptions: `web_ui.layout_template` (one UI only), `web_ui.templates.<page>` (one page),
+`nowo_ui_kit.theme.bundles.NowoTranslationYamlToolsBundle` (slots / tokens). Pages, view models and data blocks:
+[TEMPLATES](TEMPLATES.md); upgrade notes: [UPGRADING](UPGRADING.md#unreleased).
 
 ## Missing translation log (database)
 
@@ -101,7 +138,7 @@ nowo_translation_yaml_tools:
         web_ui:
             enabled: true
             path_prefix: '/_translation_yaml_tools/missing-log'
-            css_framework: bootstrap5   # or: tailwind | foundation | custom | …
+            # layout_template: null   # default: nowo_ui_kit.layouts.admin; CSS stack: nowo_ui_kit.css_framework
             security:
                 access_roles: [ROLE_ADMIN]
                 # access_checker: App\Security\MissingLogUiAccessChecker
@@ -177,7 +214,7 @@ nowo_translation_yaml_tools:
         web_ui:
             enabled: true
             path_prefix: '/admin/texts'
-            layout_template: 'admin/base.html.twig'   # must define blocks "title" and "body"
+            # layout_template: null   # default: nowo_ui_kit.layouts.admin (UiKit canonical blocks)
             security:
                 access_roles: [ROLE_ADMIN]
 ```

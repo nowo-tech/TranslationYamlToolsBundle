@@ -14,9 +14,6 @@ use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\DomCrawler\Field\ChoiceFormField;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[CoversClass(TranslationOverrideController::class)]
@@ -41,23 +38,27 @@ final class TranslationOverrideWebUiTest extends WebTestCase
 
         $client->request('GET', '/_translation_yaml_tools/texts/?group=site.topline');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-testid="tyt-overrides-table"]', self::KEY);
-        self::assertSelectorTextNotContains('[data-testid="tyt-overrides-table"]', 'site.greeting');
+        self::assertSelectorExists('[data-testid="tyt-overrides-index"][data-nowo-ui-page="list"]');
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-index"] table', self::KEY);
+        self::assertSelectorTextNotContains('[data-testid="tyt-overrides-index"] table', 'site.greeting');
         self::assertStringNotContainsString('admin.title', (string) $client->getResponse()->getContent(), 'Only configured prefixes are listed.');
 
         $client->request('GET', '/_translation_yaml_tools/texts/?q=no-such-text-anywhere');
-        self::assertSelectorTextContains('[data-testid="tyt-overrides-table"]', 'No texts match');
-        self::assertSelectorExists('[data-testid="tyt-overrides-filter"] input[type="search"][name="q"][value="no-such-text-anywhere"]');
-        self::assertSelectorExists('[data-testid="tyt-overrides-filter"] select[name="group"] option[value="site.topline"]');
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-index"]', 'No texts match');
+        self::assertSelectorExists('[data-testid="tyt-overrides-index"] form[role="search"] input[type="search"][name="q"][value="no-such-text-anywhere"]');
+        self::assertSelectorExists('[data-testid="tyt-overrides-index"] form[role="search"] select[name="group"] option[value="site.topline"]');
 
         // A stale bookmark with an unknown group still filters (to no row) instead of listing everything.
         $client->request('GET', '/_translation_yaml_tools/texts/?group=no.such.group');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-testid="tyt-overrides-table"]', 'No texts match');
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-index"]', 'No texts match');
 
         $crawler = $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . self::KEY);
         self::assertResponseIsSuccessful();
-        self::assertSelectorCount(2, '.nowo-tyt-tab-panel');
+        self::assertSelectorExists('[data-testid="tyt-overrides-edit"][data-nowo-ui-page="form"]');
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-key"]', self::KEY);
+        self::assertSelectorCount(2, '[data-nowo-ui-locale-tabs] [data-testid^="tyt-overrides-panel-"]');
+        self::assertSelectorNotExists('[data-testid="tyt-overrides-reset"]', 'No override yet: no restore action.');
         $form = $crawler->filter('[data-testid="tyt-overrides-form"]')->form();
         self::assertSame('Abierto de lunes a viernes', $form->getValues()['texts[es]'] ?? null);
         $form['texts[en]'] = 'Open Mon–Thu';
@@ -71,33 +72,41 @@ final class TranslationOverrideWebUiTest extends WebTestCase
         self::assertSame('Abierto de lunes a viernes', $this->translator()->trans(self::KEY, [], 'messages', 'es'));
 
         $client->followRedirect();
-        self::assertSelectorTextContains('.alert-success', 'Text saved.');
+        self::assertSelectorTextContains('.nowo-ui-flash--success', 'Text saved.');
         self::assertSelectorExists('[data-testid="tyt-overrides-reset"]');
+        self::assertSelectorExists('dialog[id^="nowo-ui-confirm-"]', 'Restore asks for confirmation in the UiKit <dialog>.');
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-panel-en"] [data-testid="tyt-overrides-overridden"]', 'edited');
 
         $client->request('GET', '/_translation_yaml_tools/texts/?q=mon');
         self::assertSelectorTextContains('[data-testid="tyt-overrides-count"]', '1 override.');
-        self::assertSelectorTextContains('[data-testid="tyt-overrides-table"]', 'Open Mon–Thu');
-        self::assertSelectorTextContains('[data-testid="tyt-overrides-table"] .badge', 'EN');
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-index"] table', 'Open Mon–Thu');
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-overridden"]', 'EN');
 
-        // Reset without the confirmation box is refused.
+        // Restore without the confirmation marker is refused.
         $crawler = $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . self::KEY);
-        $reset   = $crawler->filter('[data-testid="tyt-overrides-reset"]')->form();
-        $confirm = $reset->get('translation_override_reset[confirm]');
-        self::assertInstanceOf(ChoiceFormField::class, $confirm);
-        $confirm->untick();
+        $reset   = $crawler->filter('form[name="translation_override_reset"]')->form();
+        self::assertSame('1', $reset->getValues()['translation_override_reset[confirm]'] ?? null);
+        $reset['translation_override_reset[confirm]'] = '';
         $client->submit($reset);
         self::assertResponseRedirects();
+        $client->followRedirect();
+        self::assertSelectorTextContains('.nowo-ui-flash--error', 'Confirm the restore');
         self::assertCount(1, $this->entityManager()->getRepository(TranslationOverride::class)->findAll());
 
         $crawler = $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . self::KEY);
-        $reset   = $crawler->filter('[data-testid="tyt-overrides-reset"]')->form();
-        $confirm = $reset->get('translation_override_reset[confirm]');
-        self::assertInstanceOf(ChoiceFormField::class, $confirm);
-        $confirm->tick();
-        $client->submit($reset);
+        $client->submit($crawler->filter('form[name="translation_override_reset"]')->form());
         self::assertResponseRedirects();
         self::assertCount(0, $this->entityManager()->getRepository(TranslationOverride::class)->findAll());
         self::assertSame('Open Mon–Fri', $this->translator()->trans(self::KEY, [], 'messages', 'en'));
+    }
+
+    public function testListIsPaginated(): void
+    {
+        $client = $this->client();
+
+        $client->request('GET', '/_translation_yaml_tools/texts/?per_page=25&page=9');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-index"] table', 'site.', 'An out-of-range page is clamped to the last page.');
     }
 
     public function testDomainPrefixedKeysAndMarkupSanitizing(): void
@@ -106,7 +115,7 @@ final class TranslationOverrideWebUiTest extends WebTestCase
 
         $ref = 'ShopBundle:loader.loading';
         $client->request('GET', '/_translation_yaml_tools/texts/?group=' . rawurlencode('ShopBundle:loader'));
-        self::assertSelectorTextContains('[data-testid="tyt-overrides-table"]', $ref);
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-index"] table', $ref);
 
         $crawler = $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . rawurlencode($ref));
         self::assertResponseIsSuccessful();
@@ -138,13 +147,13 @@ final class TranslationOverrideWebUiTest extends WebTestCase
         $client->request('POST', '/_translation_yaml_tools/texts/reset?key=' . self::KEY, ['translation_override_reset' => ['_token' => 'forged', 'confirm' => '1']]);
         self::assertResponseRedirects('/_translation_yaml_tools/texts/edit?key=' . self::KEY);
         $client->followRedirect();
-        self::assertSelectorTextContains('.alert-danger', 'Invalid security token');
+        self::assertSelectorTextContains('.nowo-ui-flash--error', 'Invalid security token');
         $client->request('POST', '/_translation_yaml_tools/texts/reset?key=' . self::KEY, ['_token' => 'legacy-field-names', 'confirm' => '1']);
         self::assertResponseRedirects('/_translation_yaml_tools/texts/edit?key=' . self::KEY);
         $client->request('POST', '/_translation_yaml_tools/texts/edit?key=' . self::KEY, ['texts' => ['_token' => 'forged', 'en' => 'Hacked']]);
         self::assertResponseRedirects('/_translation_yaml_tools/texts/edit?key=' . self::KEY);
         $client->followRedirect();
-        self::assertSelectorTextContains('.alert-danger', 'Invalid security token');
+        self::assertSelectorTextContains('.nowo-ui-flash--error', 'Invalid security token');
         self::assertCount(0, $this->entityManager()->getRepository(TranslationOverride::class)->findAll());
 
         $crawler           = $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . self::KEY);
@@ -152,32 +161,20 @@ final class TranslationOverrideWebUiTest extends WebTestCase
         $form['texts[es]'] = str_repeat('x', 5001);
         $client->submit($form);
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorExists('#nowo-tyt-tab-2[checked]');
-        self::assertSelectorTextContains('.invalid-feedback', '5000');
-        self::assertCount(0, $this->entityManager()->getRepository(TranslationOverride::class)->findAll());
-
-        // A forged tab value fails the form (no save) even when every text is valid.
-        $form = $crawler->filter('[data-testid="tyt-overrides-form"]')->form();
-        $form->disableValidation();
-        $form['texts[en]']   = 'Valid';
-        $form['texts[_tab]'] = 'xx';
-        $client->submit($form);
-        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('[data-testid="tyt-overrides-panel-es"][data-invalid]');
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-panel-es"]', '5000');
         self::assertCount(0, $this->entityManager()->getRepository(TranslationOverride::class)->findAll());
     }
 
-    public function testInlineStyleCarriesCspNonce(): void
+    public function testPagesHaveNoInlineHandlersOrConfirm(): void
     {
-        $client     = $this->client();
-        $dispatcher = $client->getContainer()->get('event_dispatcher');
-        self::assertInstanceOf(EventDispatcherInterface::class, $dispatcher);
-        $dispatcher->addListener('kernel.request', static function (RequestEvent $event): void {
-            $event->getRequest()->attributes->set('csp_nonce', 'n0nc3');
-        });
-
+        $client = $this->client();
         $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . self::KEY);
-        self::assertSelectorExists('style[nonce="n0nc3"]');
-        self::assertStringNotContainsString('<script', (string) $client->getResponse()->getContent());
+        $html = (string) $client->getResponse()->getContent();
+
+        self::assertDoesNotMatchRegularExpression('/\son[a-z]+\s*=/i', $html);
+        self::assertStringNotContainsString('confirm(', $html);
+        self::assertStringNotContainsString('cdn.jsdelivr.net', $html);
     }
 
     private function client(): KernelBrowser

@@ -715,10 +715,13 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         web_ui?: array{
  *             enabled?: bool|Param, // Expose HTTP routes + Twig UI to list rows and mark pending entries as added (protect with firewall / access_control) // Default: false
  *             path_prefix?: scalar|Param|null, // URL prefix for imported routes (must start with /) // Default: "/_translation_yaml_tools/missing-log"
- *             layout_template?: scalar|Param|null, // Twig layout extended by the missing-log UI (global nowo_translation_yaml_tools_missing_log_layout_template). Use @NowoTranslationYamlToolsBundle/missing_translation_log/layout_integrate_dashboard_menu.html.twig or layout_integrate_breadcrumb_kit.html.twig to match those dashboards. // Default: "@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig"
- *             css_framework?: "bootstrap"|"bootstrap4"|"bootstrap5"|"tailwind"|"foundation"|"custom"|"tabler"|"none"|Param, // Host CSS stack hint for the missing-log Web UI (REQ-UI-001). Twig global nowo_translation_yaml_tools_css_framework. Demo default: bootstrap5. // Default: "bootstrap5"
- *             required_role?: scalar|Param|null, // Deprecated BC alias for security.access_roles (single role). Prefer security.access_roles. Empty/null is fail-closed via the access checker. // Default: "ROLE_ADMIN"
- *             allow_unauthenticated?: bool|Param, // Deprecated BC alias for security.allow_unauthenticated. DEV/DEMO ONLY. // Default: false
+ *             layout_template?: scalar|Param|null, // Layout the page scaffolds extend (REQ-UI-001/003). Null (default) = nowo_ui_kit.layouts.admin. A host layout renders the UiKit canonical blocks; a 1.x layout that renders {% block nowo_translation_yaml_tools_missing_log_content %} (e.g. the deprecated layout_integrate_dashboard_menu.html.twig / layout_integrate_breadcrumb_kit.html.twig) is wrapped in a deprecated bridge. The former default @NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig means null. // Default: null
+ *             templates?: array{ // Per-page template overrides (REQ-UI-003): a host template that extends the bundle page and overrides a data block.
+ *                 index?: scalar|Param|null, // Default: "@NowoTranslationYamlToolsBundle/missing_translation_log/index.html.twig"
+ *             },
+ *             css_framework?: "bootstrap"|"bootstrap4"|"bootstrap5"|"tailwind"|"foundation"|"custom"|"tabler"|"none"|Param, // Deprecated: The "css_framework" option at "nowo_translation_yaml_tools.missing_translation_log.web_ui.css_framework" is deprecated: set nowo_ui_kit.css_framework once for every bundle. It only seeds nowo_ui_kit.css_framework when the host leaves it unset. // Deprecated since 1.14: set nowo_ui_kit.css_framework once for every bundle. Seeds nowo_ui_kit.css_framework (and icon_set) when the host leaves it unset. The pages read the UiKit theme only. // Default: "bootstrap5"
+ *             required_role?: scalar|Param|null, // Deprecated: The "required_role" option at "nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role" is deprecated, use "security.access_roles" instead. // Deprecated BC alias for security.access_roles (single role). Prefer security.access_roles. Empty/null is fail-closed via the access checker. // Default: "ROLE_ADMIN"
+ *             allow_unauthenticated?: bool|Param, // Deprecated: The "allow_unauthenticated" option at "nowo_translation_yaml_tools.missing_translation_log.web_ui.allow_unauthenticated" is deprecated, use "security.allow_unauthenticated" instead. // Deprecated BC alias for security.allow_unauthenticated. DEV/DEMO ONLY. // Default: false
  *             security?: array{ // Private Web UI access (REQ-UI-002). Defaults to ROLE_ADMIN; demos may set allow_unauthenticated.
  *                 access_roles?: list<scalar|Param|null>,
  *                 access_checker?: scalar|Param|null, // Optional service id implementing MissingLogUiAccessCheckerInterface. null = built-in role checker. // Default: null
@@ -738,7 +741,12 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         web_ui?: array{
  *             enabled?: bool|Param, // Expose the overrides desk (list / edit / reset). Import routes/translation_override_ui.yaml. Requires twig-bundle, security-csrf (+ framework.csrf_protection) and security-bundle. // Default: false
  *             path_prefix?: scalar|Param|null, // URL prefix for imported routes (must start with /) // Default: "/_translation_yaml_tools/texts"
- *             layout_template?: scalar|Param|null, // Twig layout the pages extend; must define blocks "title" and "body" (Symfony base.html.twig convention), e.g. your admin layout. // Default: "@NowoTranslationYamlToolsBundle/text_override/layout.html.twig"
+ *             layout_template?: scalar|Param|null, // Layout the page scaffolds extend (REQ-UI-001/003). Null (default) = nowo_ui_kit.layouts.admin. A host layout renders the UiKit canonical blocks; a 1.x layout that renders {% block body %} (and title / stylesheets / javascripts) is wrapped in a deprecated bridge. The former default @NowoTranslationYamlToolsBundle/text_override/layout.html.twig means null. // Default: null
+ *             templates?: array{ // Per-page template overrides (REQ-UI-003): a host template that extends the bundle page and overrides a data block.
+ *                 index?: scalar|Param|null, // Default: "@NowoTranslationYamlToolsBundle/text_override/index.html.twig"
+ *                 edit?: scalar|Param|null, // Default: "@NowoTranslationYamlToolsBundle/text_override/edit.html.twig"
+ *             },
+ *             form_themes?: list<scalar|Param|null>,
  *             security?: array{
  *                 access_roles?: list<scalar|Param|null>,
  *                 allow_unauthenticated?: bool|Param, // DEV/DEMO only: skip the role check (no SecurityBundle needed). Never true in production. // Default: false

@@ -16,7 +16,7 @@ overrides:
     empty: Geen teksten gevonden.
     edit_title: Tekst bewerken
     edit_intro: Eén tabblad per taal. Laat een veld leeg, of behoud de oorspronkelijke tekst, om de standaardwaarde te gebruiken.
-    back: ← Terug naar de teksten
+    back: Terug naar de teksten
     locale_tabs: Talen
     badge_overridden: bewerkt
     text_for: Tekst (%locale%)
@@ -25,11 +25,48 @@ overrides:
     save: Opslaan
     cancel: Annuleren
     reset: Oorspronkelijke tekst herstellen
-    reset_confirm: 'Ja, verwijder de aanpassingen voor %locales%.'
+    reset_confirm_title: 'Oorspronkelijke tekst herstellen?'
+    reset_confirm_message: 'De aanpassingen voor %locales% worden verwijderd en alle talen tonen weer de oorspronkelijke tekst.'
+    reset_zone_title: 'Oorspronkelijke tekst herstellen'
+    reset_zone_intro: 'Verwijdert de aanpassingen voor %locales%.'
     flash:
         saved: Tekst opgeslagen.
         reset: Oorspronkelijke tekst hersteld.
         invalid_token: Ongeldig beveiligingstoken. Probeer het opnieuw.
-        confirm_required: Vink het bevestigingsvakje aan om de oorspronkelijke tekst te herstellen.
+        confirm_required: 'Bevestig het herstel om de oorspronkelijke tekst terug te krijgen.'
     error:
         too_long: Deze tekst is te lang (maximaal %max% tekens).
+missing_log:
+    title: 'Logboek ontbrekende vertalingen'
+    intro: 'Berichten die de vertaler tijdens het uitvoeren niet vond. Voeg ze toe aan je catalogi en markeer ze daarna als toegevoegd.'
+    status_tabs: 'Status'
+    status:
+        pending: 'Openstaand'
+        added: 'Toegevoegd'
+        validated: 'Gevalideerd'
+    col:
+        id: 'ID'
+        locale: 'Taal'
+        domain: 'Domein'
+        message_id: 'Bericht-id'
+        call_site: 'Aanroeplocatie'
+        route: 'Route'
+        method: 'Methode'
+        path: 'Pad'
+        hits: 'Treffers'
+        last_seen: 'Laatst gezien'
+        actions: 'Acties'
+    mark_added: 'Markeren als toegevoegd'
+    empty: 'Geen rijen met status "%status%".'
+    clear_status:
+        button: 'Huidige status leegmaken'
+        confirm_title: 'Rijen "%status%" leegmaken?'
+        confirm_message: 'Alle rijen met status "%status%" worden verwijderd. Deze actie kan niet ongedaan worden gemaakt.'
+    clear_all:
+        button: 'Alle rijen leegmaken'
+        confirm_title: 'Hele logboek leegmaken?'
+        confirm_message: 'Alle rijen van het logboek worden verwijderd, ongeacht hun status. Deze actie kan niet ongedaan worden gemaakt.'
+    flash:
+        marked_added: 'Rij #%id% gemarkeerd als toegevoegd.'
+        cleared_all: '{0}Geen logboekrijen om leeg te maken.|{1}1 logboekrij verwijderd.|]1,Inf[%count% logboekrijen verwijderd.'
+        cleared_status: '{0}Geen rijen met status "%status%" om leeg te maken.|{1}1 rij met status "%status%" verwijderd.|]1,Inf[%count% rijen met status "%status%" verwijderd.'

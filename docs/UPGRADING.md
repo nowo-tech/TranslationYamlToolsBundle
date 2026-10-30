@@ -3,6 +3,8 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [Template contract (REQ-UI-003)](#template-contract-req-ui-003)
+  - [Configuration (REQ-UI-003 vocabulary)](#configuration-req-ui-003-vocabulary)
 - [To 1.13.0](#to-1130)
 - [To 1.12.0](#to-1120)
   - [Web UIs require form CSRF protection at compile time](#web-uis-require-form-csrf-protection-at-compile-time)
@@ -57,6 +59,62 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+Applies only when `missing_translation_log.web_ui.enabled` or `overrides.web_ui.enabled` is `true`.
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle nowo-tech/ui-kit-bundle
+```
+
+### Template contract (REQ-UI-003)
+
+The Web UI pages are UiKit page scaffolds; see [TEMPLATES](TEMPLATES.md) for every page → scaffold, view model and data
+block.
+
+1. **UiKit bundle.** Register `Nowo\UiKitBundle\NowoUiKitBundle` in `config/bundles.php` (Flex does it). The container
+   now refuses to compile when a Web UI is enabled without it.
+2. **Layout.** Pages render in `nowo_ui_kit.layouts.admin` (default `@NowoUiKit/layout/admin.html.twig`). Set it once
+   for every Nowo bundle, or set `web_ui.layout_template` for one UI only; the layout renders the UiKit canonical
+   blocks (one-file bridge example in [CONFIGURATION](CONFIGURATION.md#web-ui-layout-and-theme-req-ui-003)). The host
+   loads its CSS framework: the bundle no longer loads Bootstrap from jsDelivr.
+   - A **1.x layout** keeps working through a deprecated bridge (deprecation notice; removed in 2.0): for the missing
+     log, a layout rendering `{% block nowo_translation_yaml_tools_missing_log_content %}` (the
+     `layout_integrate_dashboard_menu.html.twig` / `layout_integrate_breadcrumb_kit.html.twig` bridges, or your own);
+     for the overrides desk, a layout rendering `{% block body %}` (`title`, `stylesheets`, `javascripts`).
+   - The former defaults `@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig` and
+     `@NowoTranslationYamlToolsBundle/text_override/layout.html.twig` were removed; configured explicitly they mean
+     "UiKit layout".
+   - DashboardMenu / BreadcrumbKit >= 2.7 no longer ship `dashboard/layout.html.twig`: point
+     `nowo_ui_kit.layouts.admin` at their UiKit layout instead of the `layout_integrate_*` bridges (which only work
+     with those bundles < 2.7). The DashboardMenu bridge no longer loads Bootstrap Icons from a CDN.
+3. **Removed templates.** `missing_translation_log/{layout,base,_status_filters,_table}.html.twig` and
+   `text_override/{layout,form_theme}.html.twig` no longer exist; application copies under
+   `templates/bundles/NowoTranslationYamlToolsBundle/` are ignored. The blocks `missing_log_breadcrumb`,
+   `missing_log_body`, `missing_log_page_header`, `missing_log_status_filters`, `missing_log_table` are gone, and the
+   BreadcrumbKit `trail` variable is no longer rendered (use `PageHeader::breadcrumbs` / BreadcrumbKit through UiKit).
+4. **Page overrides.** `missing_translation_log/index.html.twig` and `text_override/index.html.twig` fill
+   `nowo_ui_list_row`, `text_override/edit.html.twig` fills `nowo_ui_form_body`; the header, tabs, filters, table, row
+   actions, pagination, confirm dialogs, empty state and flashes come from the scaffolds. A full copy of a 1.x page
+   keeps receiving the 1.x variables but no longer matches the host theme: rebuild it as a
+   `web_ui.templates.<page>` template that extends the bundle page and overrides one data block.
+5. **No inline handlers.** Clear current status / Clear all rows / Restore shipped text ask for confirmation in the
+   UiKit `<dialog>` (UiKit scripts, loaded by `nowo_ui_scripts`) instead of `onsubmit="return confirm()"` or the
+   confirmation checkbox. `translation_override_reset[confirm]` is now a hidden field with value `1` (a POST without
+   it is still refused). The edit form has no `texts[_tab]` field (UiKit locale tabs; a stale `_tab` is ignored).
+6. **CSS.** The `nowo-tyt-tab*` classes and the inline `<style>` are gone; restyle through `nowo_ui_kit.theme`
+   (`classes`, `tokens`, `theme.bundles.NowoTranslationYamlToolsBundle`).
+7. **Lists are paginated** (`?page=` / `?per_page=`; missing log 50 rows by default instead of the first 500).
+
+### Configuration (REQ-UI-003 vocabulary)
+
+- New: `missing_translation_log.web_ui.templates.index`, `overrides.web_ui.templates.index|edit`,
+  `overrides.web_ui.form_themes`.
+- Changed default: `web_ui.layout_template` → `null` (both UIs).
+- Deprecated: `missing_translation_log.web_ui.css_framework` (set `nowo_ui_kit.css_framework`; until 2.0 it still
+  seeds the UiKit value when unset — default `bootstrap5`, as before), `web_ui.required_role` →
+  `web_ui.security.access_roles`, top-level `web_ui.allow_unauthenticated` → `web_ui.security.allow_unauthenticated`.
+  The Twig globals `nowo_translation_yaml_tools_missing_log_layout_template` / `nowo_translation_yaml_tools_css_framework`
+  stay for host templates (not read by the pages).
 
 ## To 1.13.0
 

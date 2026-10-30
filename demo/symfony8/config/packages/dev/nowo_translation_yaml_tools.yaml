@@ -13,3 +13,14 @@ nowo_translation_yaml_tools:
             path_prefix: '/_demo/translation-yaml-tools/missing-log'
             security:
                 access_roles: [ROLE_ADMIN]
+    # Text-overrides desk (REQ-I18N-001 operator overrides): demo.* messages editable per locale from the Web UI.
+    overrides:
+        enabled: true
+        table_prefix: demo_translation_
+        editable:
+            messages: ['demo.']
+        web_ui:
+            enabled: true
+            path_prefix: '/_demo/translation-yaml-tools/texts'
+            security:
+                access_roles: [ROLE_ADMIN]

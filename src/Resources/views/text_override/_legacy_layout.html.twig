@@ -1,0 +1,32 @@
+{#
+  BC bridge (deprecated since 1.14, removed in 2.0): wraps a 1.x layout set in overrides.web_ui.layout_template that
+  renders `{% block body %}` (and optionally `title`, `stylesheets`, `javascripts`; the Symfony base.html.twig
+  convention) instead of the UiKit canonical blocks. WebUiPages::layout() selects it when the configured layout does
+  not define nowo_ui_content. Variable: nowo_translation_yaml_tools_legacy_layout (the configured layout).
+#}
+{% extends nowo_translation_yaml_tools_legacy_layout %}
+
+{% block title %}{% block nowo_ui_document_title %}{% endblock %}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('css/nowo-ui.css', 'nowo_ui_kit') }}">
+    {% block nowo_ui_head %}{% endblock %}
+    {% block nowo_ui_styles %}{{ nowo_ui_tokens() }}{% endblock %}
+{% endblock %}
+
+{% block body %}
+    {% set _bundle = nowo_ui_bundle|default(null) %}
+    {% block nowo_ui_navigation %}{% endblock %}
+    <div class="{{ nowo_ui_class('content', _bundle) }}"{% if _bundle %} data-nowo-ui-bundle="{{ _bundle }}"{% endif %}>
+        {% block nowo_ui_page_header %}{% endblock %}
+        {% block nowo_ui_flashes %}{{ include(nowo_ui_partial('flashes', _bundle), {bundle: _bundle}) }}{% endblock %}
+        {% block nowo_ui_content %}{% endblock %}
+    </div>
+    {% block nowo_ui_modals %}{% endblock %}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {% block nowo_ui_scripts %}{{ include(nowo_ui_partial('scripts', nowo_ui_bundle|default(null))) }}{% endblock %}
+{% endblock %}

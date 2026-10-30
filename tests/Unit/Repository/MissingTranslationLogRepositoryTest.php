@@ -136,6 +136,27 @@ final class MissingTranslationLogRepositoryTest extends TestCase
         self::assertSame('id.a', $one->getMessageId());
     }
 
+    public function testCountByStatusAndPagedFindByStatus(): void
+    {
+        $repo   = $this->createRepository();
+        $buffer = [];
+        foreach (['a', 'b', 'c'] as $key) {
+            $buffer[$key] = ['hits' => 1, 'messageId' => 'id.' . $key, 'domain' => 'd', 'locale' => 'en', 'callSite' => null];
+        }
+        $repo->persistBuffer($buffer);
+
+        self::assertSame(3, $repo->countByStatus(MissingTranslationLogStatus::Pending));
+        self::assertSame(0, $repo->countByStatus(MissingTranslationLogStatus::Added));
+
+        $first  = $repo->findByStatus(MissingTranslationLogStatus::Pending, 2);
+        $second = $repo->findByStatus(MissingTranslationLogStatus::Pending, 2, 2);
+        self::assertCount(2, $first);
+        self::assertCount(1, $second);
+        $ids = array_map(static fn (MissingTranslationLog $row): ?int => $row->getId(), [...$first, ...$second]);
+        self::assertCount(3, array_unique($ids), 'Pages do not overlap (stable order: last seen, then id).');
+        self::assertCount(3, $repo->findByStatus(MissingTranslationLogStatus::Pending, 10, -5), 'A negative offset starts at the first row.');
+    }
+
     public function testPersistBufferTruncatesLongCallSite(): void
     {
         $long = str_repeat('x', 1100);

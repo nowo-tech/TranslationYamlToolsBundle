@@ -52,6 +52,62 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Both opt-in Web UIs (missing-translation log, text-overrides desk) move to the UiKit page contract (REQ-UI-001 /
+REQ-UI-003). See [UPGRADING](UPGRADING.md#unreleased).
+
+### Added
+
+- **UiKit page contract (REQ-UI-003):** the missing-translation log is a UiKit `page/list` (status tabs, Clear current
+  status / Clear all rows behind the UiKit confirm `<dialog>`, Mark added row action, pagination `?page=` /
+  `?per_page=`); the text-overrides desk is a UiKit `page/list` (search / group filters, pagination) plus a `page/form`
+  (UiKit locale tabs, Restore shipped text in the delete zone behind the confirm `<dialog>`). View models come from
+  `Ui\MissingTranslationLogPageFactory` / `Ui\TranslationOverridePageFactory`; `Ui\WebUiPages` resolves layout,
+  templates and form themes. `docs/TEMPLATES.md` lists every page → scaffold, view model and data block.
+- **Template contract:** canonical keys `missing_translation_log.web_ui.templates.index`,
+  `overrides.web_ui.templates.index|edit` (per-page overrides) and `overrides.web_ui.form_themes` (default
+  `@NowoUiKit/form/nowo_ui_layout.html.twig`); `MissingTranslationLogRepository::countByStatus()` and an `$offset`
+  argument on `findByStatus()`.
+- Contract test `tests/Integration/Contract/PageContractTest.php` (UiKit `PageContractTestCase`, strict
+  missing-translation rule) and `LegacyLayoutBridgeTest`; 7-locale `missing_log.*` catalogue (the missing-log UI and
+  its flashes were English-only).
+- Container compilation fails with a clear message when a Web UI is enabled without `NowoUiKitBundle` registered
+  (`UiKitRequirement`), next to the existing fail-closed CSRF check (`FormCsrfRequirement`).
+- Demo: UiKit host layout (`nowo_ui_kit.layouts.admin`, Bootstrap 5 loaded by the demo), text-overrides desk enabled
+  for `demo.*` messages, Playwright e2e for both UIs and a third README screenshot (`text-overrides.webp`).
+
+### Changed
+
+- **Template contract:** `web_ui.layout_template` defaults to `null` (= `nowo_ui_kit.layouts.admin`) for both UIs.
+  The pages extend UiKit scaffolds and fill data blocks only (`nowo_ui_list_row`, `nowo_ui_content`,
+  `nowo_ui_form_body`); markup carries `nowo-ui-*` classes and UiKit theme slots, no Bootstrap classes.
+- `nowo-tech/ui-kit-bundle` constraint `^1.4 || ^2.2` → `^2.17.3`.
+- `TranslationOverrideResetType`: the confirmation checkbox became a hidden `confirm` marker (`1`); the UiKit confirm
+  dialog asks for confirmation. `TranslationOverrideTextsType` has no `_tab` field any more (UiKit locale tabs).
+  `TranslationOverrideFilterType` lost its Bootstrap `row_attr` / placeholder `attr` (UiKit `FilterField`).
+- `TranslationOverrideController` takes a `TranslationOverridePageFactory` instead of the layout string;
+  `MissingTranslationLogUiController` takes an optional page factory and translator (flashes translated).
+
+### Deprecated
+
+- `missing_translation_log.web_ui.css_framework` (set `nowo_ui_kit.css_framework`; still seeds it when unset),
+  `web_ui.required_role` and the top-level `web_ui.allow_unauthenticated` (deprecation notice when set).
+- 1.x layouts without the UiKit canonical blocks in `web_ui.layout_template`: wrapped by
+  `missing_translation_log/_legacy_layout.html.twig` / `text_override/_legacy_layout.html.twig` (deprecation notice);
+  `layout_integrate_dashboard_menu.html.twig` / `layout_integrate_breadcrumb_kit.html.twig`; the Twig globals
+  `nowo_translation_yaml_tools_missing_log_layout_template` / `nowo_translation_yaml_tools_css_framework`;
+  `TranslationOverrideTextsType::TAB_FIELD`. All removed in 2.0.
+
+### Removed
+
+- Bundle chrome: `missing_translation_log/{layout,base,_status_filters,_table}.html.twig`,
+  `text_override/{layout,form_theme}.html.twig` (Bootstrap from jsDelivr CDN, inline `onsubmit="return confirm()"`,
+  inline `<style>`). The bundle ships no layout, CSS, JavaScript or CDN link.
+
+### Fixed
+
+- Missing-translation log `call_site`: frames of the text-overrides `OverridingTranslator` are skipped, so the caller
+  (controller, template) is recorded instead of `OverridingTranslator.php` when both features are enabled.
+
 ## [1.13.0] - 2026-10-29
 
 TranslationYamlTools: HTTP deadlines on machine translation, 7 bundle locales with parity check, demo smoke in CI See [UPGRADING](UPGRADING.md#to-1130).

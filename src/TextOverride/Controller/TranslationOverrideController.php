@@ -10,6 +10,8 @@ use Nowo\TranslationYamlToolsBundle\Form\TranslationOverrideTextsType;
 use Nowo\TranslationYamlToolsBundle\TextOverride\EditableTranslationKeys;
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideEditor;
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides;
+use Nowo\TranslationYamlToolsBundle\Ui\TranslationOverridePageFactory;
+use Nowo\UiKitBundle\View\Pagination;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -24,7 +26,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function array_key_first;
 use function array_map;
+use function array_slice;
 use function assert;
+use function count;
 use function implode;
 use function is_scalar;
 use function strtoupper;
@@ -40,12 +44,20 @@ use function strtoupper;
  * Forms: {@see TranslationOverrideFilterType} (GET, unnamed: query {@code q} / {@code group}),
  * {@see TranslationOverrideTextsType} (named {@code texts}: fields {@code texts[<locale>]}) and
  * {@see TranslationOverrideResetType} (named {@code translation_override_reset}).
+ *
+ * Pages (REQ-UI-003): UiKit list / form scaffolds fed by {@see TranslationOverridePageFactory} (templates
+ * {@code overrides.web_ui.templates.index|edit}, layout {@code overrides.web_ui.layout_template}, null = UiKit).
  */
 final class TranslationOverrideController extends AbstractController
 {
     public const TRANSLATION_DOMAIN = 'NowoTranslationYamlToolsBundle';
 
     private const TRUNCATE = 120;
+
+    /** Rows per page of the texts list (query {@code per_page}: one of {@see self::PER_PAGE}). */
+    private const DEFAULT_PER_PAGE = 50;
+
+    private const PER_PAGE = [25, 50, 100];
 
     /**
      * @param list<string> $accessRoles
@@ -55,7 +67,7 @@ final class TranslationOverrideController extends AbstractController
         private readonly TranslationOverrideEditor $editor,
         private readonly EditableTranslationKeys $keys,
         private readonly TranslatorInterface&TranslatorBagInterface $translator,
-        private readonly string $layoutTemplate,
+        private readonly TranslationOverridePageFactory $pages,
         private readonly array $accessRoles = ['ROLE_ADMIN'],
         private readonly bool $allowUnauthenticated = false,
         private readonly int $maxLength = 5000,
@@ -122,16 +134,20 @@ final class TranslationOverrideController extends AbstractController
             }
         }
 
-        return $this->render('@NowoTranslationYamlToolsBundle/text_override/index.html.twig', [
-            'layout_template' => $this->layoutTemplate,
-            'filter_form'     => $filter->createView(),
-            'rows'            => $rows,
-            'groups'          => $groups,
-            'group'           => $group,
-            'query'           => $rawQuery,
-            'default_locale'  => $this->editor->defaultLocale(),
-            'override_count'  => $overrideCount,
-        ]);
+        $pagination = Pagination::fromRequest($request, count($rows), self::DEFAULT_PER_PAGE, self::PER_PAGE, 'nowo_translation_yaml_tools_overrides_index');
+        $pageRows   = array_slice($rows, $pagination->offset(), $pagination->limit());
+        $filterView = $filter->createView();
+
+        return $this->render($this->pages->template('index'), $this->pages->context([
+            'page'           => $this->pages->index($pageRows, $filterView, $pagination, $this->editor->defaultLocale(), $rawQuery !== '' || $group !== ''),
+            'filter_form'    => $filterView,
+            'rows'           => $pageRows,
+            'groups'         => $groups,
+            'group'          => $group,
+            'query'          => $rawQuery,
+            'default_locale' => $this->editor->defaultLocale(),
+            'override_count' => $overrideCount,
+        ]));
     }
 
     #[Route('/edit', name: 'nowo_translation_yaml_tools_overrides_edit', methods: ['GET', 'POST'])]
@@ -180,22 +196,25 @@ final class TranslationOverrideController extends AbstractController
         }
 
         $overridden = $this->editor->overriddenLocales($domain, $key);
+        $group      = $this->keys->groupOf($domain, $key);
+        $formView   = $form->createView();
+        $resetView  = $overridden === [] ? null : $this->resetForm($ref, $overridden)->createView();
 
-        return $this->render('@NowoTranslationYamlToolsBundle/text_override/edit.html.twig', [
-            'layout_template' => $this->layoutTemplate,
-            'key'             => $ref,
-            'group'           => $this->keys->groupOf($domain, $key),
-            'locales'         => $locales,
-            'default_locale'  => $this->editor->defaultLocale(),
-            'active_locale'   => $errors !== [] ? array_key_first($errors) : ($locales[0] ?? null),
-            'texts'           => $texts,
-            'shipped'         => $shipped,
-            'errors'          => $errors,
-            'max_length'      => $this->maxLength,
-            'overridden'      => $overridden,
-            'form'            => $form->createView(),
-            'reset_form'      => $overridden === [] ? null : $this->resetForm($ref, $overridden)->createView(),
-        ], new Response(null, $form->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
+        return $this->render($this->pages->template('edit'), $this->pages->context([
+            'page'           => $this->pages->edit($ref, $group, $formView, $resetView, $overridden),
+            'key'            => $ref,
+            'group'          => $group,
+            'locales'        => $locales,
+            'default_locale' => $this->editor->defaultLocale(),
+            'active_locale'  => $errors !== [] ? array_key_first($errors) : ($locales[0] ?? null),
+            'texts'          => $texts,
+            'shipped'        => $shipped,
+            'errors'         => $errors,
+            'max_length'     => $this->maxLength,
+            'overridden'     => $overridden,
+            'form'           => $formView,
+            'reset_form'     => $resetView,
+        ]), new Response(null, $form->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
     }
 
     #[Route('/reset', name: 'nowo_translation_yaml_tools_overrides_reset', methods: ['POST'])]
@@ -211,7 +230,7 @@ final class TranslationOverrideController extends AbstractController
 
         if (!$form->isSubmitted() || $form->getErrors()->count() > 0) {
             $this->addFlash('error', $this->t('overrides.flash.invalid_token'));
-        } elseif ($form->get('confirm')->getData() !== true) {
+        } elseif ($form->get('confirm')->getData() !== TranslationOverrideResetType::CONFIRMED) {
             $this->addFlash('error', $this->t('overrides.flash.confirm_required'));
         } else {
             $this->editor->reset($domain, $key);

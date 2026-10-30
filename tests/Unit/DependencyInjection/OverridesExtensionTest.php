@@ -11,6 +11,7 @@ use Nowo\TranslationYamlToolsBundle\TextOverride\Html\SymfonyTranslationOverride
 use Nowo\TranslationYamlToolsBundle\TextOverride\Html\TranslationOverrideHtmlSanitizerInterface;
 use Nowo\TranslationYamlToolsBundle\TextOverride\OverridingTranslator;
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides;
+use Nowo\TranslationYamlToolsBundle\Ui\TranslationOverridePageFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -64,7 +65,12 @@ final class OverridesExtensionTest extends TestCase
             'overrides' => [
                 'enabled'        => true,
                 'html_sanitizer' => 'app.my_sanitizer',
-                'web_ui'         => ['enabled' => true, 'layout_template' => 'admin/layout.html.twig'],
+                'web_ui'         => [
+                    'enabled'         => true,
+                    'layout_template' => 'admin/layout.html.twig',
+                    'templates'       => ['edit' => 'admin/texts/edit.html.twig'],
+                    'form_themes'     => ['form/admin.html.twig'],
+                ],
             ],
         ]], $container);
 
@@ -72,6 +78,22 @@ final class OverridesExtensionTest extends TestCase
         self::assertTrue($container->hasDefinition(TranslationOverrideController::class));
         self::assertSame('admin/layout.html.twig', $container->getParameter('nowo_translation_yaml_tools.overrides.web_ui.layout_template'));
         self::assertTrue($container->getParameter('nowo_translation_yaml_tools.overrides.web_ui.enabled'));
+        self::assertSame(
+            ['edit' => 'admin/texts/edit.html.twig', 'index' => '@NowoTranslationYamlToolsBundle/text_override/index.html.twig'],
+            $container->getParameter('nowo_translation_yaml_tools.overrides.web_ui.templates'),
+        );
+        self::assertSame(['form/admin.html.twig'], $container->getParameter('nowo_translation_yaml_tools.overrides.web_ui.form_themes'));
+        self::assertTrue($container->hasDefinition(TranslationOverridePageFactory::class));
+        self::assertTrue($container->hasDefinition('nowo_translation_yaml_tools.overrides.web_ui.pages'));
+    }
+
+    public function testWebUiLayoutDefaultsToTheUiKitLayout(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoTranslationYamlToolsExtension())->load([['overrides' => ['enabled' => true, 'web_ui' => ['enabled' => true]]]], $container);
+
+        self::assertNull($container->getParameter('nowo_translation_yaml_tools.overrides.web_ui.layout_template'));
+        self::assertSame(['@NowoUiKit/form/nowo_ui_layout.html.twig'], $container->getParameter('nowo_translation_yaml_tools.overrides.web_ui.form_themes'));
     }
 
     public function testPrependsDoctrineMappingOnlyWhenEnabled(): void

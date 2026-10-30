@@ -16,7 +16,7 @@ overrides:
     empty: Ningún texto coincide.
     edit_title: Editar texto
     edit_intro: Una pestaña por idioma. Deja un campo vacío, o mantén el texto original, para usar el predeterminado.
-    back: ← Volver a los textos
+    back: Volver a los textos
     locale_tabs: Idiomas
     badge_overridden: editado
     text_for: Texto (%locale%)
@@ -25,11 +25,48 @@ overrides:
     save: Guardar
     cancel: Cancelar
     reset: Restaurar texto original
-    reset_confirm: 'Sí, eliminar las personalizaciones de %locales%.'
+    reset_confirm_title: '¿Restaurar el texto original?'
+    reset_confirm_message: 'Se eliminan las personalizaciones de %locales% y todos los idiomas vuelven a mostrar el texto original.'
+    reset_zone_title: 'Restaurar el texto original'
+    reset_zone_intro: 'Elimina las personalizaciones de %locales%.'
     flash:
         saved: Texto guardado.
         reset: Texto original restaurado.
         invalid_token: Token de seguridad no válido. Inténtalo de nuevo.
-        confirm_required: Marca la casilla de confirmación para restaurar el texto original.
+        confirm_required: 'Confirma la restauración para recuperar el texto original.'
     error:
         too_long: Este texto es demasiado largo (máximo %max% caracteres).
+missing_log:
+    title: 'Registro de traducciones ausentes'
+    intro: 'Mensajes que el traductor no encontró en tiempo de ejecución. Añádelos a tus catálogos y márcalos como añadidos.'
+    status_tabs: 'Estado'
+    status:
+        pending: 'Pendientes'
+        added: 'Añadidas'
+        validated: 'Validadas'
+    col:
+        id: 'ID'
+        locale: 'Idioma'
+        domain: 'Dominio'
+        message_id: 'Id. del mensaje'
+        call_site: 'Punto de llamada'
+        route: 'Ruta'
+        method: 'Método'
+        path: 'URL'
+        hits: 'Accesos'
+        last_seen: 'Última vez'
+        actions: 'Acciones'
+    mark_added: 'Marcar como añadida'
+    empty: 'No hay filas con el estado «%status%».'
+    clear_status:
+        button: 'Vaciar el estado actual'
+        confirm_title: '¿Vaciar las filas «%status%»?'
+        confirm_message: 'Se eliminan todas las filas con el estado «%status%». Esta acción no se puede deshacer.'
+    clear_all:
+        button: 'Vaciar todas las filas'
+        confirm_title: '¿Vaciar todo el registro?'
+        confirm_message: 'Se eliminan todas las filas del registro, sea cual sea su estado. Esta acción no se puede deshacer.'
+    flash:
+        marked_added: 'Fila n.º %id% marcada como añadida.'
+        cleared_all: '{0}No hay filas que vaciar en el registro.|{1}Se ha eliminado 1 fila del registro.|]1,Inf[Se han eliminado %count% filas del registro.'
+        cleared_status: '{0}No hay filas con el estado «%status%» que vaciar.|{1}Se ha eliminado 1 fila con el estado «%status%».|]1,Inf[Se han eliminado %count% filas con el estado «%status%».'

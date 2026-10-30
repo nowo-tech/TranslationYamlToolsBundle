@@ -10,7 +10,6 @@ use Nowo\TranslationYamlToolsBundle\Form\TranslationOverrideResetType;
 use Nowo\TranslationYamlToolsBundle\Form\TranslationOverrideTextsType;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Controller\TranslationOverrideController;
 use PHPUnit\Framework\Attributes\CoversClass;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Test\TypeTestCase;
@@ -66,7 +65,8 @@ final class WebUiFormTypesTest extends TypeTestCase
         self::assertSame([['site.topline (2)', 'site.topline'], ['ShopBundle:loader (1)', 'ShopBundle:loader']], array_values($choices));
         self::assertSame('overrides.all_groups', $view['group']->vars['placeholder']);
         self::assertSame('q', $view['q']->vars['full_name']);
-        self::assertSame('overrides.search_placeholder', $view['q']->vars['attr']['placeholder']);
+        self::assertSame([], $view['q']->vars['attr'], 'Placeholder and layout come from the UiKit filters region (FilterField).');
+        self::assertSame([], $view['group']->vars['row_attr'], 'No framework grid classes (REQ-UI-003).');
 
         $form->submit(['q' => '  hours ', 'group' => 'site.topline']);
         self::assertSame('hours', $form->get('q')->getData());
@@ -82,30 +82,28 @@ final class WebUiFormTypesTest extends TypeTestCase
         self::assertSame('gone', $form->get('group')->getViewData());
     }
 
-    public function testTextsTypeHasOneTextareaPerLocaleAndTheTabGroup(): void
+    public function testTextsTypeHasOneTextareaPerLocale(): void
     {
         $form = $this->factory->createNamed('texts', TranslationOverrideTextsType::class, ['en' => 'Open', 'pt_BR' => 'Aberto'], [
             'locales'    => ['en', 'pt_BR'],
             'max_length' => 120,
         ]);
 
-        self::assertSame(['en', 'pt_BR', TranslationOverrideTextsType::TAB_FIELD], array_keys($form->all()));
+        self::assertSame(['en', 'pt_BR'], array_keys($form->all()), 'No 1.x CSS-only tab field: the page uses the UiKit locale tabs.');
         self::assertInstanceOf(TextareaType::class, $form->get('pt_BR')->getConfig()->getType()->getInnerType());
-        self::assertInstanceOf(ChoiceType::class, $form->get('_tab')->getConfig()->getType()->getInnerType());
-        self::assertFalse($form->get('_tab')->getConfig()->getMapped());
-        self::assertSame('en', $form->get('_tab')->getData());
 
         $view = $form->createView();
         self::assertSame('texts[pt_BR]', $view['pt_BR']->vars['full_name']);
         self::assertSame(['rows' => 4, 'maxlength' => 120, 'lang' => 'pt-BR'], $view['pt_BR']->vars['attr']);
+        self::assertSame([], $view['pt_BR']->vars['label_attr'], 'No framework classes (REQ-UI-003).');
         self::assertSame(['%locale%' => 'PT_BR'], $view['pt_BR']->vars['label_translation_parameters']);
         self::assertContains('nowo_tyt_override_text', $view['en']->vars['block_prefixes']);
-        self::assertContains('nowo_tyt_locale_tabs', $view['_tab']->vars['block_prefixes']);
         self::assertSame('Aberto', $view['pt_BR']->vars['value']);
 
-        $form->submit(['en' => '  spaced  ', '_tab' => 'pt_BR']);
+        $form->submit(['en' => '  spaced  ']);
         self::assertTrue($form->isSynchronized());
         self::assertSame(['en' => '  spaced  ', 'pt_BR' => ''], $form->getData(), 'No trimming; a missing locale is cleared.');
+
     }
 
     public function testTextsTypeRequiresLocales(): void
@@ -114,15 +112,20 @@ final class WebUiFormTypesTest extends TypeTestCase
         $this->factory->create(TranslationOverrideTextsType::class);
     }
 
-    public function testResetTypeHasRequiredConfirmation(): void
+    public function testResetTypeIsACsrfFormWithAHiddenConfirmMarker(): void
     {
         $form = $this->factory->create(TranslationOverrideResetType::class, null, ['overridden_locales' => 'EN, ES']);
 
         self::assertSame('translation_override_reset', $form->getName());
-        self::assertTrue($form->get('confirm')->isRequired());
-        self::assertSame(['%locales%' => 'EN, ES'], $form->createView()['confirm']->vars['label_translation_parameters']);
+        self::assertSame('POST', $form->getConfig()->getMethod());
+        self::assertInstanceOf(HiddenType::class, $form->get('confirm')->getConfig()->getType()->getInnerType());
+        self::assertSame(TranslationOverrideResetType::CONFIRMED, $form->createView()['confirm']->vars['value']);
 
-        $form->submit(['confirm' => '1']);
-        self::assertTrue($form->get('confirm')->getData());
+        $form->submit(['confirm' => TranslationOverrideResetType::CONFIRMED]);
+        self::assertSame(TranslationOverrideResetType::CONFIRMED, $form->get('confirm')->getData());
+
+        $forged = $this->factory->create(TranslationOverrideResetType::class);
+        $forged->submit(['confirm' => '']);
+        self::assertNotSame(TranslationOverrideResetType::CONFIRMED, $forged->get('confirm')->getData());
     }
 }

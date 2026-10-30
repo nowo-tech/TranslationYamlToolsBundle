@@ -119,6 +119,17 @@ final class MissingLogWebUiSecurityPassTest extends TestCase
         (new MissingLogWebUiSecurityPass())->process($container);
     }
 
+    public function testRequiresUiKit(): void
+    {
+        $container = $this->baseContainer(enabled: true, allowUnauthenticated: true);
+        $container->setParameter('kernel.bundles', []);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('missing_translation_log.web_ui.enabled requires NowoUiKitBundle');
+
+        (new MissingLogWebUiSecurityPass())->process($container);
+    }
+
     public function testSkipsWhenWebUiEnabledParameterMissing(): void
     {
         $container = new ContainerBuilder();
@@ -162,6 +173,7 @@ final class MissingLogWebUiSecurityPassTest extends TestCase
         bool $csrf = true,
     ): ContainerBuilder {
         $container = new ContainerBuilder();
+        $container->setParameter('kernel.bundles', ['NowoUiKitBundle' => 'Nowo\\UiKitBundle\\NowoUiKitBundle']);
         if ($csrf) {
             $container->setDefinition('security.csrf.token_manager', new Definition(stdClass::class));
             $container->setDefinition('form.type_extension.csrf', new Definition(stdClass::class));

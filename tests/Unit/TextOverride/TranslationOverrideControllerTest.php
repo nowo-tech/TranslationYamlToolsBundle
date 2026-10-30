@@ -12,6 +12,7 @@ use Nowo\TranslationYamlToolsBundle\TextOverride\Repository\TranslationOverrideR
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideEditor;
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideLocales;
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides;
+use Nowo\TranslationYamlToolsBundle\Ui\TranslationOverridePageFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
@@ -120,7 +121,7 @@ final class TranslationOverrideControllerTest extends TestCase
             new TranslationOverrideEditor($overrides, $translator, $locales),
             new EditableTranslationKeys(['messages' => ['site.']]),
             $translator,
-            'layout.html.twig',
+            new TranslationOverridePageFactory($this->createStub(UrlGeneratorInterface::class)),
             $roles,
         );
     }

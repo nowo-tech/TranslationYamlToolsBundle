@@ -135,9 +135,10 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         self::assertFalse($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.async_persist'));
         self::assertSame('messenger', $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.async_persist_strategy'));
         self::assertFalse($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled'));
+        self::assertNull($container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template'));
         self::assertSame(
-            '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig',
-            $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template'),
+            ['index' => '@NowoTranslationYamlToolsBundle/missing_translation_log/index.html.twig'],
+            $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.templates'),
         );
         self::assertSame('bootstrap5', $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.css_framework'));
         self::assertSame('ROLE_ADMIN', $container->getParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role'));

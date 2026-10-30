@@ -1,3 +1,8 @@
+# UiKit page contract (REQ-UI-003): one host layout and one theme for every Nowo bundle page. The demo host layout
+# (templates/layouts/admin.html.twig) adds the demo masthead and loads Bootstrap 5 (css_framework bootstrap5): the
+# missing-translation log and the text-overrides desk render in it.
 nowo_ui_kit:
     css_framework: bootstrap5
     icon_set: bootstrap-icons
+    layouts:
+        admin: 'layouts/admin.html.twig'

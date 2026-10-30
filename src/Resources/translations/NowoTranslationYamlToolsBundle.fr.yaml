@@ -16,7 +16,7 @@ overrides:
     empty: Aucun texte ne correspond.
     edit_title: Modifier le texte
     edit_intro: Un onglet par langue. Laissez un champ vide, ou conservez le texte d'origine, pour utiliser la valeur par défaut.
-    back: ← Retour aux textes
+    back: Retour aux textes
     locale_tabs: Langues
     badge_overridden: modifié
     text_for: Texte (%locale%)
@@ -25,11 +25,48 @@ overrides:
     save: Enregistrer
     cancel: Annuler
     reset: Restaurer le texte d'origine
-    reset_confirm: 'Oui, supprimer les personnalisations pour %locales%.'
+    reset_confirm_title: 'Restaurer le texte d''origine ?'
+    reset_confirm_message: 'Les personnalisations pour %locales% sont supprimées et toutes les langues affichent de nouveau le texte d''origine.'
+    reset_zone_title: 'Restaurer le texte d''origine'
+    reset_zone_intro: 'Supprime les personnalisations pour %locales%.'
     flash:
         saved: Texte enregistré.
         reset: Texte d'origine restauré.
         invalid_token: Jeton de sécurité invalide. Veuillez réessayer.
-        confirm_required: Cochez la case de confirmation pour restaurer le texte d'origine.
+        confirm_required: 'Confirmez la restauration pour retrouver le texte d''origine.'
     error:
         too_long: Ce texte est trop long (%max% caractères maximum).
+missing_log:
+    title: 'Journal des traductions manquantes'
+    intro: 'Messages que le traducteur n''a pas trouvés à l''exécution. Ajoutez-les à vos catalogues, puis marquez-les comme ajoutés.'
+    status_tabs: 'Statut'
+    status:
+        pending: 'En attente'
+        added: 'Ajoutées'
+        validated: 'Validées'
+    col:
+        id: 'ID'
+        locale: 'Langue'
+        domain: 'Domaine'
+        message_id: 'Id. du message'
+        call_site: 'Point d''appel'
+        route: 'Route'
+        method: 'Méthode'
+        path: 'Chemin'
+        hits: 'Occurrences'
+        last_seen: 'Vu en dernier'
+        actions: 'Actions'
+    mark_added: 'Marquer comme ajoutée'
+    empty: 'Aucune ligne avec le statut « %status% ».'
+    clear_status:
+        button: 'Vider le statut actuel'
+        confirm_title: 'Vider les lignes « %status% » ?'
+        confirm_message: 'Toutes les lignes avec le statut « %status% » sont supprimées. Cette action est irréversible.'
+    clear_all:
+        button: 'Vider toutes les lignes'
+        confirm_title: 'Vider tout le journal ?'
+        confirm_message: 'Toutes les lignes du journal sont supprimées, quel que soit leur statut. Cette action est irréversible.'
+    flash:
+        marked_added: 'Ligne n° %id% marquée comme ajoutée.'
+        cleared_all: '{0}Aucune ligne du journal à vider.|{1}1 ligne du journal supprimée.|]1,Inf[%count% lignes du journal supprimées.'
+        cleared_status: '{0}Aucune ligne avec le statut « %status% » à vider.|{1}1 ligne avec le statut « %status% » supprimée.|]1,Inf[%count% lignes avec le statut « %status% » supprimées.'

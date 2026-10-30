@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 
+use Nowo\TranslationYamlToolsBundle\Ui\WebUiPages;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -181,21 +182,25 @@ final class Configuration implements ConfigurationInterface
                                     ->end()
                                 ->end()
                                 ->scalarNode('layout_template')
-                                    ->info('Twig layout extended by the missing-log UI (global nowo_translation_yaml_tools_missing_log_layout_template). Use @NowoTranslationYamlToolsBundle/missing_translation_log/layout_integrate_dashboard_menu.html.twig or layout_integrate_breadcrumb_kit.html.twig to match those dashboards.')
-                                    ->defaultValue('@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig')
+                                    ->info('Layout the page scaffolds extend (REQ-UI-001/003). Null (default) = nowo_ui_kit.layouts.admin. A host layout renders the UiKit canonical blocks; a 1.x layout that renders {% block nowo_translation_yaml_tools_missing_log_content %} (e.g. the deprecated layout_integrate_dashboard_menu.html.twig / layout_integrate_breadcrumb_kit.html.twig) is wrapped in a deprecated bridge. The former default @NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig means null.')
+                                    ->defaultNull()
                                 ->end()
+                                ->append($this->templatesNode(WebUiPages::MISSING_LOG))
                                 ->enumNode('css_framework')
-                                    ->info('Host CSS stack hint for the missing-log Web UI (REQ-UI-001). Twig global nowo_translation_yaml_tools_css_framework. Demo default: bootstrap5.')
+                                    ->info('Deprecated since 1.14: set nowo_ui_kit.css_framework once for every bundle. Seeds nowo_ui_kit.css_framework (and icon_set) when the host leaves it unset. The pages read the UiKit theme only.')
                                     ->values(['bootstrap', 'bootstrap4', 'bootstrap5', 'tailwind', 'foundation', 'custom', 'tabler', 'none'])
                                     ->defaultValue('bootstrap5')
+                                    ->setDeprecated('nowo-tech/translation-yaml-tools-bundle', '1.14', 'The "%node%" option at "%path%" is deprecated: set nowo_ui_kit.css_framework once for every bundle. It only seeds nowo_ui_kit.css_framework when the host leaves it unset.')
                                 ->end()
                                 ->scalarNode('required_role')
                                     ->info('Deprecated BC alias for security.access_roles (single role). Prefer security.access_roles. Empty/null is fail-closed via the access checker.')
                                     ->defaultValue('ROLE_ADMIN')
+                                    ->setDeprecated('nowo-tech/translation-yaml-tools-bundle', '1.14', 'The "%node%" option at "%path%" is deprecated, use "security.access_roles" instead.')
                                 ->end()
                                 ->booleanNode('allow_unauthenticated')
                                     ->info('Deprecated BC alias for security.allow_unauthenticated. DEV/DEMO ONLY.')
                                     ->defaultFalse()
+                                    ->setDeprecated('nowo-tech/translation-yaml-tools-bundle', '1.14', 'The "%node%" option at "%path%" is deprecated, use "security.allow_unauthenticated" instead.')
                                 ->end()
                                 ->arrayNode('security')
                                     ->info('Private Web UI access (REQ-UI-002). Defaults to ROLE_ADMIN; demos may set allow_unauthenticated.')
@@ -224,6 +229,24 @@ final class Configuration implements ConfigurationInterface
             ->end();
 
         return $treeBuilder;
+    }
+
+    /**
+     * `web_ui.templates`: per-page template overrides of one Web UI (REQ-UI-003), page id => template.
+     */
+    private function templatesNode(string $ui): ArrayNodeDefinition
+    {
+        /** @var ArrayNodeDefinition $node */
+        $node     = (new TreeBuilder('templates'))->getRootNode();
+        $children = $node
+            ->info('Per-page template overrides (REQ-UI-003): a host template that extends the bundle page and overrides a data block.')
+            ->addDefaultsIfNotSet()
+            ->children();
+        foreach (WebUiPages::TEMPLATES[$ui] as $page => $template) {
+            $children->scalarNode($page)->defaultValue($template)->cannotBeEmpty()->end();
+        }
+
+        return $node;
     }
 
     /**
@@ -307,9 +330,14 @@ final class Configuration implements ConfigurationInterface
                             ->end()
                         ->end()
                         ->scalarNode('layout_template')
-                            ->info('Twig layout the pages extend; must define blocks "title" and "body" (Symfony base.html.twig convention), e.g. your admin layout.')
-                            ->defaultValue('@NowoTranslationYamlToolsBundle/text_override/layout.html.twig')
-                            ->cannotBeEmpty()
+                            ->info('Layout the page scaffolds extend (REQ-UI-001/003). Null (default) = nowo_ui_kit.layouts.admin. A host layout renders the UiKit canonical blocks; a 1.x layout that renders {% block body %} (and title / stylesheets / javascripts) is wrapped in a deprecated bridge. The former default @NowoTranslationYamlToolsBundle/text_override/layout.html.twig means null.')
+                            ->defaultNull()
+                        ->end()
+                        ->append($this->templatesNode(WebUiPages::OVERRIDES))
+                        ->arrayNode('form_themes')
+                            ->info('Form themes of the edit page (UiKit FormPage formThemes). Empty = only the host twig.form_themes.')
+                            ->scalarPrototype()->cannotBeEmpty()->end()
+                            ->defaultValue([WebUiPages::DEFAULT_FORM_THEME])
                         ->end()
                         ->arrayNode('security')
                             ->addDefaultsIfNotSet()

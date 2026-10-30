@@ -7,7 +7,25 @@ services:
     Nowo\TranslationYamlToolsBundle\TextOverride\Controller\TranslationOverrideController:
         arguments:
             $translator: '@translator'
-            $layoutTemplate: '%nowo_translation_yaml_tools.overrides.web_ui.layout_template%'
+            $pages: '@Nowo\TranslationYamlToolsBundle\Ui\TranslationOverridePageFactory'
             $accessRoles: '%nowo_translation_yaml_tools.overrides.web_ui.security.access_roles%'
             $allowUnauthenticated: '%nowo_translation_yaml_tools.overrides.web_ui.security.allow_unauthenticated%'
             $maxLength: '%nowo_translation_yaml_tools.overrides.max_length%'
+
+    # REQ-UI-003 page plumbing of the overrides desk (layout, per-page templates, form themes, legacy layout bridge).
+    nowo_translation_yaml_tools.overrides.web_ui.pages:
+        class: Nowo\TranslationYamlToolsBundle\Ui\WebUiPages
+        autowire: false
+        autoconfigure: false
+        arguments:
+            $ui: !php/const Nowo\TranslationYamlToolsBundle\Ui\WebUiPages::OVERRIDES
+            $layoutTemplate: '%nowo_translation_yaml_tools.overrides.web_ui.layout_template%'
+            $templates: '%nowo_translation_yaml_tools.overrides.web_ui.templates%'
+            $formThemes: '%nowo_translation_yaml_tools.overrides.web_ui.form_themes%'
+            $twig: '@?twig'
+
+    Nowo\TranslationYamlToolsBundle\Ui\TranslationOverridePageFactory:
+        autowire: false
+        arguments:
+            $urlGenerator: '@router'
+            $pages: '@nowo_translation_yaml_tools.overrides.web_ui.pages'

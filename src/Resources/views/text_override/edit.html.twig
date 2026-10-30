@@ -1,72 +1,49 @@
-{% extends layout_template %}
+{#
+  Text-overrides desk, edit one text (REQ-UI-003): UiKit form scaffold. Variable: page (View\FormPage from
+  TranslationOverridePageFactory::edit(): header overrides.edit_title / overrides.edit_intro with a back link to the
+  texts of the same group; form = TranslationOverrideTextsType (one textarea per locale); submit overrides.save,
+  cancel = the list; delete zone = Restore shipped text (POST + CSRF-only TranslationOverrideResetType FormView behind
+  a Confirm) when a locale is overridden; formThemes = overrides.web_ui.form_themes).
+  Extra variables: key (the edited reference), group, locales, default_locale, active_locale (first locale with an
+  error, else the first one), texts, shipped (locale => shipped text), errors, max_length, overridden (locales with
+  an override), form (the FormView of page.form), reset_form (the FormView of the reset action: render it only once).
+  Data block filled: nowo_ui_form_body (the key, then one UiKit locale tab per textarea with the shipped text, then
+  the REQ-TWIG-003 child loop for the remaining fields).
+#}
+{% extends '@NowoUiKit/page/form.html.twig' %}
 {% trans_default_domain 'NowoTranslationYamlToolsBundle' %}
 
-{% block title %}{{ 'overrides.edit_title'|trans }}{% endblock %}
-
-{% block body %}
-{% set csp_nonce = app.request.attributes.get('csp_nonce') %}
-{# CSS-only tabs (no JavaScript); the nonce lets a strict style-src CSP accept this block. #}
-<style{% if csp_nonce %} nonce="{{ csp_nonce }}"{% endif %}>
-    .nowo-tyt-tabs > .nowo-tyt-tab-input { position: absolute; opacity: 0; pointer-events: none; }
-    .nowo-tyt-tabs > .nowo-tyt-tab-panel { display: none; }
-    .nowo-tyt-shipped { white-space: pre-line; }
-    .nowo-tyt-tabs > .nowo-tyt-tab-input:focus-visible + .nowo-tyt-tab-label { outline: 2px solid currentColor; outline-offset: 2px; }
-    {% for locale in locales %}
-    #nowo-tyt-tab-{{ loop.index }}:checked + .nowo-tyt-tab-label { font-weight: 600; border-bottom: 2px solid currentColor; }
-    #nowo-tyt-tab-{{ loop.index }}:checked ~ #nowo-tyt-panel-{{ loop.index }} { display: block; }
-    {% endfor %}
-</style>
-
-<div class="mb-3">
-    <p class="small mb-1"><a href="{{ path('nowo_translation_yaml_tools_overrides_index', {group: group}) }}">{{ 'overrides.back'|trans }}</a></p>
-    <h1 class="h3">{{ 'overrides.edit_title'|trans }}</h1>
-    <p class="font-monospace small mb-1" data-testid="tyt-overrides-key">{{ key }}</p>
-    <p class="text-muted">{{ 'overrides.edit_intro'|trans }}</p>
-</div>
-
-{% form_theme form with ['bootstrap_5_layout.html.twig', '@NowoTranslationYamlToolsBundle/text_override/form_theme.html.twig'] %}
-{{ form_start(form, {attr: {class: 'card card-body mb-3', 'data-testid': 'tyt-overrides-form', novalidate: 'novalidate'}}) }}
+{% block nowo_ui_form_body %}
+    {% set _b = page.bundle %}
+    <p class="{{ nowo_ui_class('muted', _b) }}"><code class="{{ nowo_ui_class('code', _b) }}" data-testid="tyt-overrides-key">{{ key }}</code></p>
     {{ form_errors(form) }}
-    <fieldset class="nowo-tyt-tabs">
-        <legend class="h6">{{ 'overrides.locale_tabs'|trans }}</legend>
-        {{ form_widget(form._tab, {nowo_tyt_active: active_locale, nowo_tyt_overridden: overridden}) }}
-        {# One tab panel per locale textarea (rule 3 custom layout); remaining children are rendered after the fieldset. #}
-        {% set panel_index = 0 %}
-        {% for child in form %}
-            {% if not child.rendered and 'nowo_tyt_override_text' in child.vars.block_prefixes %}
-                {% set panel_index = panel_index + 1 %}
-                <div class="nowo-tyt-tab-panel pt-3" id="nowo-tyt-panel-{{ panel_index }}" data-locale="{{ child.vars.name }}">
-                    {{ form_row(child) }}
-                    <details class="mt-2 small">
-                        <summary>{{ 'overrides.shipped'|trans }}</summary>
-                        <div class="nowo-tyt-shipped text-muted mt-1">{{ shipped[child.vars.name] ?? '' }}</div>
-                    </details>
-                </div>
+    {% set _panels = [] %}
+    {% for locale in locales %}
+        {% set _child = form[locale] %}
+        {% set _content %}
+            {% if locale in overridden %}
+                <p><span class="{{ nowo_ui_class('badge_info', _b) }}" data-testid="tyt-overrides-overridden">{{ 'overrides.badge_overridden'|trans }}</span></p>
             {% endif %}
-        {% endfor %}
-    </fieldset>
+            {{ form_row(_child) }}
+            <details class="nowo-tyt-shipped">
+                <summary>{{ 'overrides.shipped'|trans }}</summary>
+                <p class="{{ nowo_ui_class('muted', _b) }}">{{ shipped[locale] ?? '' }}</p>
+            </details>
+        {% endset %}
+        {% set _panels = _panels|merge([{locale: locale, content: _content, invalid: _child.vars.errors|length > 0, attr: {'data-testid': 'tyt-overrides-panel-' ~ locale}}]) %}
+    {% endfor %}
+    {{ include(nowo_ui_partial('locale_tabs', _b), {
+        panels: _panels,
+        id: 'nowo-tyt-texts',
+        label: 'overrides.locale_tabs'|trans,
+        default_locale: default_locale,
+        active_locale: active_locale,
+        bundle: _b,
+        nowo_ui_page_type: nowo_ui_page_type,
+    }, false) }}
     {% for child in form %}
         {% if not child.rendered %}
             {{ form_row(child) }}
         {% endif %}
     {% endfor %}
-
-    <div class="d-flex flex-wrap gap-2 mt-3">
-        <button class="btn btn-primary" type="submit">{{ 'overrides.save'|trans }}</button>
-        <a class="btn btn-outline-secondary" href="{{ path('nowo_translation_yaml_tools_overrides_index', {group: group}) }}">{{ 'overrides.cancel'|trans }}</a>
-    </div>
-{{ form_end(form) }}
-
-{% if reset_form is not null %}
-    {# Confirmation without JavaScript: the reset button only submits once the checkbox is ticked (checked server-side too). #}
-    {% form_theme reset_form 'bootstrap_5_layout.html.twig' %}
-    {{ form_start(reset_form, {attr: {class: 'card card-body border-warning', 'data-testid': 'tyt-overrides-reset'}}) }}
-        {% for child in reset_form %}
-            {% if not child.rendered %}
-                {{ form_row(child) }}
-            {% endif %}
-        {% endfor %}
-        <div><button class="btn btn-sm btn-outline-danger" type="submit">{{ 'overrides.reset'|trans }}</button></div>
-    {{ form_end(reset_form) }}
-{% endif %}
 {% endblock %}

@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # REQ-TWIG-005 — fail when bundle or demo Twig uses raw <form> / <input> / <textarea> / <select>.
-# Allowlist (form-theme exception): src/Resources/views/text_override/form_theme.html.twig implements the
-# nowo_tyt_locale_tabs_widget theme block (CSS-only locale tabs of TranslationOverrideTextsType), so it emits the
-# radio inputs of that widget by design.
+# No allowlist: since 1.14 the bundle ships no form theme (the 1.x text_override/form_theme.html.twig locale-tab
+# radios were replaced by the UiKit locale tabs, REQ-UI-003).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,8 +17,7 @@ if [[ ${#paths[@]} -eq 0 ]]; then
   exit 0
 fi
 
-matches="$(grep -RInE '<(form|input|textarea|select)[[:space:]>]' "${paths[@]}" --include='*.twig' \
-  | grep -v '^src/Resources/views/text_override/form_theme\.html\.twig:' || true)"
+matches="$(grep -RInE '<(form|input|textarea|select)[[:space:]>]' "${paths[@]}" --include='*.twig' || true)"
 if [[ -n "$matches" ]]; then
   echo "ERROR: raw <form> / <input> / <textarea> / <select> in Twig (REQ-TWIG-005):" >&2
   echo "$matches" >&2

@@ -187,9 +187,9 @@ Files must follow Symfony’s usual pattern:
 
 ## Twig — missing translation log Web UI
 
-When **`missing_translation_log.web_ui.enabled`** is **`true`**, the bundle exposes HTML under the imported route prefix (see [Configuration](CONFIGURATION.md)). The controller renders **`@NowoTranslationYamlToolsBundle/missing_translation_log/index.html.twig`**. Optional layout integration with **NowoDashboardMenuBundle** / **NowoBreadcrumbKitBundle** uses the bridge templates and **`web_ui.layout_template`** (see [Configuration](CONFIGURATION.md)).
+When **`missing_translation_log.web_ui.enabled`** is **`true`**, the bundle exposes HTML under the imported route prefix (see [Configuration](CONFIGURATION.md)). The page is the UiKit **list scaffold** (REQ-UI-003): status tabs (Pending / Added / Validated), the actions **Clear current status** and **Clear all rows** behind the UiKit confirm `<dialog>`, a **Mark added** row action on pending rows and pagination (`?page=` / `?per_page=` 25 · 50 · 100 · 200). It renders inside **`nowo_ui_kit.layouts.admin`** (or `web_ui.layout_template`); pages, view models and data blocks are listed in [TEMPLATES](TEMPLATES.md), the host layout set-up in [Configuration](CONFIGURATION.md#web-ui-layout-and-theme-req-ui-003). UI strings live in the `NowoTranslationYamlToolsBundle` domain (7 locales).
 
-**Forms (REQ-TWIG-003 / REQ-TWIG-005):** every Web UI form (missing log and text overrides) is a Symfony Form type under `Nowo\TranslationYamlToolsBundle\Form\` with CSRF on, created in the controller and rendered with `form_start(form)`, the child loop `{% for child in form %}{% if not child.rendered %}{{ form_row(child) }}{% endif %}{% endfor %}` and `form_end(form)`; submit buttons stay outside the loop. When you override a template, keep that pattern — do not reintroduce raw `<form>` / `<input>` markup (see [UPGRADING](UPGRADING.md#unreleased) for the template variables and field names). The demo follows the same rule (its login page uses a `LoginFormType` with the `form_login` field names `_username` / `_password` / `_csrf_token`), and `make check-no-raw-html-form` (part of `release-check`) fails on raw form controls in bundle views and demo templates; the only allowlisted file is the `text_override/form_theme.html.twig` form theme (it implements the locale-tabs widget block).
+**Forms (REQ-TWIG-003 / REQ-TWIG-005):** every Web UI form (missing log and text overrides) is a Symfony Form type under `Nowo\TranslationYamlToolsBundle\Form\` with CSRF on, created in the controller and rendered with `form_start(form)`, the child loop `{% for child in form %}{% if not child.rendered %}{{ form_row(child) }}{% endif %}{% endfor %}` and `form_end(form)`; submit buttons stay outside the loop. When you override a template, keep that pattern — do not reintroduce raw `<form>` / `<input>` markup (see [UPGRADING](UPGRADING.md#unreleased) for the template variables and field names). The demo follows the same rule (its login page uses a `LoginFormType` with the `form_login` field names `_username` / `_password` / `_csrf_token`), and `make check-no-raw-html-form` (part of `release-check`) fails on raw form controls in bundle views and demo templates (no allowlist: the bundle ships no form theme). Every POST action of the pages is a CSRF-only `FormView` rendered by the UiKit `action` partial (hidden fields: `_token`, plus `status` / `confirm` markers).
 
 The log table enforces one row per **`(message_id, domain, locale)`**; from **0.3.2** onward, flushes use duplicate-safe persistence. From **1.2.1** onward, the common engines use a native UPSERT so conflict does not throw a SQL duplicate-key exception (details in [Configuration](CONFIGURATION.md#missing-translation-log-database)).
 
@@ -225,7 +225,7 @@ Opt-in (`overrides.enabled`, see [CONFIGURATION — Text overrides](CONFIGURATIO
 
 ### Web UI desk
 
-`GET {path_prefix}/` lists every editable message of the default locale (filter by **group** — first two key segments, e.g. `site.footer` or `NowoUiKitBundle:loader` — and full-text **search** over key + current text), with badges for the locales that have an override. `GET {path_prefix}/edit?key=site.footer.tagline` shows one textarea per locale in CSS-only tabs plus the shipped text; saving a text equal to the shipped one (or blank) deletes that locale's override. The reset form deletes every locale's override after a confirmation checkbox. Templates: `@NowoTranslationYamlToolsBundle/text_override/{layout,index,edit}.html.twig` (override them under `templates/bundles/NowoTranslationYamlToolsBundle/text_override/`). UI strings live in the `NowoTranslationYamlToolsBundle` domain (en, es). The edit page also uses `text_override/form_theme.html.twig` (CSS-only locale tab radios).
+`GET {path_prefix}/` (UiKit list scaffold) lists every editable message of the default locale (filter by **group** — first two key segments, e.g. `site.footer` or `NowoUiKitBundle:loader` — and full-text **search** over key + current text), with badges for the locales that have an override, paginated (`?page=` / `?per_page=` 25 · 50 · 100). `GET {path_prefix}/edit?key=site.footer.tagline` (UiKit form scaffold) shows one textarea per locale in the **UiKit locale tabs** (progressive: stacked panels without JavaScript) plus the shipped text; saving a text equal to the shipped one (or blank) deletes that locale's override. **Restore shipped text** (delete zone) deletes every locale's override after the UiKit confirm `<dialog>`. Templates: `@NowoTranslationYamlToolsBundle/text_override/{index,edit}.html.twig` — see [TEMPLATES](TEMPLATES.md) (prefer `overrides.web_ui.templates.<page>` over full copies). UI strings live in the `NowoTranslationYamlToolsBundle` domain (7 locales).
 
 ### Form bridge (host forms)
 
@@ -290,7 +290,15 @@ To add a locale the bundle does not ship (e.g. `ca`), create `translations/NowoT
 
 The bundle registers the Twig namespace **`@NowoTranslationYamlToolsBundle/`** only when the Web UI is enabled. **`TwigPathsPass`** maps the Symfony override directory **`templates/bundles/NowoTranslationYamlToolsBundle/`** to that namespace with **`prependPath()`** when the folder exists, then registers the bundle **`src/Resources/views`** path with **`addPath()`**, so your app copies are tried before the vendor templates. You do not need entries in **`config/packages/twig.yaml`** for this.
 
-**Freeze rule:** a full-file override hides vendor updates for that `<subpath>` until you delete or manually merge it. Prefer **`missing_translation_log.web_ui.layout_template`** / **`css_framework`** (and host / bridge layouts) over copying every missing-log page; override only the one file you customise.
+**Freeze rule:** a full-file override hides vendor updates for that `<subpath>` until you delete or manually merge it. Upgrade-safe customisation, in this order:
+
+| Depth | How | On a bundle upgrade |
+| --- | --- | --- |
+| Preferred — no Twig fork | `nowo_ui_kit.layouts.admin` (or `web_ui.layout_template`), `nowo_ui_kit.theme` (class / attribute maps, tokens, `theme.bundles.NowoTranslationYamlToolsBundle`), translations (`translations/NowoTranslationYamlToolsBundle.<locale>.yaml`), CSS on `nowo-ui-*` / `--nowo-ui-*` | Vendor templates and fixes apply automatically |
+| Surgical | `web_ui.templates.<page>` with a thin `{% extends '@!NowoTranslationYamlToolsBundle/...' %}` overriding one data block (`nowo_ui_list_row`, `nowo_ui_form_body`, `nowo_ui_content`, …) | Only that block is frozen |
+| Full-file override | Copy a page into `templates/bundles/NowoTranslationYamlToolsBundle/<subpath>` | That `<subpath>` is frozen until removed or merged |
+
+**Recovery:** delete the file under `templates/bundles/NowoTranslationYamlToolsBundle/` (or merge the vendor changes into it) and clear the cache.
 
 **Procedure (app):**
 
@@ -308,26 +316,15 @@ templates/bundles/NowoTranslationYamlToolsBundle/missing_translation_log/index.h
 
 | Subpath | Purpose |
 |--------|---------|
-| `missing_translation_log/layout.html.twig` | Default Bootstrap shell (navbar, main, blocks `missing_log_title`, `nowo_translation_yaml_tools_missing_log_content`, etc.). |
-| `missing_translation_log/base.html.twig` | Extends the configurable layout; flashes and blocks `missing_log_breadcrumb`, `missing_log_body`. |
-| `missing_translation_log/index.html.twig` | Missing-log list page; blocks for heading, filters, table. |
-| `missing_translation_log/_status_filters.html.twig` | Pending / Added / Validated pill links. |
-| `missing_translation_log/_table.html.twig` | Data table and “Mark added” forms (`mark_added_forms[row.id]`). |
-| `missing_translation_log/layout_integrate_dashboard_menu.html.twig` | Bridge extending **NowoDashboardMenuBundle** dashboard layout (optional). |
-| `missing_translation_log/layout_integrate_breadcrumb_kit.html.twig` | Bridge extending **NowoBreadcrumbKitBundle** dashboard layout (optional). |
+| `missing_translation_log/index.html.twig` | Missing-log list page (UiKit `page/list`, data block `nowo_ui_list_row`). |
+| `text_override/index.html.twig` | Texts list (UiKit `page/list`, data blocks `nowo_ui_list_row`, `nowo_ui_content`). |
+| `text_override/edit.html.twig` | Edit one text (UiKit `page/form`, data block `nowo_ui_form_body`). |
+| `missing_translation_log/_legacy_layout.html.twig`, `text_override/_legacy_layout.html.twig` | Deprecated bridges around a 1.x `web_ui.layout_template` (removed in 2.0). |
+| `missing_translation_log/layout_integrate_dashboard_menu.html.twig`, `…/layout_integrate_breadcrumb_kit.html.twig` | Deprecated 1.x bridges into the DashboardMenu / BreadcrumbKit (< 2.7) dashboard layouts (removed in 2.0); with those bundles >= 2.7 point `nowo_ui_kit.layouts.admin` at their UiKit layout instead. |
 
-**Layout without copying files:** set **`missing_translation_log.web_ui.layout_template`** to your app layout or to one of the bridge templates above; the Twig global **`nowo_translation_yaml_tools_missing_log_layout_template`** mirrors that value for use in custom templates. The page shell (`base.html.twig`) stacks `stylesheets` / `javascripts` with `{{ parent() }}` (REQ-UI-001).
-
-**`css_framework` (REQ-UI-001):** set **`missing_translation_log.web_ui.css_framework`** to match the host stack (`bootstrap5` default, or `tailwind` / `foundation` / `custom` / …). Twig global: **`nowo_translation_yaml_tools_css_framework`**. When using a host / DashboardMenu / BreadcrumbKit layout, set `custom` (or match that shell) so the standalone Bootstrap CDN is not assumed.
-
-```yaml
-nowo_translation_yaml_tools:
-    missing_translation_log:
-        web_ui:
-            enabled: true
-            css_framework: bootstrap5
-            # layout_template: '@NowoTranslationYamlToolsBundle/missing_translation_log/layout_integrate_dashboard_menu.html.twig'
-```
+The page shell, header, tabs, table, pagination, empty state, flashes and confirm dialogs come from UiKit: theme them
+once in `nowo_ui_kit` (see [Configuration](CONFIGURATION.md#web-ui-layout-and-theme-req-ui-003)) instead of copying
+bundle pages. Full reference: [TEMPLATES](TEMPLATES.md).
 
 ## Symfony 8 demo
 

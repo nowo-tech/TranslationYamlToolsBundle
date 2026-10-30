@@ -11,6 +11,9 @@ use Nowo\TranslationYamlToolsBundle\EventSubscriber\MissingLogUiAccessSubscriber
 use Nowo\TranslationYamlToolsBundle\Form\MissingTranslationLogActionType;
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
 use Nowo\TranslationYamlToolsBundle\Security\MissingLogUiAccessCheckerInterface;
+use Nowo\TranslationYamlToolsBundle\Ui\MissingTranslationLogPageFactory;
+use Nowo\TranslationYamlToolsBundle\Ui\WebUiPages;
+use Nowo\UiKitBundle\View\Pagination;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
@@ -18,6 +21,9 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Translation\IdentityTranslator;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function assert;
 use function is_object;
@@ -34,12 +40,24 @@ use function sprintf;
  * Every POST action is a {@see MissingTranslationLogActionType} form (CSRF on, rendered with
  * {@code form_start} / child loop / {@code form_end}); the form names are
  * {@code missing_log_clear_status}, {@code missing_log_clear_all} and {@code missing_log_mark_added_<id>}.
+ *
+ * The list page (REQ-UI-003) is the UiKit list scaffold fed by {@see MissingTranslationLogPageFactory} (template
+ * {@code missing_translation_log.web_ui.templates.index}, layout {@code web_ui.layout_template}, null = UiKit),
+ * paginated ({@code page} / {@code per_page} query parameters). Flash messages use the
+ * {@code NowoTranslationYamlToolsBundle} domain.
  */
 final class MissingTranslationLogUiController extends AbstractController
 {
+    /** Rows per page (query {@code per_page}: one of {@see self::PER_PAGE}). */
+    private const DEFAULT_PER_PAGE = 50;
+
+    private const PER_PAGE = [25, 50, 100, 200];
+
     public function __construct(
         private readonly MissingTranslationLogRepository $repository,
         private readonly ?MissingLogUiAccessCheckerInterface $accessChecker = null,
+        private readonly ?MissingTranslationLogPageFactory $pages = null,
+        private readonly ?TranslatorInterface $translator = null,
     ) {
     }
 
@@ -50,7 +68,8 @@ final class MissingTranslationLogUiController extends AbstractController
 
         $statusParam = (string) $request->query->get('status', MissingTranslationLogStatus::Pending->value);
         $status      = MissingTranslationLogStatus::tryFrom($statusParam) ?? MissingTranslationLogStatus::Pending;
-        $rows        = $this->repository->findByStatus($status, 500);
+        $pagination  = Pagination::fromRequest($request, $this->repository->countByStatus($status), self::DEFAULT_PER_PAGE, self::PER_PAGE, MissingTranslationLogPageFactory::INDEX_ROUTE);
+        $rows        = $this->repository->findByStatus($status, $pagination->limit(), $pagination->offset());
 
         $markAddedForms = [];
         if ($status === MissingTranslationLogStatus::Pending) {
@@ -59,14 +78,18 @@ final class MissingTranslationLogUiController extends AbstractController
                 $markAddedForms[$id] = $this->markAddedForm($id)->createView();
             }
         }
+        $clearStatusForm = $this->clearStatusForm($status->value)->createView();
+        $clearForm       = $this->clearForm($status->value)->createView();
+        $pages           = $this->pages();
 
-        return $this->render('@NowoTranslationYamlToolsBundle/missing_translation_log/index.html.twig', [
+        return $this->render($pages->template(), $pages->context([
+            'page'              => $pages->index($rows, $status, $pagination, $clearStatusForm, $clearForm, $markAddedForms),
             'rows'              => $rows,
             'status'            => $status->value,
-            'clear_status_form' => $this->clearStatusForm($status->value)->createView(),
-            'clear_form'        => $this->clearForm($status->value)->createView(),
+            'clear_status_form' => $clearStatusForm,
+            'clear_form'        => $clearForm,
             'mark_added_forms'  => $markAddedForms,
-        ]);
+        ]));
     }
 
     #[Route('/{id}/mark-added', name: 'nowo_translation_yaml_tools_missing_log_mark_added', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -84,7 +107,7 @@ final class MissingTranslationLogUiController extends AbstractController
         $row->setStatus(MissingTranslationLogStatus::Added);
         $this->repository->flush();
 
-        $this->addFlash('success', sprintf('Row #%d marked as added.', $id));
+        $this->addFlash('success', $this->t('missing_log.flash.marked_added', ['%id%' => $id]));
 
         return $this->redirectToRoute('nowo_translation_yaml_tools_missing_log_index', [
             'status' => MissingTranslationLogStatus::Pending->value,
@@ -101,7 +124,7 @@ final class MissingTranslationLogUiController extends AbstractController
 
         // @igor-ignore - HTTP handler delegates to services; no controller worker state.
         $deleted = $this->repository->clearAll();
-        $this->addFlash('success', sprintf('Cleared %d missing-log row(s).', $deleted));
+        $this->addFlash('success', $this->t('missing_log.flash.cleared_all', ['%count%' => $deleted]));
 
         $status = $this->submittedStatus($form);
 
@@ -122,11 +145,34 @@ final class MissingTranslationLogUiController extends AbstractController
 
         // @igor-ignore - HTTP handler delegates to services; no controller worker state.
         $deleted = $this->repository->clearByStatus($status);
-        $this->addFlash('success', sprintf('Cleared %d row(s) with status "%s".', $deleted, $status->value));
+        $this->addFlash('success', $this->t('missing_log.flash.cleared_status', ['%count%' => $deleted, '%status%' => $status->value]));
 
         return $this->redirectToRoute('nowo_translation_yaml_tools_missing_log_index', [
             'status' => $status->value,
         ]);
+    }
+
+    /**
+     * Page factory: the injected service, else one on the router (controller built without the container wiring).
+     */
+    private function pages(): MissingTranslationLogPageFactory
+    {
+        if ($this->pages instanceof MissingTranslationLogPageFactory) {
+            return $this->pages;
+        }
+
+        $router = $this->container->get('router');
+        assert($router instanceof UrlGeneratorInterface);
+
+        return new MissingTranslationLogPageFactory($router);
+    }
+
+    /**
+     * @param array<string, int|string> $parameters
+     */
+    private function t(string $id, array $parameters = []): string
+    {
+        return ($this->translator ?? new IdentityTranslator())->trans($id, $parameters, WebUiPages::DOMAIN);
     }
 
     /**
