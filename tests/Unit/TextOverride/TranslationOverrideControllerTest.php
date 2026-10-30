@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\TextOverride;
 
 use Nowo\TranslationYamlToolsBundle\Service\TranslationDefaultLocaleResolver;
+use Nowo\TranslationYamlToolsBundle\Tests\Support\FormKitTestSupport;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Controller\TranslationOverrideController;
 use Nowo\TranslationYamlToolsBundle\TextOverride\EditableTranslationKeys;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Html\StripTagsTranslationOverrideHtmlSanitizer;
@@ -89,6 +90,7 @@ final class TranslationOverrideControllerTest extends TestCase
         $container->set('request_stack', $stack);
         $container->set('twig', $this->createStub(Environment::class));
         $container->set('form.factory', Forms::createFormFactoryBuilder()
+            ->addTypes(FormKitTestSupport::types())
             ->addExtension(new HttpFoundationExtension())
             ->addExtension(new CsrfExtension($csrf))
             ->getFormFactory());

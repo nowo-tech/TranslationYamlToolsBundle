@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Form;
 
+use Nowo\FormKitBundle\Attribute\FormKitConfig;
+use Nowo\FormKitBundle\Form\FormOptionsTrait;
+use Nowo\TranslationYamlToolsBundle\DependencyInjection\NowoTranslationYamlToolsExtension;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Controller\TranslationOverrideController;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -26,8 +29,11 @@ use function strtoupper;
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
+#[FormKitConfig(NowoTranslationYamlToolsExtension::FORM_KIT_PROFILE)]
 final class TranslationOverrideTextsType extends AbstractType
 {
+    use FormOptionsTrait;
+
     /**
      * @deprecated since 1.14: the 1.x unmapped CSS-only tab radio group was removed (UiKit locale tabs); kept for BC.
      */
@@ -41,7 +47,7 @@ final class TranslationOverrideTextsType extends AbstractType
 
         foreach ($locales as $locale) {
             $label = strtoupper($locale);
-            $builder->add($locale, TextareaType::class, [
+            $this->addWithDefaults($builder, $locale, TextareaType::class, [
                 'label'                        => 'overrides.text_for',
                 'label_translation_parameters' => ['%locale%' => $label],
                 'required'                     => false,

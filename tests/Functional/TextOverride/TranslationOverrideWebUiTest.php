@@ -100,6 +100,23 @@ final class TranslationOverrideWebUiTest extends WebTestCase
         self::assertSame('Open Mon–Fri', $this->translator()->trans(self::KEY, [], 'messages', 'en'));
     }
 
+    public function testPageFormsUseTheFormKitProfileAndRenderNoRawKeys(): void
+    {
+        $client = $this->client();
+
+        $profiles = self::getContainer()->getParameter('nowo_form_kit.profiles');
+        self::assertIsArray($profiles);
+        self::assertSame('NowoTranslationYamlToolsBundle', $profiles['translation_yaml_tools']['translation_domain'] ?? null);
+
+        foreach (['/_translation_yaml_tools/texts/', '/_translation_yaml_tools/texts/edit?key=' . self::KEY] as $url) {
+            $client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            $html = (string) $client->getResponse()->getContent();
+            self::assertDoesNotMatchRegularExpression('/\b(overrides\.[a-z_]+|[a-z_]+\.[a-z_]+\.(label|help|placeholder))\b/', $html, $url . ' renders no raw form translation key.');
+        }
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-form"]', 'Text (EN)');
+    }
+
     public function testListIsPaginated(): void
     {
         $client = $this->client();

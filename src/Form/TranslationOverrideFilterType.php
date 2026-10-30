@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Form;
 
+use Nowo\FormKitBundle\Attribute\FormKitConfig;
+use Nowo\FormKitBundle\Form\FormOptionsTrait;
+use Nowo\TranslationYamlToolsBundle\DependencyInjection\NowoTranslationYamlToolsExtension;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Controller\TranslationOverrideController;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -24,8 +27,11 @@ use function sprintf;
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
+#[FormKitConfig(NowoTranslationYamlToolsExtension::FORM_KIT_PROFILE)]
 final class TranslationOverrideFilterType extends AbstractType
 {
+    use FormOptionsTrait;
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         /** @var array<string, int> $groups */
@@ -35,18 +41,17 @@ final class TranslationOverrideFilterType extends AbstractType
             $choices[sprintf('%s (%d)', $name, $count)] = (string) $name;
         }
 
-        $builder
-            ->add('q', SearchType::class, [
-                'label'    => 'overrides.search',
-                'required' => false,
-            ])
-            ->add('group', ChoiceType::class, [
-                'label'                     => 'overrides.group',
-                'required'                  => false,
-                'choices'                   => $choices,
-                'choice_translation_domain' => false,
-                'placeholder'               => 'overrides.all_groups',
-            ]);
+        $this->addWithDefaults($builder, 'q', SearchType::class, [
+            'label'    => 'overrides.search',
+            'required' => false,
+        ]);
+        $this->addWithDefaults($builder, 'group', ChoiceType::class, [
+            'label'                     => 'overrides.group',
+            'required'                  => false,
+            'choices'                   => $choices,
+            'choice_translation_domain' => false,
+            'placeholder'               => 'overrides.all_groups',
+        ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

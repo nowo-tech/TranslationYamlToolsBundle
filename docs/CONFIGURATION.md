@@ -4,6 +4,7 @@
 
 - [Reference (`nowo_translation_yaml_tools`)](#reference-nowo_translation_yaml_tools)
 - [Web UI layout and theme (REQ-UI-003)](#web-ui-layout-and-theme-req-ui-003)
+  - [Form profile (FormKit)](#form-profile-formkit)
 - [Missing translation log (database)](#missing-translation-log-database)
 - [Text overrides (database)](#text-overrides-database)
 - [Machine translator by locale](#machine-translator-by-locale)
@@ -124,6 +125,32 @@ One-file bridge into an existing `base.html.twig` (the reference integration):
 Per-bundle exceptions: `web_ui.layout_template` (one UI only), `web_ui.templates.<page>` (one page),
 `nowo_ui_kit.theme.bundles.NowoTranslationYamlToolsBundle` (slots / tokens). Pages, view models and data blocks:
 [TEMPLATES](TEMPLATES.md); upgrade notes: [UPGRADING](UPGRADING.md#unreleased).
+
+### Form profile (FormKit)
+
+Every Web UI form (`MissingTranslationLogActionType`, `TranslationOverrideFilterType`, `TranslationOverrideTextsType`,
+`TranslationOverrideResetType`) is a FormKit Type (`#[FormKitConfig('translation_yaml_tools')]` + `FormOptionsTrait`,
+REQ-TWIG-005 rule 11). **`nowo-tech/form-kit-bundle`** is a required dependency: keep
+**`Nowo\FormKitBundle\NowoFormKitBundle`** registered (Flex does it). The bundle prepends the profile
+**`nowo_form_kit.profiles.translation_yaml_tools`**:
+
+```yaml
+nowo_form_kit:
+    profiles:
+        translation_yaml_tools:
+            alias: translation_yaml_tools
+            translation_domain: NowoTranslationYamlToolsBundle
+            auto_placeholder: false   # the types pass explicit label / help keys
+            auto_help: false
+            defaults: { attr: {}, row_attr: {} }   # framework-neutral: the form theme adds the CSS classes
+            field_types: {}
+```
+
+To customise the fields (CSS classes, row wrappers, per-type defaults), define
+**`nowo_form_kit.profiles.translation_yaml_tools`** in your `config/packages/nowo_form_kit.yaml`: when the host
+defines that profile, the bundle does not prepend its own, so copy the keys above and change what you need. The
+form **theme** stays the host `twig.form_themes` plus `overrides.web_ui.form_themes` (edit page) — no bundle page
+hard-codes `form_theme`.
 
 ## Missing translation log (database)
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\Tests\Kernel;
 
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
+use Nowo\FormKitBundle\NowoFormKitBundle;
 use Nowo\TranslationYamlToolsBundle\NowoTranslationYamlToolsBundle;
 use Nowo\UiKitBundle\NowoUiKitBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -39,6 +40,7 @@ final class HostControllersRoutesKernel extends Kernel
         yield new FrameworkBundle();
         yield new DoctrineBundle();
         yield new TwigBundle();
+        yield new NowoFormKitBundle();
         yield new NowoUiKitBundle();
         yield new NowoTranslationYamlToolsBundle();
     }

@@ -330,7 +330,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         }>,
  *     },
  *     validation?: bool|array{ // Validation configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         cache?: scalar|Param|null, // Deprecated: Setting the "framework.validation.cache.cache" configuration option is deprecated. It will be removed in version 8.0.
  *         enable_attributes?: bool|Param, // Default: true
  *         static_method?: Param|string|list<scalar|Param|null>,
@@ -960,6 +960,143 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         html_to_text_converter?: scalar|Param|null, // A service implementing the "Symfony\Component\Mime\HtmlToTextConverter\HtmlToTextConverterInterface". // Default: null
  *     },
  * }
+ * @psalm-type NowoFormKitConfig = array{
+ *     type_map?: array<string, scalar|Param|null>,
+ *     default_profile?: scalar|Param|null, // Name of the profile to use when no profile is specified (key in profiles) // Default: "default"
+ *     convention_requires_translation?: bool|Param, // Global default for profiles.<name>.convention_requires_translation: only apply auto help / placeholder convention keys that exist in the translator catalogue. Requires a translator implementing TranslatorBagInterface (no effect otherwise). Default: false. // Default: false
+ *     css_framework?: scalar|Param|null, // CSS framework for CssClassUtilities (column merge + class ordering): bootstrap, tailwind, foundation, none. // Default: "bootstrap"
+ *     stateless_csrf?: array{ // Give selected (usually anonymous/public) form types a stateless CSRF token id so rendering them does not start a session. Off by default.
+ *         enabled?: bool|Param, // Default: false
+ *         token_id?: scalar|Param|null, // csrf_token_id default applied to the listed form types. Must be listed in framework.csrf_protection.stateless_token_ids. // Default: "submit"
+ *         form_types?: list<scalar|Param|null>,
+ *         register_stateless_token_id?: bool|Param, // Prepend token_id to framework.csrf_protection.stateless_token_ids (enables framework CSRF protection if it was not configured). // Default: true
+ *     },
+ *     accessibility?: array{ // Accessibility helpers applied by kit form type extensions.
+ *         unlabelled_choice_aria_label?: bool|Param, // When true (default), non-expanded ChoiceType fields (and subtypes such as EntityType) rendered with label: false and no aria-label/aria-labelledby get aria-label from their translated help, else their placeholder. // Default: true
+ *     },
+ *     locale_tabs?: array{ // Locale tabs (2.13): the locale_tabs option, TranslatableMapType and the _locale_tabs include.
+ *         locales?: list<scalar|Param|null>,
+ *         default_locale?: scalar|Param|null, // Default language (marked and listed first). Null (default) = kernel.default_locale when it is one of the locales, else the first locale. // Default: null
+ *         renderer?: "auto"|"ui_kit"|"native"|Param, // auto (default): the UiKit locale_tabs partial when nowo-tech/ui-kit-bundle 2.5+ is installed, else the neutral FormKit markup; native: always the neutral markup; ui_kit: same as auto (falls back to native without UiKit). // Default: "auto"
+ *         form_theme?: bool|Param, // When true (default), registers @NowoFormKitBundle/form/locale_tabs_theme.html.twig in twig.form_themes (it only renders fields with locale_tabs). // Default: true
+ *     },
+ *     twig?: array{ // Twig helpers shipped by the bundle (registered only when twig/twig is installed).
+ *         csrf_action_form?: bool|Param, // When true (default), registers the csrf_action_form() Twig function (CSRF-only single-action POST forms). Set false if the host keeps its own function with that name. // Default: true
+ *     },
+ *     profiles?: array<string, array{ // Default: []
+ *         alias?: scalar|Param|null, // Alias for this profile (e.g. for reference in form types)
+ *         translation_domain?: scalar|Param|null, // Default: "messages"
+ *         auto_placeholder?: bool|Param, // When true (default), unset placeholders become {form}.{field}.placeholder translation keys. Set false for kits that only set explicit labels. // Default: true
+ *         auto_help?: bool|Param, // When true (default), unset help becomes {form}.{field}.help translation keys. Set false to avoid raw missing-help keys in the UI. // Default: true
+ *         convention_requires_translation?: bool|Param|null, // When true, the auto help / placeholder convention keys are only applied if the key exists in the translator catalogue (current locale + fallbacks) for the field's translation domain. Never affects labels. Null (default) inherits the root convention_requires_translation. // Default: null
+ *         required_label_suffix?: scalar|Param|null, // Appended to the label when the field is required (e.g. " *"). Empty or null to disable. // Default: null
+ *         help_attr?: array<string, scalar|Param|null>,
+ *         css_framework?: scalar|Param|null, // CSS framework of this profile's form theme chrome (2.13; static_blocks checkbox_row): bootstrap adds form-check / form-check-input / form-check-label and the mb-3 row fallback. Null (default) = the root css_framework. // Default: null
+ *         help_modal?: array{ // Default help modal configuration (used when the field option "help_modal" is enabled).
+ *             framework?: scalar|Param|null, // Modal framework to use when opening from frontend. // Default: "bootstrap5"
+ *             icon_html?: scalar|Param|null, // HTML snippet inserted next to the label to trigger the help modal (fallback when ux_icon is not used or UX Icons is unavailable). // Default: "<span class=\"nowo-help-modal-icon\" aria-hidden=\"true\">?</span>"
+ *             ux_icon?: scalar|Param|null, // Optional. Symfony UX Icons name (e.g. lucide:circle-help). Requires symfony/ux-icons; when set and IconRendererInterface is available, overrides icon_html. // Default: null
+ *             ux_icon_attributes?: array<string, scalar|Param|null>,
+ *             trigger_class?: scalar|Param|null, // CSS classes for the clickable trigger wrapper (after label text and required suffix). Default: circle button style. // Default: "nowo-help-modal-trigger nowo-help-modal-trigger--circle"
+ *         },
+ *         defaults?: array{
+ *             attr?: array<string, scalar|Param|null>,
+ *             row_attr?: array<string, scalar|Param|null>,
+ *             help_attr?: array<string, scalar|Param|null>,
+ *             label?: scalar|Param|null, // Default label for every field (e.g. false to suppress). When set, overrides the {form}.{field}.label convention.
+ *             placeholder?: scalar|Param|null, // Default placeholder for every field (e.g. false to suppress). When set, overrides auto_placeholder convention.
+ *             help?: scalar|Param|null, // Default help for every field (e.g. false to suppress). When set, overrides auto_help convention.
+ *             required?: bool|Param, // Default required flag for every field. Overridable via field_types, by_form, or PHP options.
+ *         },
+ *         field_types?: array<string, array{ // Default: []
+ *             attr?: array<string, scalar|Param|null>,
+ *             row_attr?: array<string, scalar|Param|null>,
+ *             help_attr?: array<string, scalar|Param|null>,
+ *             label?: scalar|Param|null,
+ *             placeholder?: scalar|Param|null,
+ *             help?: scalar|Param|null,
+ *             required?: bool|Param, // Default required flag for this field type / field. Overridable by later cascade layers or PHP options.
+ *             translation_domain?: scalar|Param|null,
+ *             constraints?: list<mixed>,
+ *         }>,
+ *         constraint_message_convention?: bool|Param, // When true, constraints without an explicit "message" get key {form_snake}.{field_snake}.constraints.{ConstraintName} (put translations in the validators catalog). Default: false. // Default: false
+ *         by_form?: array<string, array{ // Default: []
+ *             defaults?: array{
+ *                 attr?: array<string, scalar|Param|null>,
+ *                 row_attr?: array<string, scalar|Param|null>,
+ *                 help_attr?: array<string, scalar|Param|null>,
+ *                 label?: scalar|Param|null, // Default label for every field (e.g. false to suppress). When set, overrides the {form}.{field}.label convention.
+ *                 placeholder?: scalar|Param|null, // Default placeholder for every field (e.g. false to suppress). When set, overrides auto_placeholder convention.
+ *                 help?: scalar|Param|null, // Default help for every field (e.g. false to suppress). When set, overrides auto_help convention.
+ *                 required?: bool|Param, // Default required flag for every field. Overridable via field_types, by_form, or PHP options.
+ *             },
+ *             fields?: array<string, array{ // Default: []
+ *                 attr?: array<string, scalar|Param|null>,
+ *                 row_attr?: array<string, scalar|Param|null>,
+ *                 help_attr?: array<string, scalar|Param|null>,
+ *                 label?: scalar|Param|null,
+ *                 placeholder?: scalar|Param|null,
+ *                 help?: scalar|Param|null,
+ *                 required?: bool|Param, // Default required flag for this field type / field. Overridable by later cascade layers or PHP options.
+ *                 translation_domain?: scalar|Param|null,
+ *                 constraints?: list<mixed>,
+ *             }>,
+ *         }>,
+ *     }>,
+ *     translation_domain?: scalar|Param|null, // (Legacy) Used when profiles is not set // Default: "messages"
+ *     required_label_suffix?: scalar|Param|null, // (Legacy) Suffix for required field labels when profiles is not set // Default: null
+ *     help_modal?: array{ // (Legacy) Default help modal configuration when profiles is not used.
+ *         framework?: scalar|Param|null, // Default: "bootstrap5"
+ *         icon_html?: scalar|Param|null, // Default: "<span class=\"nowo-help-modal-icon\" aria-hidden=\"true\">?</span>"
+ *         ux_icon?: scalar|Param|null, // Default: null
+ *         ux_icon_attributes?: array<string, scalar|Param|null>,
+ *         trigger_class?: scalar|Param|null, // Default: "nowo-help-modal-trigger nowo-help-modal-trigger--circle"
+ *     },
+ *     defaults?: array{
+ *         attr?: array<string, scalar|Param|null>,
+ *         row_attr?: array<string, scalar|Param|null>,
+ *         help_attr?: array<string, scalar|Param|null>,
+ *         label?: scalar|Param|null, // Default label for every field (e.g. false to suppress). When set, overrides the {form}.{field}.label convention.
+ *         placeholder?: scalar|Param|null, // Default placeholder for every field (e.g. false to suppress). When set, overrides auto_placeholder convention.
+ *         help?: scalar|Param|null, // Default help for every field (e.g. false to suppress). When set, overrides auto_help convention.
+ *         required?: bool|Param, // Default required flag for every field. Overridable via field_types, by_form, or PHP options.
+ *     },
+ *     field_types?: array<string, array{ // Default: []
+ *         attr?: array<string, scalar|Param|null>,
+ *         row_attr?: array<string, scalar|Param|null>,
+ *         help_attr?: array<string, scalar|Param|null>,
+ *         label?: scalar|Param|null,
+ *         placeholder?: scalar|Param|null,
+ *         help?: scalar|Param|null,
+ *         required?: bool|Param, // Default required flag for this field type / field. Overridable by later cascade layers or PHP options.
+ *         translation_domain?: scalar|Param|null,
+ *         constraints?: list<mixed>,
+ *     }>,
+ *     constraint_message_convention?: bool|Param, // (Legacy) Used when profiles is not set // Default: false
+ *     by_form?: array<string, array{ // Default: []
+ *         defaults?: array{
+ *             attr?: array<string, scalar|Param|null>,
+ *             row_attr?: array<string, scalar|Param|null>,
+ *             help_attr?: array<string, scalar|Param|null>,
+ *             label?: scalar|Param|null, // Default label for every field (e.g. false to suppress). When set, overrides the {form}.{field}.label convention.
+ *             placeholder?: scalar|Param|null, // Default placeholder for every field (e.g. false to suppress). When set, overrides auto_placeholder convention.
+ *             help?: scalar|Param|null, // Default help for every field (e.g. false to suppress). When set, overrides auto_help convention.
+ *             required?: bool|Param, // Default required flag for every field. Overridable via field_types, by_form, or PHP options.
+ *         },
+ *         fields?: array<string, array{ // Default: []
+ *             attr?: array<string, scalar|Param|null>,
+ *             row_attr?: array<string, scalar|Param|null>,
+ *             help_attr?: array<string, scalar|Param|null>,
+ *             label?: scalar|Param|null,
+ *             placeholder?: scalar|Param|null,
+ *             help?: scalar|Param|null,
+ *             required?: bool|Param, // Default required flag for this field type / field. Overridable by later cascade layers or PHP options.
+ *             translation_domain?: scalar|Param|null,
+ *             constraints?: list<mixed>,
+ *         }>,
+ *     }>,
+ *     ...<string, mixed>
+ * }
  * @psalm-type NowoUiKitConfig = array{
  *     css_framework?: "bootstrap"|"bootstrap5"|"bootstrap4"|"tailwind"|"foundation"|"custom"|"tabler"|"none"|Param, // Host CSS stack: bootstrap5|bootstrap4|tailwind|foundation|custom|none|tabler (bootstrap alias → bootstrap5). // Default: "bootstrap5"
  *     icon_set?: "bootstrap-icons"|"tabler-icons"|"ux_icon"|"svg_inline"|"none"|Param, // Icon rendering: bootstrap-icons|tabler-icons|ux_icon|svg_inline|none. // Default: "bootstrap-icons"
@@ -1164,6 +1301,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     framework?: FrameworkConfig,
  *     doctrine?: DoctrineConfig,
  *     twig?: TwigConfig,
+ *     nowo_form_kit?: NowoFormKitConfig,
  *     nowo_ui_kit?: NowoUiKitConfig,
  *     nowo_translation_yaml_tools?: NowoTranslationYamlToolsConfig,
  *     "when@test"?: array{
@@ -1173,6 +1311,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         framework?: FrameworkConfig,
  *         doctrine?: DoctrineConfig,
  *         twig?: TwigConfig,
+ *         nowo_form_kit?: NowoFormKitConfig,
  *         nowo_ui_kit?: NowoUiKitConfig,
  *         nowo_translation_yaml_tools?: NowoTranslationYamlToolsConfig,
  *     },
