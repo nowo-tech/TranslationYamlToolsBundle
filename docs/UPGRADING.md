@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.14.0](#to-1140)
   - [Security behaviour changes (REQ-SEC-004)](#security-behaviour-changes-req-sec-004)
   - [Template contract (REQ-UI-003)](#template-contract-req-ui-003)
   - [Configuration (REQ-UI-003 vocabulary)](#configuration-req-ui-003-vocabulary)
@@ -60,6 +61,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.14.0
+
+From **1.13.0**:
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
 
 Applies only when `missing_translation_log.web_ui.enabled` or `overrides.web_ui.enabled` is `true` (except the
 security notes, which apply to every configuration).

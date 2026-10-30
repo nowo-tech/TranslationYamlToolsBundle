@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.14.0] - 2026-10-30](#1140---2026-10-30)
 - [[1.13.0] - 2026-10-29](#1130---2026-10-29)
 - [[1.12.0] - 2026-10-28](#1120---2026-10-28)
 - [[1.11.0] - 2026-10-24](#1110---2026-10-24)
@@ -51,6 +52,10 @@ All notable changes to this project are documented in this file.
 - [[0.1.0] - 2026-04-09](#010---2026-04-09)
 
 ## [Unreleased]
+
+## [1.14.0] - 2026-10-30
+
+TranslationYamlTools: UiKit page contract for both Web UIs, pagination, translated flashes; SEC-004 BL: literal-boolean switches, allow_unauthenticated debug-only, placeholder-preserving overrides, export-ignore See [UPGRADING](UPGRADING.md#to-1140).
 
 Both opt-in Web UIs (missing-translation log, text-overrides desk) move to the UiKit page contract (REQ-UI-001 /
 REQ-UI-003). See [UPGRADING](UPGRADING.md#unreleased).
