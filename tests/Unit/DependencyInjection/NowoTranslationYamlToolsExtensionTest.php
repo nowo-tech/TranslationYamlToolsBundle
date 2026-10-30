@@ -515,6 +515,51 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         self::assertFalse($seeded);
     }
 
+    public function testPrependRegistersFormKitProfileWhenHostUnset(): void
+    {
+        $container = new ContainerBuilder();
+        $this->registerStubExtension($container, 'nowo_form_kit');
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+
+        $extension->prepend($container);
+
+        $profiles = [];
+        foreach ($container->getExtensionConfig('nowo_form_kit') as $cfg) {
+            $profiles += $cfg['profiles'] ?? [];
+        }
+        self::assertSame(
+            [NowoTranslationYamlToolsExtension::FORM_KIT_PROFILE => NowoTranslationYamlToolsExtension::FORM_KIT_PROFILE_CONFIG],
+            $profiles,
+        );
+    }
+
+    public function testPrependKeepsHostFormKitProfile(): void
+    {
+        $container = new ContainerBuilder();
+        $this->registerStubExtension($container, 'nowo_form_kit');
+        $host = ['alias' => 'translation_yaml_tools', 'translation_domain' => 'messages'];
+        $container->prependExtensionConfig('nowo_form_kit', ['profiles' => ['translation_yaml_tools' => $host]]);
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+
+        $extension->prepend($container);
+
+        self::assertSame([['profiles' => ['translation_yaml_tools' => $host]]], $container->getExtensionConfig('nowo_form_kit'));
+    }
+
+    public function testPrependSkipsFormKitProfileWithoutFormKit(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+
+        $extension->prepend($container);
+
+        self::assertFalse($container->hasExtension('nowo_form_kit'));
+        self::assertSame([], $container->getExtensionConfig('nowo_form_kit'));
+    }
+
     public function testPrependUiKitSeedsTablerIcons(): void
     {
         $container = new ContainerBuilder();

@@ -8,10 +8,12 @@ use Nowo\TranslationYamlToolsBundle\Form\MissingTranslationLogActionType;
 use Nowo\TranslationYamlToolsBundle\Form\TranslationOverrideFilterType;
 use Nowo\TranslationYamlToolsBundle\Form\TranslationOverrideResetType;
 use Nowo\TranslationYamlToolsBundle\Form\TranslationOverrideTextsType;
+use Nowo\TranslationYamlToolsBundle\Tests\Support\FormKitTestSupport;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Controller\TranslationOverrideController;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\FormTypeInterface;
 use Symfony\Component\Form\Test\TypeTestCase;
 use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
 use Symfony\Component\OptionsResolver\Exception\MissingOptionsException;
@@ -22,6 +24,14 @@ use Symfony\Component\OptionsResolver\Exception\MissingOptionsException;
 #[CoversClass(TranslationOverrideResetType::class)]
 final class WebUiFormTypesTest extends TypeTestCase
 {
+    /**
+     * @return array<FormTypeInterface<mixed>>
+     */
+    protected function getTypes(): array
+    {
+        return [...parent::getTypes(), ...FormKitTestSupport::types()];
+    }
+
     public function testActionTypeWithoutStatusHasNoField(): void
     {
         $form = $this->factory->createNamed('missing_log_mark_added_7', MissingTranslationLogActionType::class);

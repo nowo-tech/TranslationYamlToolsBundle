@@ -54,6 +54,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **FormKit Types (REQ-TWIG-005 rule 11):** `nowo-tech/form-kit-bundle` (^2.16) is now a required dependency. The four Web UI form types (`MissingTranslationLogActionType`, `TranslationOverrideFilterType`, `TranslationOverrideTextsType`, `TranslationOverrideResetType`) carry `#[FormKitConfig('translation_yaml_tools')]` + `FormOptionsTrait` and add their fields through FormKit; the extension prepends the framework-neutral profile `nowo_form_kit.profiles.translation_yaml_tools` (translation domain `NowoTranslationYamlToolsBundle`, no auto placeholder / help) unless the host defines it. Field names, CSRF token ids and labels are unchanged. See [UPGRADING](UPGRADING.md#unreleased).
+
 ## [1.14.1] - 2026-10-30
 
 Bundle routes are opt-in again: controllers are no longer autoconfigured, so a host's routing.controllers import does not expose them (REQ-SF-004 rule 7). See [UPGRADING](UPGRADING.md#to-1141).

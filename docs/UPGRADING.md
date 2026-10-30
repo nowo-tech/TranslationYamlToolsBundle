@@ -63,6 +63,14 @@
 
 ## Unreleased
 
+**New required dependency: `nowo-tech/form-kit-bundle` (^2.16).** The Web UI forms are FormKit Types
+(REQ-TWIG-005 rule 11) using the profile `nowo_form_kit.profiles.translation_yaml_tools`, prepended by the bundle.
+Register `Nowo\FormKitBundle\NowoFormKitBundle` in `config/bundles.php` if Flex did not. Field names, CSRF token
+ids, labels and rendered markup are unchanged. To change field classes / row attributes, define the
+`translation_yaml_tools` profile in `nowo_form_kit` instead of overriding the templates (see
+[CONFIGURATION](CONFIGURATION.md#form-profile-formkit)); themes still come from `twig.form_themes` /
+`overrides.web_ui.form_themes`.
+
 ## To 1.14.1
 
 From **1.14.0**:

@@ -9,6 +9,7 @@ use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
 use Nowo\TranslationYamlToolsBundle\Security\MissingLogUiAccessCheckerInterface;
 use Nowo\TranslationYamlToolsBundle\Tests\Fixtures\MissingTranslationLogTestEntityManagerFactory;
+use Nowo\TranslationYamlToolsBundle\Tests\Support\FormKitTestSupport;
 use Nowo\TranslationYamlToolsBundle\Ui\MissingTranslationLogPageFactory;
 use Nowo\TranslationYamlToolsBundle\Ui\WebUiPages;
 use Nowo\UiKitBundle\View\ListPage;
@@ -508,6 +509,7 @@ final class MissingTranslationLogUiControllerTest extends TestCase
             $csrf->method('isTokenValid')->willReturn(true);
         }
         $container->set('form.factory', Forms::createFormFactoryBuilder()
+            ->addTypes(FormKitTestSupport::types())
             ->addExtension(new HttpFoundationExtension())
             ->addExtension(new CsrfExtension($csrf))
             ->getFormFactory());

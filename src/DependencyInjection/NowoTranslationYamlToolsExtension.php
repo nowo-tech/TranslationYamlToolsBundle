@@ -35,6 +35,31 @@ use function sprintf;
  */
 final class NowoTranslationYamlToolsExtension extends Extension implements PrependExtensionInterface
 {
+    /** FormKit profile name used by every Web UI form type ({@code #[FormKitConfig]}). */
+    public const FORM_KIT_PROFILE = 'translation_yaml_tools';
+
+    /**
+     * FormKit profile prepended as {@code nowo_form_kit.profiles.translation_yaml_tools} (REQ-TWIG-005 rule 11).
+     *
+     * Framework-neutral on purpose (REQ-UI-003): the active form theme (host {@code twig.form_themes}, optionally
+     * {@code web_ui.form_themes}) adds the CSS framework classes. The form types pass explicit label / help keys, so
+     * the convention placeholder / help keys are off. A host overrides the whole profile by defining
+     * {@code nowo_form_kit.profiles.translation_yaml_tools} itself (e.g. to add {@code defaults.attr.class}).
+     *
+     * @var array<string, mixed>
+     */
+    public const FORM_KIT_PROFILE_CONFIG = [
+        'alias'              => self::FORM_KIT_PROFILE,
+        'translation_domain' => 'NowoTranslationYamlToolsBundle',
+        'auto_placeholder'   => false,
+        'auto_help'          => false,
+        'defaults'           => [
+            'attr'     => [],
+            'row_attr' => [],
+        ],
+        'field_types' => [],
+    ];
+
     /**
      * {@inheritdoc}
      */
@@ -71,6 +96,29 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         }
 
         $this->prependUiKitDefaults($container);
+        $this->prependFormKitProfile($container);
+    }
+
+    /**
+     * Registers the {@see self::FORM_KIT_PROFILE} FormKit profile unless the host already defines it.
+     * FormKit is a required dependency; the guard only keeps kernels without NowoFormKitBundle bootable.
+     */
+    private function prependFormKitProfile(ContainerBuilder $container): void
+    {
+        if (!$container->hasExtension('nowo_form_kit')) {
+            return;
+        }
+
+        foreach ($container->getExtensionConfig('nowo_form_kit') as $cfg) {
+            $profiles = $cfg['profiles'] ?? null;
+            if (is_array($profiles) && array_key_exists(self::FORM_KIT_PROFILE, $profiles)) {
+                return;
+            }
+        }
+
+        $container->prependExtensionConfig('nowo_form_kit', [
+            'profiles' => [self::FORM_KIT_PROFILE => self::FORM_KIT_PROFILE_CONFIG],
+        ]);
     }
 
     /**

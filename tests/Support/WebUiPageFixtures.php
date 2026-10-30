@@ -218,7 +218,10 @@ final class WebUiPageFixtures
             }
         };
 
-        return Forms::createFormFactoryBuilder()->addExtension(new CsrfExtension($tokens))->getFormFactory();
+        return Forms::createFormFactoryBuilder()
+            ->addTypes(FormKitTestSupport::types())
+            ->addExtension(new CsrfExtension($tokens))
+            ->getFormFactory();
     }
 
     private static function actionForm(FormFactoryInterface $forms, string $name, string $tokenId, string $action, ?string $status): FormView
