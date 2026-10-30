@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.15.0] - 2026-10-30](#1150---2026-10-30)
 - [[1.14.1] - 2026-10-30](#1141---2026-10-30)
 - [[1.14.0] - 2026-10-30](#1140---2026-10-30)
 - [[1.13.0] - 2026-10-29](#1130---2026-10-29)
@@ -53,6 +54,10 @@ All notable changes to this project are documented in this file.
 - [[0.1.0] - 2026-04-09](#010---2026-04-09)
 
 ## [Unreleased]
+
+## [1.15.0] - 2026-10-30
+
+Page forms are FormKit types with a bundle FormKit profile; requires nowo-tech/form-kit-bundle (REQ-TWIG-005 rule 11). See [UPGRADING](UPGRADING.md#to-1150).
 
 ### Changed
 

@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.15.0](#to-1150)
 - [To 1.14.1](#to-1141)
 - [To 1.14.0](#to-1140)
   - [Security behaviour changes (REQ-SEC-004)](#security-behaviour-changes-req-sec-004)
@@ -62,6 +63,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.15.0
+
+From **1.14.1**:
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
 
 **New required dependency: `nowo-tech/form-kit-bundle` (^2.16).** The Web UI forms are FormKit Types
 (REQ-TWIG-005 rule 11) using the profile `nowo_form_kit.profiles.translation_yaml_tools`, prepended by the bundle.
