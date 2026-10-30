@@ -53,6 +53,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Routes are opt-in (REQ-SF-004 rule 7):** `MissingTranslationLogUiController` and `TranslationOverrideController` are no longer autoconfigured; they are tagged `controller.service_arguments` and `container.service_subscriber` explicitly. On Symfony >= 7.3 the host's default `config/routes.yaml` (`routing.controllers`) no longer mounts the missing-log and overrides Web UI routes on `/`, `/clear`, `/edit`, … without `web_ui.path_prefix`; they only exist when the host imports `@NowoTranslationYamlToolsBundle/Resources/config/routes/*.yaml`.
+
 ## [1.14.0] - 2026-10-30
 
 TranslationYamlTools: UiKit page contract for both Web UIs, pagination, translated flashes; SEC-004 BL: literal-boolean switches, allow_unauthenticated debug-only, placeholder-preserving overrides, export-ignore See [UPGRADING](UPGRADING.md#to-1140).
