@@ -27,6 +27,7 @@ final class HtmlSanitizersTest extends TestCase
         self::assertStringNotContainsString('onerror', $clean);
         self::assertStringNotContainsString('<img', $clean);
         self::assertSame($clean, $sanitizer->sanitize($clean), 'Idempotent.');
+        self::assertSame('<span>note</span>', $sanitizer->sanitize('<span class="position-fixed top-0 w-100">note</span>'), 'No host CSS class (UI redress).');
     }
 
     public function testSymfonySanitizerAcceptsCustomSanitizer(): void

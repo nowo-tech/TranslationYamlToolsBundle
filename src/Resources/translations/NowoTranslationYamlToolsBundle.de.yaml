@@ -36,6 +36,7 @@ overrides:
         confirm_required: 'Bestätigen Sie die Wiederherstellung, um den Originaltext zurückzuholen.'
     error:
         too_long: Dieser Text ist zu lang (maximal %max% Zeichen).
+        placeholders: 'Behalten Sie genau die Platzhalter des Originaltexts bei: %placeholders%.'
 missing_log:
     title: 'Protokoll fehlender Übersetzungen'
     intro: 'Meldungen, die der Übersetzer zur Laufzeit nicht gefunden hat. Ergänzen Sie sie in Ihren Katalogen und markieren Sie sie dann als hinzugefügt.'

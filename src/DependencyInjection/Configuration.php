@@ -160,7 +160,8 @@ final class Configuration implements ConfigurationInterface
 
                                     // BC: top-level allow_unauthenticated → security.allow_unauthenticated
                                     if (array_key_exists('allow_unauthenticated', $v) && !array_key_exists('allow_unauthenticated', $security)) {
-                                        $security['allow_unauthenticated'] = (bool) $v['allow_unauthenticated'];
+                                        // No cast: a non-boolean (e.g. an env placeholder) is refused in load() (REQ-SEC-004 L1).
+                                        $security['allow_unauthenticated'] = $v['allow_unauthenticated'];
                                     }
 
                                     $v['security'] = $security;

@@ -119,6 +119,25 @@ final class MissingLogWebUiSecurityPassTest extends TestCase
         (new MissingLogWebUiSecurityPass())->process($container);
     }
 
+    public function testRefusesAllowUnauthenticatedWithoutKernelDebug(): void
+    {
+        foreach ([false, null] as $debug) {
+            $container = $this->baseContainer(enabled: true, allowUnauthenticated: true);
+            if ($debug === null) {
+                $container->getParameterBag()->remove('kernel.debug');
+            } else {
+                $container->setParameter('kernel.debug', $debug);
+            }
+
+            try {
+                (new MissingLogWebUiSecurityPass())->process($container);
+                self::fail('Expected an InvalidConfigurationException.');
+            } catch (InvalidConfigurationException $e) {
+                self::assertStringContainsString('missing_translation_log.web_ui.security.allow_unauthenticated: true is only allowed when kernel.debug is true', $e->getMessage());
+            }
+        }
+    }
+
     public function testRequiresUiKit(): void
     {
         $container = $this->baseContainer(enabled: true, allowUnauthenticated: true);
@@ -174,6 +193,7 @@ final class MissingLogWebUiSecurityPassTest extends TestCase
     ): ContainerBuilder {
         $container = new ContainerBuilder();
         $container->setParameter('kernel.bundles', ['NowoUiKitBundle' => 'Nowo\\UiKitBundle\\NowoUiKitBundle']);
+        $container->setParameter('kernel.debug', true);
         if ($csrf) {
             $container->setDefinition('security.csrf.token_manager', new Definition(stdClass::class));
             $container->setDefinition('form.type_extension.csrf', new Definition(stdClass::class));

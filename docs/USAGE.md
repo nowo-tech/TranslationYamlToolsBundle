@@ -247,7 +247,9 @@ Other helpers: `locales()`, `defaultLocale()`, `shippedTexts()`, `overriddenLoca
 
 ### HTML sanitizing
 
-Values containing `<` go through `TranslationOverrideHtmlSanitizerInterface` on save and again when the map is (re)loaded from the database. Default: inline allowlist (`a[href|title|target]` with forced `rel="noopener noreferrer"`, `strong`, `b`, `em`, `i`, `u`, `s`, `small`, `code`, `abbr`, `span[class]`, `br`; http/https/mailto/tel and relative links) when `symfony/html-sanitizer` is installed, else every tag is stripped. Plug your own:
+Values containing `<` go through `TranslationOverrideHtmlSanitizerInterface` on save and again when the map is (re)loaded from the database. Default: inline allowlist (`a[href|title|target]` with forced `rel="noopener noreferrer"`, `strong`, `b`, `em`, `i`, `u`, `s`, `small`, `code`, `abbr`, `span` (no `class`, since 1.14), `br`; http/https/mailto/tel and relative links) when `symfony/html-sanitizer` is installed, else every tag is stripped. Plug your own:
+
+**Placeholders and `|raw` (REQ-SEC-004):** sanitizing happens on the stored text, **before** Symfony / ICU substitutes the message parameters. An override must keep exactly the placeholders of the shipped text (`%name%`, ICU `{name}`; plural selectors such as `{0}` are not parameters): the desk shows a field error (HTTP 422) and `TranslationOverrideEditor::save()` throws `InvalidArgumentException` otherwise (`placeholderErrors()` lets host forms check first). If you print a message with `|raw`, escape its parameters (`|e` before passing them).
 
 ```php
 final class AppTextSanitizer implements TranslationOverrideHtmlSanitizerInterface

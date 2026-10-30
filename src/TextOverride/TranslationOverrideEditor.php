@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\TextOverride;
 
+use InvalidArgumentException;
 use Symfony\Component\Translation\TranslatorBagInterface;
 
 use function array_key_exists;
+use function array_keys;
+use function implode;
 use function is_scalar;
+use function sprintf;
+use function trim;
 
 /**
  * Per-locale editing of one message (used by the Web UI; also the "form bridge" for host forms).
@@ -20,7 +25,9 @@ use function is_scalar;
  *     $entityManager->flush(); $overrides->invalidate(); // or $editor->flush()
  *
  * Text equal to the shipped catalogue text (after trimming / sanitizing) or blank removes the
- * override, so untouched locales never create rows.
+ * override, so untouched locales never create rows. A text must keep exactly the placeholders of the shipped text
+ * ({@see TranslationOverridePlaceholders}; check {@see self::placeholderErrors()} before {@see self::save()}, which
+ * refuses a mismatch).
  */
 final class TranslationOverrideEditor
 {
@@ -87,12 +94,42 @@ final class TranslationOverrideEditor
     }
 
     /**
+     * Locales whose submitted (non-blank) text does not use exactly the placeholders of the shipped text, with the
+     * expected placeholders (REQ-SEC-004 L4: parameters are substituted after sanitizing).
+     *
+     * @param array<array-key, mixed> $texts locale => text
+     *
+     * @return array<string, list<string>> locale => expected placeholders
+     */
+    public function placeholderErrors(string $domain, string $key, array $texts): array
+    {
+        $shipped = $this->shippedTexts($domain, $key);
+        $errors  = [];
+        foreach ($this->locales->all() as $locale) {
+            $value = $texts[$locale] ?? null;
+            $text  = is_scalar($value) ? trim((string) $value) : '';
+            if ($text !== '' && !TranslationOverridePlaceholders::match($shipped[$locale], $text)) {
+                $errors[$locale] = TranslationOverridePlaceholders::of($shipped[$locale]);
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
      * Stores submitted texts (locale => text); locales missing from $texts are left untouched.
      *
      * @param array<array-key, mixed> $texts
+     *
+     * @throws InvalidArgumentException when a text adds or drops placeholders of the shipped text
      */
     public function save(string $domain, string $key, array $texts, bool $flush = true, ?string $updatedBy = null): void
     {
+        $mismatch = $this->placeholderErrors($domain, $key, $texts);
+        if ($mismatch !== []) {
+            throw new InvalidArgumentException(sprintf('The override of "%s:%s" must keep exactly the placeholders of the shipped text (locales: %s).', $domain, $key, implode(', ', array_keys($mismatch))));
+        }
+
         $shipped = $this->shippedTexts($domain, $key);
         foreach ($this->locales->all() as $locale) {
             if (!array_key_exists($locale, $texts)) {

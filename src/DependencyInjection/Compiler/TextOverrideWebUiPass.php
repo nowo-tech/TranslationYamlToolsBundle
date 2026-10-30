@@ -13,7 +13,8 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  * requirements (checked after all extensions are merged):
  *
  * - SecurityBundle ({@code security.authorization_checker}) unless
- *   {@code overrides.web_ui.security.allow_unauthenticated} (dev / demo only);
+ *   {@code overrides.web_ui.security.allow_unauthenticated} (dev / demo only: refused unless {@code kernel.debug},
+ *   see {@see DebugOnlyRequirement});
  * - CSRF protection ({@code security.csrf.token_manager} and the form CSRF extension
  *   {@code form.type_extension.csrf}, i.e. symfony/security-csrf + {@code framework.csrf_protection} without
  *   {@code framework.form.csrf_protection: false}) — see {@see FormCsrfRequirement};
@@ -32,6 +33,9 @@ final class TextOverrideWebUiPass implements CompilerPassInterface
         }
 
         $allowUnauthenticated = (bool) $container->getParameter('nowo_translation_yaml_tools.overrides.web_ui.security.allow_unauthenticated');
+        if ($allowUnauthenticated) {
+            DebugOnlyRequirement::assert($container, 'overrides.web_ui.security.allow_unauthenticated');
+        }
         if (!$allowUnauthenticated && !$container->has('security.authorization_checker')) {
             throw new InvalidConfigurationException('overrides.web_ui.enabled requires symfony/security-bundle (security.authorization_checker), or set overrides.web_ui.security.allow_unauthenticated: true (dev/demo only — never in production).');
         }
