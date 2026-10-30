@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.14.1](#to-1141)
 - [To 1.14.0](#to-1140)
   - [Security behaviour changes (REQ-SEC-004)](#security-behaviour-changes-req-sec-004)
   - [Template contract (REQ-UI-003)](#template-contract-req-ui-003)
@@ -61,6 +62,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.14.1
+
+From **1.14.0**:
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
 
 The missing-log and overrides Web UI routes are no longer picked up by the Symfony >= 7.3 default `routing.controllers`
 import. If a Web UI is enabled and your application never imported its routes, import them explicitly (see
