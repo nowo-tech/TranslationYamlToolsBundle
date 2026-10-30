@@ -1,4 +1,7 @@
-{# Bridge: use when missing_translation_log.web_ui.layout_template points here so pages share NowoBreadcrumbKitBundle dashboard shell. Requires nowo-tech/breadcrumb-kit-bundle. #}
+{# Deprecated since 1.14 (removed in 2.0): 1.x bridge into the NowoBreadcrumbKitBundle (< 2.7) dashboard layout.
+   When missing_translation_log.web_ui.layout_template points here, the pages wrap it in
+   missing_translation_log/_legacy_layout.html.twig. Prefer nowo_ui_kit.layouts.admin (BreadcrumbKit >= 2.7 renders
+   the UiKit canonical blocks); see docs/UPGRADING.md. Requires nowo-tech/breadcrumb-kit-bundle < 2.7. #}
 {% extends '@NowoBreadcrumbKitBundle/dashboard/layout.html.twig' %}
 
 {% block dashboard_title %}{% block missing_log_title %}Missing translation log{% endblock %}{% endblock %}

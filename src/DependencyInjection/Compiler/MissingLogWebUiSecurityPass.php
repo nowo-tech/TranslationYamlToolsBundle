@@ -42,6 +42,9 @@ final class MissingLogWebUiSecurityPass implements CompilerPassInterface
         // Fail closed on CSRF (mark added / clear log) whatever the authentication mode.
         FormCsrfRequirement::assert($container, 'missing_translation_log.web_ui.enabled');
 
+        // The list page is a UiKit page scaffold (REQ-UI-003).
+        UiKitRequirement::assert($container, 'missing_translation_log.web_ui.enabled');
+
         if ($allowUnauthenticated) {
             return;
         }

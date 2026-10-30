@@ -16,7 +16,7 @@ overrides:
     empty: Nenhum texto corresponde.
     edit_title: Editar texto
     edit_intro: Um separador por idioma. Deixe um campo vazio, ou mantenha o texto original, para usar o predefinido.
-    back: ← Voltar aos textos
+    back: Voltar aos textos
     locale_tabs: Idiomas
     badge_overridden: editado
     text_for: Texto (%locale%)
@@ -25,11 +25,48 @@ overrides:
     save: Guardar
     cancel: Cancelar
     reset: Restaurar texto original
-    reset_confirm: 'Sim, eliminar as personalizações de %locales%.'
+    reset_confirm_title: 'Restaurar o texto original?'
+    reset_confirm_message: 'As personalizações de %locales% são eliminadas e todos os idiomas voltam a mostrar o texto original.'
+    reset_zone_title: 'Restaurar o texto original'
+    reset_zone_intro: 'Elimina as personalizações de %locales%.'
     flash:
         saved: Texto guardado.
         reset: Texto original restaurado.
         invalid_token: Token de segurança inválido. Tente novamente.
-        confirm_required: Marque a caixa de confirmação para restaurar o texto original.
+        confirm_required: 'Confirme o restauro para recuperar o texto original.'
     error:
         too_long: Este texto é demasiado longo (máximo de %max% caracteres).
+missing_log:
+    title: 'Registo de traduções em falta'
+    intro: 'Mensagens que o tradutor não encontrou em tempo de execução. Adicione-as aos seus catálogos e marque-as como adicionadas.'
+    status_tabs: 'Estado'
+    status:
+        pending: 'Pendentes'
+        added: 'Adicionadas'
+        validated: 'Validadas'
+    col:
+        id: 'ID'
+        locale: 'Idioma'
+        domain: 'Domínio'
+        message_id: 'Id. da mensagem'
+        call_site: 'Ponto de chamada'
+        route: 'Rota'
+        method: 'Método'
+        path: 'Caminho'
+        hits: 'Ocorrências'
+        last_seen: 'Última vez'
+        actions: 'Ações'
+    mark_added: 'Marcar como adicionada'
+    empty: 'Não há linhas com o estado «%status%».'
+    clear_status:
+        button: 'Limpar o estado atual'
+        confirm_title: 'Limpar as linhas «%status%»?'
+        confirm_message: 'Todas as linhas com o estado «%status%» são eliminadas. Esta ação não pode ser anulada.'
+    clear_all:
+        button: 'Limpar todas as linhas'
+        confirm_title: 'Limpar todo o registo?'
+        confirm_message: 'Todas as linhas do registo são eliminadas, seja qual for o estado. Esta ação não pode ser anulada.'
+    flash:
+        marked_added: 'Linha n.º %id% marcada como adicionada.'
+        cleared_all: '{0}Não há linhas do registo para limpar.|{1}Foi eliminada 1 linha do registo.|]1,Inf[Foram eliminadas %count% linhas do registo.'
+        cleared_status: '{0}Não há linhas com o estado «%status%» para limpar.|{1}Foi eliminada 1 linha com o estado «%status%».|]1,Inf[Foram eliminadas %count% linhas com o estado «%status%».'

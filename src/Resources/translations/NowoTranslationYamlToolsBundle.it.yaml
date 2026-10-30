@@ -16,7 +16,7 @@ overrides:
     empty: Nessun testo corrisponde.
     edit_title: Modifica testo
     edit_intro: Una scheda per lingua. Lascia un campo vuoto, o mantieni il testo originale, per usare quello predefinito.
-    back: ← Torna ai testi
+    back: Torna ai testi
     locale_tabs: Lingue
     badge_overridden: modificato
     text_for: Testo (%locale%)
@@ -25,11 +25,48 @@ overrides:
     save: Salva
     cancel: Annulla
     reset: Ripristina testo originale
-    reset_confirm: 'Sì, elimina le personalizzazioni per %locales%.'
+    reset_confirm_title: 'Ripristinare il testo originale?'
+    reset_confirm_message: 'Le personalizzazioni per %locales% vengono eliminate e tutte le lingue mostrano di nuovo il testo originale.'
+    reset_zone_title: 'Ripristina il testo originale'
+    reset_zone_intro: 'Elimina le personalizzazioni per %locales%.'
     flash:
         saved: Testo salvato.
         reset: Testo originale ripristinato.
         invalid_token: Token di sicurezza non valido. Riprova.
-        confirm_required: Seleziona la casella di conferma per ripristinare il testo originale.
+        confirm_required: 'Conferma il ripristino per recuperare il testo originale.'
     error:
         too_long: Questo testo è troppo lungo (massimo %max% caratteri).
+missing_log:
+    title: 'Registro delle traduzioni mancanti'
+    intro: 'Messaggi che il traduttore non ha trovato in fase di esecuzione. Aggiungili ai tuoi cataloghi, poi segnali come aggiunti.'
+    status_tabs: 'Stato'
+    status:
+        pending: 'In attesa'
+        added: 'Aggiunte'
+        validated: 'Convalidate'
+    col:
+        id: 'ID'
+        locale: 'Lingua'
+        domain: 'Dominio'
+        message_id: 'Id messaggio'
+        call_site: 'Punto di chiamata'
+        route: 'Rotta'
+        method: 'Metodo'
+        path: 'Percorso'
+        hits: 'Occorrenze'
+        last_seen: 'Ultima volta'
+        actions: 'Azioni'
+    mark_added: 'Segna come aggiunta'
+    empty: 'Nessuna riga con stato «%status%».'
+    clear_status:
+        button: 'Svuota lo stato corrente'
+        confirm_title: 'Svuotare le righe «%status%»?'
+        confirm_message: 'Tutte le righe con stato «%status%» vengono eliminate. Questa azione non può essere annullata.'
+    clear_all:
+        button: 'Svuota tutte le righe'
+        confirm_title: 'Svuotare tutto il registro?'
+        confirm_message: 'Tutte le righe del registro vengono eliminate, qualunque sia il loro stato. Questa azione non può essere annullata.'
+    flash:
+        marked_added: 'Riga n. %id% segnata come aggiunta.'
+        cleared_all: '{0}Nessuna riga del registro da svuotare.|{1}Eliminata 1 riga del registro.|]1,Inf[Eliminate %count% righe del registro.'
+        cleared_status: '{0}Nessuna riga con stato «%status%» da svuotare.|{1}Eliminata 1 riga con stato «%status%».|]1,Inf[Eliminate %count% righe con stato «%status%».'

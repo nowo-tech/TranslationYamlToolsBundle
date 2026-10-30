@@ -148,7 +148,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         cookie_name?: scalar|Param|null, // The name of the cookie to use when using stateless protection. // Default: "csrf-token"
  *     },
  *     form?: bool|array{ // Form configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         csrf_protection?: bool|array{
  *             enabled?: scalar|Param|null, // Default: null
  *             token_id?: scalar|Param|null, // Default: null
@@ -369,7 +369,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         }>,
  *     },
  *     property_access?: bool|array{ // Property access configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         magic_call?: bool|Param, // Default: false
  *         magic_get?: bool|Param, // Default: true
  *         magic_set?: bool|Param, // Default: true
@@ -377,11 +377,11 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         throw_exception_on_invalid_property_path?: bool|Param, // Default: true
  *     },
  *     type_info?: bool|array{ // Type info configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         aliases?: array<string, scalar|Param|null>,
  *     },
  *     property_info?: bool|array{ // Property info configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         with_constructor_extractor?: bool|Param, // Registers the constructor extractor.
  *     },
  *     cache?: array{ // Cache configuration
@@ -1042,6 +1042,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         tokens_dark?: array<string, mixed>,
  *         confirm_message_in_header?: bool|Param, // Confirm dialogs and the full-page confirm render the message inside the header, under the title (hosts whose dialog header is title + message). View\Confirm::messageInHeader wins when set. // Default: false
  *         popover_menus?: bool|Param, // 2.4: menu / kebab / row-action menus render their panel as a native [popover] (browser top layer: never clipped by table scrollers or cards; nowo-ui-popover.js places it). The partial option `popover` wins. // Default: false
+ *         form_errors_after_widget?: bool|Param, // 2.10: the UiKit form theme (form/nowo_ui_layout.html.twig) prints a field's errors after its widget (and before the help), instead of Symfony's order (label, errors, widget, help). // Default: false
  *         bundles?: array<string, array{ // Default: []
  *             framework_defaults?: bool|Param, // Override of theme.framework_defaults for this bundle (unset = inherit).
  *             classes?: array<string, mixed>,
@@ -1061,6 +1062,35 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             attributes?: array<string, array<string, mixed>>,
  *             header_actions_in_filters?: bool|Param, // list only: render the page-header actions at the end of the filter row instead of the page header (ListPage::headerActionsInFilters wins when set; unset = false).
  *         }>,
+ *     },
+ *     error_pages?: array{ // Kit error pages (2.6): templates/bundles/TwigBundle/Exception/error.html.twig = {% extends '@NowoUiKit/error/status.html.twig' %}.
+ *         layout_template?: scalar|Param|null, // Document the status template extends: the kit layout, or a host template extending it (own <head> assets, brand, chat dock…). // Default: "@NowoUiKit/error/layout.html.twig"
+ *         translation_domain?: scalar|Param|null, // Domain of the page texts (e.g. messages). Keys missing there fall back to UiKit's own NowoUiKitBundle error.* texts. // Default: "NowoUiKitBundle"
+ *         translation_prefix?: scalar|Param|null, // Key prefix: <prefix>.<code>.title|lead|hint|image_alt, <prefix>.generic.*, <prefix>.home|retry|back|retry_after|auto_retry|skip_to_content. // Default: "error"
+ *         home_path?: scalar|Param|null, // Href of the "Back to home" button. // Default: "/"
+ *         illustrations?: array<string, Param|string|array{ // Default: []
+ *             path?: scalar|Param|null,
+ *             width?: int|Param, // Default: null
+ *             height?: int|Param, // Default: null
+ *             webp?: bool|Param|null, // Default: null
+ *             extension?: scalar|Param|null, // Default: null
+ *         }>,
+ *         illustration_width?: int|Param, // Default intrinsic width of the illustrations. // Default: 1024
+ *         illustration_height?: int|Param, // Default intrinsic height of the illustrations. // Default: 683
+ *         webp?: bool|Param, // Illustrations ship a .webp next to the fallback image (<source type="image/webp">). // Default: true
+ *         retry_statuses?: list<int|Param>,
+ *         back_link_statuses?: list<int|Param>,
+ *         auto_retry_seconds?: int|Param, // A 5xx on GET reloads itself after this many seconds (REQ-ERROR-001 item 10; 0 = never). Never on POST. // Default: 600
+ *         theme_storage?: scalar|Param|null, // localStorage key of the theme (data-nowo-ui-theme-storage on <html> and the toggle), e.g. the host's beacon-theme. // Default: "nowo-ui-theme"
+ *         theme_toggle?: bool|Param, // Render the light / dark toggle in the top controls. // Default: true
+ *         html_attributes?: array<string, mixed>,
+ *     },
+ *     shell?: array{ // Signed-in app shell (2.6, @NowoUiKit/shell/_open|_close|_shell|_burger.html.twig; Twig global nowo_ui_kit_shell).
+ *         kit_styles?: bool|Param, // Add the kit shell classes (nowo-ui-shell, nowo-ui-header, nowo-ui-aside…) painted by nowo-ui.css and driven by nowo-ui-shell.js. false: only the app_* slot classes (host shell CSS / JS). // Default: true
+ *         sidebar_cookie?: scalar|Param|null, // Cookie holding the desktop aside mode (e.g. beacon_sidebar), read server-side so the first paint is already collapsed / rail; null = expanded unless the template passes collapsed. // Default: null
+ *         sidebar_hidden_value?: scalar|Param|null, // Cookie value of the hidden aside. // Default: "collapsed"
+ *         sidebar_rail_value?: scalar|Param|null, // Cookie value of the icons-only rail. // Default: "rail"
+ *         sidebar_storage?: scalar|Param|null, // localStorage key of the aside mode (data-nowo-ui-sidebar-storage on the shell root; kit_styles + rail only). // Default: null
  *     },
  * }
  * @psalm-type NowoTranslationYamlToolsConfig = array{
@@ -1088,10 +1118,13 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         web_ui?: array{
  *             enabled?: bool|Param, // Expose HTTP routes + Twig UI to list rows and mark pending entries as added (protect with firewall / access_control) // Default: false
  *             path_prefix?: scalar|Param|null, // URL prefix for imported routes (must start with /) // Default: "/_translation_yaml_tools/missing-log"
- *             layout_template?: scalar|Param|null, // Twig layout extended by the missing-log UI (global nowo_translation_yaml_tools_missing_log_layout_template). Use @NowoTranslationYamlToolsBundle/missing_translation_log/layout_integrate_dashboard_menu.html.twig or layout_integrate_breadcrumb_kit.html.twig to match those dashboards. // Default: "@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig"
- *             css_framework?: "bootstrap"|"bootstrap4"|"bootstrap5"|"tailwind"|"foundation"|"custom"|"tabler"|"none"|Param, // Host CSS stack hint for the missing-log Web UI (REQ-UI-001). Twig global nowo_translation_yaml_tools_css_framework. Demo default: bootstrap5. // Default: "bootstrap5"
- *             required_role?: scalar|Param|null, // Deprecated BC alias for security.access_roles (single role). Prefer security.access_roles. Empty/null is fail-closed via the access checker. // Default: "ROLE_ADMIN"
- *             allow_unauthenticated?: bool|Param, // Deprecated BC alias for security.allow_unauthenticated. DEV/DEMO ONLY. // Default: false
+ *             layout_template?: scalar|Param|null, // Layout the page scaffolds extend (REQ-UI-001/003). Null (default) = nowo_ui_kit.layouts.admin. A host layout renders the UiKit canonical blocks; a 1.x layout that renders {% block nowo_translation_yaml_tools_missing_log_content %} (e.g. the deprecated layout_integrate_dashboard_menu.html.twig / layout_integrate_breadcrumb_kit.html.twig) is wrapped in a deprecated bridge. The former default @NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig means null. // Default: null
+ *             templates?: array{ // Per-page template overrides (REQ-UI-003): a host template that extends the bundle page and overrides a data block.
+ *                 index?: scalar|Param|null, // Default: "@NowoTranslationYamlToolsBundle/missing_translation_log/index.html.twig"
+ *             },
+ *             css_framework?: "bootstrap"|"bootstrap4"|"bootstrap5"|"tailwind"|"foundation"|"custom"|"tabler"|"none"|Param, // Deprecated: The "css_framework" option at "nowo_translation_yaml_tools.missing_translation_log.web_ui.css_framework" is deprecated: set nowo_ui_kit.css_framework once for every bundle. It only seeds nowo_ui_kit.css_framework when the host leaves it unset. // Deprecated since 1.14: set nowo_ui_kit.css_framework once for every bundle. Seeds nowo_ui_kit.css_framework (and icon_set) when the host leaves it unset. The pages read the UiKit theme only. // Default: "bootstrap5"
+ *             required_role?: scalar|Param|null, // Deprecated: The "required_role" option at "nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role" is deprecated, use "security.access_roles" instead. // Deprecated BC alias for security.access_roles (single role). Prefer security.access_roles. Empty/null is fail-closed via the access checker. // Default: "ROLE_ADMIN"
+ *             allow_unauthenticated?: bool|Param, // Deprecated: The "allow_unauthenticated" option at "nowo_translation_yaml_tools.missing_translation_log.web_ui.allow_unauthenticated" is deprecated, use "security.allow_unauthenticated" instead. // Deprecated BC alias for security.allow_unauthenticated. DEV/DEMO ONLY. // Default: false
  *             security?: array{ // Private Web UI access (REQ-UI-002). Defaults to ROLE_ADMIN; demos may set allow_unauthenticated.
  *                 access_roles?: list<scalar|Param|null>,
  *                 access_checker?: scalar|Param|null, // Optional service id implementing MissingLogUiAccessCheckerInterface. null = built-in role checker. // Default: null
@@ -1111,7 +1144,12 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         web_ui?: array{
  *             enabled?: bool|Param, // Expose the overrides desk (list / edit / reset). Import routes/translation_override_ui.yaml. Requires twig-bundle, security-csrf (+ framework.csrf_protection) and security-bundle. // Default: false
  *             path_prefix?: scalar|Param|null, // URL prefix for imported routes (must start with /) // Default: "/_translation_yaml_tools/texts"
- *             layout_template?: scalar|Param|null, // Twig layout the pages extend; must define blocks "title" and "body" (Symfony base.html.twig convention), e.g. your admin layout. // Default: "@NowoTranslationYamlToolsBundle/text_override/layout.html.twig"
+ *             layout_template?: scalar|Param|null, // Layout the page scaffolds extend (REQ-UI-001/003). Null (default) = nowo_ui_kit.layouts.admin. A host layout renders the UiKit canonical blocks; a 1.x layout that renders {% block body %} (and title / stylesheets / javascripts) is wrapped in a deprecated bridge. The former default @NowoTranslationYamlToolsBundle/text_override/layout.html.twig means null. // Default: null
+ *             templates?: array{ // Per-page template overrides (REQ-UI-003): a host template that extends the bundle page and overrides a data block.
+ *                 index?: scalar|Param|null, // Default: "@NowoTranslationYamlToolsBundle/text_override/index.html.twig"
+ *                 edit?: scalar|Param|null, // Default: "@NowoTranslationYamlToolsBundle/text_override/edit.html.twig"
+ *             },
+ *             form_themes?: list<scalar|Param|null>,
  *             security?: array{
  *                 access_roles?: list<scalar|Param|null>,
  *                 allow_unauthenticated?: bool|Param, // DEV/DEMO only: skip the role check (no SecurityBundle needed). Never true in production. // Default: false

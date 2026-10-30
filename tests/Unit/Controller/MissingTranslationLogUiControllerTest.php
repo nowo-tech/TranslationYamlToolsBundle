@@ -9,6 +9,9 @@ use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
 use Nowo\TranslationYamlToolsBundle\Security\MissingLogUiAccessCheckerInterface;
 use Nowo\TranslationYamlToolsBundle\Tests\Fixtures\MissingTranslationLogTestEntityManagerFactory;
+use Nowo\TranslationYamlToolsBundle\Ui\MissingTranslationLogPageFactory;
+use Nowo\TranslationYamlToolsBundle\Ui\WebUiPages;
+use Nowo\UiKitBundle\View\ListPage;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Container;
@@ -28,6 +31,8 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Translation\Loader\ArrayLoader;
+use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 
 #[CoversClass(MissingTranslationLogUiController::class)]
@@ -100,6 +105,64 @@ final class MissingTranslationLogUiControllerTest extends TestCase
         self::assertSame('pending', $context[0]['clear_status_form']->children['status']->vars['value']);
         self::assertSame([], $context[1]['mark_added_forms'], 'Only the pending list has row actions.');
         self::assertSame('added', $context[1]['clear_form']->children['status']->vars['value']);
+    }
+
+    public function testIndexRendersTheUiKitListPageFromTheInjectedFactory(): void
+    {
+        $repo = $this->createMock(MissingTranslationLogRepository::class);
+        $repo->method('countByStatus')->willReturn(120);
+        $repo->expects(self::once())->method('findByStatus')->with(MissingTranslationLogStatus::Validated, 25, 25)->willReturn([]);
+
+        $vars = [];
+        $twig = $this->createMock(Environment::class);
+        $twig->expects(self::once())->method('render')->willReturnCallback(static function (string $name, array $context) use (&$vars): string {
+            $vars = ['name' => $name] + $context;
+
+            return 'ok';
+        });
+        $container = new Container();
+        $container->set('twig', $twig);
+        $this->withForms($container);
+        $router = $this->createStub(UrlGeneratorInterface::class);
+        $router->method('generate')->willReturn('/missing-log');
+
+        $pages      = new MissingTranslationLogPageFactory($router, new WebUiPages(WebUiPages::MISSING_LOG, null, ['index' => 'admin/missing_log.html.twig']));
+        $controller = new MissingTranslationLogUiController($repo, null, $pages);
+        $controller->setContainer($container);
+        $controller->index(Request::create('/?status=validated&per_page=25&page=2'));
+
+        self::assertSame('admin/missing_log.html.twig', $vars['name']);
+        self::assertInstanceOf(ListPage::class, $vars['page']);
+        self::assertNotNull($vars['page']->pagination);
+        self::assertSame(2, $vars['page']->pagination->page);
+        self::assertSame(5, $vars['page']->pagination->totalPages);
+        self::assertSame('validated', $vars['status']);
+        self::assertArrayHasKey(WebUiPages::LEGACY_LAYOUT_VARIABLE, $vars);
+    }
+
+    public function testFlashesAreTranslatedInTheBundleDomain(): void
+    {
+        $repo = $this->createRepository();
+        $repo->persistBuffer(['a' => ['hits' => 1, 'messageId' => 'm', 'domain' => 'd', 'locale' => 'en', 'callSite' => null]]);
+        $id = (int) $repo->findByStatus(MissingTranslationLogStatus::Pending, 5)[0]->getId();
+
+        $request = Request::create('/' . $id . '/mark-added', 'POST', ['missing_log_mark_added_' . $id => ['_token' => 'ok']]);
+        $session = new Session(new MockArraySessionStorage());
+        $request->setSession($session);
+        $container = new Container();
+        $container->set('twig', $this->createMock(Environment::class));
+        $container->set('request_stack', new RequestStack([$request]));
+        $this->withForms($container);
+
+        $translator = new Translator('en');
+        $translator->addLoader('array', new ArrayLoader());
+        $translator->addResource('array', ['missing_log.flash.marked_added' => 'Fila %id% añadida'], 'en', WebUiPages::DOMAIN);
+
+        $controller = new MissingTranslationLogUiController($repo, null, null, $translator);
+        $controller->setContainer($container);
+        $controller->markAdded($id, $request);
+
+        self::assertSame(['Fila ' . $id . ' añadida'], $session->getFlashBag()->get('success'));
     }
 
     public function testClearWithoutStatusFallsBackToPending(): void

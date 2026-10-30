@@ -24,6 +24,7 @@ use SortDirection;
 use Throwable;
 
 use function array_keys;
+use function max;
 use function sprintf;
 use function strlen;
 
@@ -48,9 +49,11 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
     }
 
     /**
+     * Rows of one status, most recently seen first ({@code $offset}: paging of the Web UI list).
+     *
      * @return list<MissingTranslationLog>
      */
-    public function findByStatus(MissingTranslationLogStatus $status, int $limit = 500): array
+    public function findByStatus(MissingTranslationLogStatus $status, int $limit = 500, int $offset = 0): array
     {
         /** @var list<MissingTranslationLog> $rows */
         $rows = $this->entityManager()->createQueryBuilder()
@@ -59,12 +62,28 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
             ->andWhere('l.status = :status')
             ->setParameter('status', $status)
             ->orderBy('l.lastSeenAt', SortDirection::Descending)
+            ->addOrderBy('l.id', SortDirection::Descending)
+            ->setFirstResult(max(0, $offset))
             ->setMaxResults($limit)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
 
         return $rows;
+    }
+
+    /**
+     * Number of rows of one status (pagination of the Web UI list).
+     */
+    public function countByStatus(MissingTranslationLogStatus $status): int
+    {
+        return (int) $this->entityManager()->createQueryBuilder()
+            ->select('COUNT(l.id)')
+            ->from(MissingTranslationLog::class, 'l')
+            ->andWhere('l.status = :status')
+            ->setParameter('status', $status)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     public function findOneById(int $id): ?MissingTranslationLog

@@ -30,8 +30,13 @@ final class OverridesConfigurationTest extends TestCase
             'web_ui'         => [
                 'enabled'         => false,
                 'path_prefix'     => '/_translation_yaml_tools/texts',
-                'layout_template' => '@NowoTranslationYamlToolsBundle/text_override/layout.html.twig',
-                'security'        => [
+                'layout_template' => null,
+                'templates'       => [
+                    'index' => '@NowoTranslationYamlToolsBundle/text_override/index.html.twig',
+                    'edit'  => '@NowoTranslationYamlToolsBundle/text_override/edit.html.twig',
+                ],
+                'form_themes' => ['@NowoUiKit/form/nowo_ui_layout.html.twig'],
+                'security'    => [
                     'access_roles'          => ['ROLE_ADMIN'],
                     'allow_unauthenticated' => false,
                 ],

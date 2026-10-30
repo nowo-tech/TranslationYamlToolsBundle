@@ -24,12 +24,26 @@ test.describe('Translation YAML Tools screenshots', () => {
 
   test('missing-log-ui — runtime missing keys recorded by the translator', async ({ page }) => {
     // Wide viewport: the log table has many columns (call site, route, path…).
-    await page.setViewportSize({ width: 1680, height: 1000 });
+    await page.setViewportSize({ width: 1920, height: 1000 });
     await page.goto('/');
     await page.goto('/missing-log/probes/repeat-hits');
     await loginAsAdmin(page);
     await expect(page.locator('table').getByText('nowo_demo.missing_from_controller').first()).toBeVisible();
     await waitForToolbar(page);
     await page.screenshot({ path: resolve(outDir, 'missing-log-ui.png') });
+  });
+
+  test('text-overrides — operator edits a catalogue message per locale', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.goto('/_demo/translation-yaml-tools/texts/edit?key=demo.subtitle');
+    await page.locator('textarea[name="texts[en]"]').fill('Default locale is English — edited from the text-overrides desk');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.locator('.nowo-ui-flash--success')).toBeVisible();
+    await waitForToolbar(page);
+    await page.screenshot({ path: resolve(outDir, 'text-overrides.png'), fullPage: true });
+    // Leave the demo as it was (restore through the UiKit confirm dialog).
+    await page.getByTestId('tyt-overrides-reset').click();
+    await page.locator('dialog[open]').getByRole('button', { name: 'Restore shipped text' }).click();
+    await expect(page.locator('.nowo-ui-flash--success')).toContainText('Shipped text restored.');
   });
 });

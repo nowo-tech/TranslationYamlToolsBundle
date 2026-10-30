@@ -16,7 +16,7 @@ overrides:
     empty: Keine passenden Texte.
     edit_title: Text bearbeiten
     edit_intro: Ein Tab pro Sprache. Lassen Sie ein Feld leer oder behalten Sie den Originaltext, um den Standard zu verwenden.
-    back: ← Zurück zu den Texten
+    back: Zurück zu den Texten
     locale_tabs: Sprachen
     badge_overridden: bearbeitet
     text_for: Text (%locale%)
@@ -25,11 +25,48 @@ overrides:
     save: Speichern
     cancel: Abbrechen
     reset: Originaltext wiederherstellen
-    reset_confirm: 'Ja, die Anpassungen für %locales% löschen.'
+    reset_confirm_title: 'Originaltext wiederherstellen?'
+    reset_confirm_message: 'Die Anpassungen für %locales% werden gelöscht und alle Sprachen zeigen wieder den Originaltext.'
+    reset_zone_title: 'Originaltext wiederherstellen'
+    reset_zone_intro: 'Löscht die Anpassungen für %locales%.'
     flash:
         saved: Text gespeichert.
         reset: Originaltext wiederhergestellt.
         invalid_token: Ungültiges Sicherheitstoken. Bitte versuchen Sie es erneut.
-        confirm_required: Aktivieren Sie das Bestätigungsfeld, um den Originaltext wiederherzustellen.
+        confirm_required: 'Bestätigen Sie die Wiederherstellung, um den Originaltext zurückzuholen.'
     error:
         too_long: Dieser Text ist zu lang (maximal %max% Zeichen).
+missing_log:
+    title: 'Protokoll fehlender Übersetzungen'
+    intro: 'Meldungen, die der Übersetzer zur Laufzeit nicht gefunden hat. Ergänzen Sie sie in Ihren Katalogen und markieren Sie sie dann als hinzugefügt.'
+    status_tabs: 'Status'
+    status:
+        pending: 'Ausstehend'
+        added: 'Hinzugefügt'
+        validated: 'Geprüft'
+    col:
+        id: 'ID'
+        locale: 'Sprache'
+        domain: 'Domäne'
+        message_id: 'Meldungs-ID'
+        call_site: 'Aufrufstelle'
+        route: 'Route'
+        method: 'Methode'
+        path: 'Pfad'
+        hits: 'Treffer'
+        last_seen: 'Zuletzt gesehen'
+        actions: 'Aktionen'
+    mark_added: 'Als hinzugefügt markieren'
+    empty: 'Keine Zeilen mit dem Status „%status%“.'
+    clear_status:
+        button: 'Aktuellen Status leeren'
+        confirm_title: 'Zeilen „%status%“ leeren?'
+        confirm_message: 'Alle Zeilen mit dem Status „%status%“ werden gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.'
+    clear_all:
+        button: 'Alle Zeilen leeren'
+        confirm_title: 'Gesamtes Protokoll leeren?'
+        confirm_message: 'Alle Zeilen des Protokolls werden gelöscht, unabhängig vom Status. Diese Aktion kann nicht rückgängig gemacht werden.'
+    flash:
+        marked_added: 'Zeile Nr. %id% als hinzugefügt markiert.'
+        cleared_all: '{0}Keine Protokollzeilen zu leeren.|{1}1 Protokollzeile gelöscht.|]1,Inf[%count% Protokollzeilen gelöscht.'
+        cleared_status: '{0}Keine Zeilen mit dem Status „%status%“ zu leeren.|{1}1 Zeile mit dem Status „%status%“ gelöscht.|]1,Inf[%count% Zeilen mit dem Status „%status%“ gelöscht.'

@@ -73,8 +73,9 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
     }
 
     /**
-     * When UiKit is installed, seed nowo_ui_kit from missing_translation_log.web_ui
-     * so kit macros resolve the same stack. Does not override keys the host already set.
+     * When UiKit is installed, seed nowo_ui_kit from the deprecated missing_translation_log.web_ui.css_framework
+     * (default bootstrap5, as in 1.x) so kit macros resolve the same stack. Does not override keys the host already
+     * set (set nowo_ui_kit.css_framework / icon_set once for every bundle).
      */
     private function prependUiKitDefaults(ContainerBuilder $container): void
     {
@@ -167,10 +168,9 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         );
 
         /** @var array<string, mixed> $missingLog */
-        $missingLog          = $config['missing_translation_log'];
-        $tablePrefix         = 'nowo_translation_';
-        $webUiPathPrefix     = '/_translation_yaml_tools/missing-log';
-        $webUiLayoutTemplate = '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig';
+        $missingLog      = $config['missing_translation_log'];
+        $tablePrefix     = 'nowo_translation_';
+        $webUiPathPrefix = '/_translation_yaml_tools/missing-log';
 
         $missingLogEnabled    = (bool) ($missingLog['enabled'] ?? false);
         $tablePrefix          = (string) ($missingLog['table_prefix'] ?? $tablePrefix);
@@ -181,9 +181,11 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $webUi                = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
         $webUiEnabled         = (bool) ($webUi['enabled'] ?? false);
         $webUiPathPrefix      = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
-        $webUiLayoutTemplate  = (string) ($webUi['layout_template'] ?? $webUiLayoutTemplate);
-        $webUiCssFramework    = (string) ($webUi['css_framework'] ?? 'bootstrap5');
-        $security             = is_array($webUi['security'] ?? null) ? $webUi['security'] : [];
+        $webUiLayoutTemplate  = is_string($webUi['layout_template'] ?? null) && $webUi['layout_template'] !== '' ? $webUi['layout_template'] : null;
+        /** @var array<string, string> $webUiTemplates */
+        $webUiTemplates    = is_array($webUi['templates'] ?? null) ? $webUi['templates'] : [];
+        $webUiCssFramework = (string) ($webUi['css_framework'] ?? 'bootstrap5');
+        $security          = is_array($webUi['security'] ?? null) ? $webUi['security'] : [];
         /** @var list<string> $accessRoles */
         $accessRoles = [];
         foreach ($security['access_roles'] ?? ['ROLE_ADMIN'] as $role) {
@@ -206,6 +208,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.enabled', $webUiEnabled);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.path_prefix', $webUiPathPrefix);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template', $webUiLayoutTemplate);
+        $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.templates', $webUiTemplates);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.css_framework', $webUiCssFramework);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.required_role', $webUiRequiredRoleBc);
         $container->setParameter('nowo_translation_yaml_tools.missing_translation_log.web_ui.allow_unauthenticated', $webUiAllowUnauthenticated);
@@ -284,7 +287,10 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $container->setParameter($prefix . 'max_length', (int) $overrides['max_length']);
         $container->setParameter($prefix . 'web_ui.enabled', $webUiEnabled);
         $container->setParameter($prefix . 'web_ui.path_prefix', (string) $webUi['path_prefix']);
-        $container->setParameter($prefix . 'web_ui.layout_template', (string) $webUi['layout_template']);
+        $layoutTemplate = $webUi['layout_template'];
+        $container->setParameter($prefix . 'web_ui.layout_template', is_string($layoutTemplate) && $layoutTemplate !== '' ? $layoutTemplate : null);
+        $container->setParameter($prefix . 'web_ui.templates', $webUi['templates']);
+        $container->setParameter($prefix . 'web_ui.form_themes', array_values($webUi['form_themes']));
         $container->setParameter($prefix . 'web_ui.security.access_roles', $accessRoles);
         $container->setParameter($prefix . 'web_ui.security.allow_unauthenticated', (bool) $security['allow_unauthenticated']);
 

@@ -19,7 +19,8 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  *   {@code framework.form.csrf_protection: false}) — see {@see FormCsrfRequirement};
  * - TwigBundle ({@code twig});
  * - the Form component ({@code form.factory}, i.e. symfony/form with {@code framework.form} enabled): the desk
- *   pages are Symfony forms.
+ *   pages are Symfony forms;
+ * - NowoUiKitBundle registered in the kernel: the pages are UiKit page scaffolds (see {@see UiKitRequirement}).
  */
 final class TextOverrideWebUiPass implements CompilerPassInterface
 {
@@ -44,5 +45,7 @@ final class TextOverrideWebUiPass implements CompilerPassInterface
         if (!$container->has('form.factory')) {
             throw new InvalidConfigurationException('overrides.web_ui.enabled requires the Form component: keep framework.form enabled (symfony/form).');
         }
+
+        UiKitRequirement::assert($container, 'overrides.web_ui.enabled');
     }
 }

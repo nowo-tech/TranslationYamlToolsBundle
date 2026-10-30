@@ -39,8 +39,6 @@ final class TranslationOverrideFilterType extends AbstractType
             ->add('q', SearchType::class, [
                 'label'    => 'overrides.search',
                 'required' => false,
-                'attr'     => ['placeholder' => 'overrides.search_placeholder'],
-                'row_attr' => ['class' => 'col-12 col-md-5'],
             ])
             ->add('group', ChoiceType::class, [
                 'label'                     => 'overrides.group',
@@ -48,7 +46,6 @@ final class TranslationOverrideFilterType extends AbstractType
                 'choices'                   => $choices,
                 'choice_translation_domain' => false,
                 'placeholder'               => 'overrides.all_groups',
-                'row_attr'                  => ['class' => 'col-12 col-md-4'],
             ]);
     }
 

@@ -6,5 +6,6 @@ return [
     Symfony\Bundle\FrameworkBundle\FrameworkBundle::class                 => ['all' => true],
     Doctrine\Bundle\DoctrineBundle\DoctrineBundle::class                  => ['all' => true],
     Symfony\Bundle\TwigBundle\TwigBundle::class                           => ['all' => true],
+    Nowo\UiKitBundle\NowoUiKitBundle::class                              => ['all' => true],
     Nowo\TranslationYamlToolsBundle\NowoTranslationYamlToolsBundle::class => ['all' => true],
 ];

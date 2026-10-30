@@ -6,7 +6,28 @@ services:
     Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController:
         arguments:
             $accessChecker: null
+            $pages: '@Nowo\TranslationYamlToolsBundle\Ui\MissingTranslationLogPageFactory'
+            $translator: '@?translator'
 
+    # REQ-UI-003 page plumbing of the missing-log UI (layout, per-page templates, legacy layout bridge).
+    nowo_translation_yaml_tools.missing_log.web_ui.pages:
+        class: Nowo\TranslationYamlToolsBundle\Ui\WebUiPages
+        autowire: false
+        autoconfigure: false
+        arguments:
+            $ui: !php/const Nowo\TranslationYamlToolsBundle\Ui\WebUiPages::MISSING_LOG
+            $layoutTemplate: '%nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template%'
+            $templates: '%nowo_translation_yaml_tools.missing_translation_log.web_ui.templates%'
+            $formThemes: []
+            $twig: '@?twig'
+
+    Nowo\TranslationYamlToolsBundle\Ui\MissingTranslationLogPageFactory:
+        autowire: false
+        arguments:
+            $urlGenerator: '@router'
+            $pages: '@nowo_translation_yaml_tools.missing_log.web_ui.pages'
+
+    # Deprecated 1.x Twig globals (the pages no longer read them; kept for host templates until 2.0).
     Nowo\TranslationYamlToolsBundle\Twig\MissingTranslationLogExtension:
         arguments:
             $layoutTemplate: '%nowo_translation_yaml_tools.missing_translation_log.web_ui.layout_template%'

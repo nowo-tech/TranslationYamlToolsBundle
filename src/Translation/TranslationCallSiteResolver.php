@@ -13,8 +13,8 @@ use const DEBUG_BACKTRACE_IGNORE_ARGS;
 /**
  * Resolves a "caller path" (absolute file path + line) for a missing translation lookup.
  *
- * Walks debug_backtrace and skips Symfony translation internals, this bundle's recorder/decorator,
- * and the Twig translation extension so the first plausible frame (controller, template compile file, command, test, …) wins.
+ * Walks debug_backtrace and skips Symfony translation internals, this bundle's recorder/decorators (including the
+ * text-overrides {@code OverridingTranslator} when both features are enabled), and the Twig translation extension so the first plausible frame (controller, template compile file, command, test, …) wins.
  */
 final class TranslationCallSiteResolver
 {
@@ -57,6 +57,7 @@ final class TranslationCallSiteResolver
             'TranslationCallSiteResolver.php',
             'MissingTranslationLogCallSiteBuilder.php',
             'RecordingTranslatorDecorator.php',
+            'OverridingTranslator.php',
             'DoctrineMissingTranslationRecorder.php',
         ] as $base) {
             if (str_ends_with($normalized, '/' . $base)) {

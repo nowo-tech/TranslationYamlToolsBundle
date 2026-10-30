@@ -1,0 +1,32 @@
+{#
+  BC bridge (deprecated since 1.14, removed in 2.0): wraps a 1.x layout set in
+  missing_translation_log.web_ui.layout_template (e.g. layout_integrate_dashboard_menu.html.twig,
+  layout_integrate_breadcrumb_kit.html.twig or a project layout written for 1.x) that renders the 1.x blocks
+  `nowo_translation_yaml_tools_missing_log_content` (and optionally `missing_log_title`, `missing_log_head`,
+  `missing_log_scripts`) instead of the UiKit canonical blocks. WebUiPages::layout() selects it when the configured
+  layout does not define nowo_ui_content. Variable: nowo_translation_yaml_tools_legacy_layout (the configured layout).
+#}
+{% extends nowo_translation_yaml_tools_legacy_layout %}
+
+{% block missing_log_title %}{% block nowo_ui_document_title %}{% endblock %}{% endblock %}
+
+{% block missing_log_head %}
+    <link rel="stylesheet" href="{{ asset('css/nowo-ui.css', 'nowo_ui_kit') }}">
+    {% block nowo_ui_head %}{% endblock %}
+    {% block nowo_ui_styles %}{{ nowo_ui_tokens() }}{% endblock %}
+{% endblock %}
+
+{% block nowo_translation_yaml_tools_missing_log_content %}
+    {% set _bundle = nowo_ui_bundle|default(null) %}
+    {% block nowo_ui_navigation %}{% endblock %}
+    <div class="{{ nowo_ui_class('content', _bundle) }}"{% if _bundle %} data-nowo-ui-bundle="{{ _bundle }}"{% endif %}>
+        {% block nowo_ui_page_header %}{% endblock %}
+        {% block nowo_ui_flashes %}{{ include(nowo_ui_partial('flashes', _bundle), {bundle: _bundle}) }}{% endblock %}
+        {% block nowo_ui_content %}{% endblock %}
+    </div>
+    {% block nowo_ui_modals %}{% endblock %}
+{% endblock %}
+
+{% block missing_log_scripts %}
+    {% block nowo_ui_scripts %}{{ include(nowo_ui_partial('scripts', nowo_ui_bundle|default(null))) }}{% endblock %}
+{% endblock %}

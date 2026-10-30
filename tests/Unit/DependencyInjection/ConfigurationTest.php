@@ -42,7 +42,8 @@ final class ConfigurationTest extends TestCase
             'web_ui'                 => [
                 'enabled'               => false,
                 'path_prefix'           => '/_translation_yaml_tools/missing-log',
-                'layout_template'       => '@NowoTranslationYamlToolsBundle/missing_translation_log/layout.html.twig',
+                'layout_template'       => null,
+                'templates'             => ['index' => '@NowoTranslationYamlToolsBundle/missing_translation_log/index.html.twig'],
                 'css_framework'         => 'bootstrap5',
                 'required_role'         => 'ROLE_ADMIN',
                 'allow_unauthenticated' => false,

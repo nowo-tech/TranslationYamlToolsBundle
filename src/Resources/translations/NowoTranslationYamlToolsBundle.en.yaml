@@ -16,7 +16,7 @@ overrides:
     empty: No texts match.
     edit_title: Edit text
     edit_intro: One tab per language. Leave a field empty, or keep the shipped text, to use the default.
-    back: ← Back to texts
+    back: Back to texts
     locale_tabs: Languages
     badge_overridden: edited
     text_for: Text (%locale%)
@@ -25,11 +25,48 @@ overrides:
     save: Save
     cancel: Cancel
     reset: Restore shipped text
-    reset_confirm: 'Yes, delete the overrides for %locales%.'
+    reset_confirm_title: 'Restore the shipped text?'
+    reset_confirm_message: 'The overrides for %locales% are deleted and every language shows the shipped text again.'
+    reset_zone_title: 'Restore the shipped text'
+    reset_zone_intro: 'Deletes the overrides for %locales%.'
     flash:
         saved: Text saved.
         reset: Shipped text restored.
         invalid_token: Invalid security token. Please try again.
-        confirm_required: Tick the confirmation box to restore the shipped text.
+        confirm_required: 'Confirm the restore to bring back the shipped text.'
     error:
         too_long: This text is too long (maximum %max% characters).
+missing_log:
+    title: 'Missing translation log'
+    intro: 'Messages the translator could not find at runtime. Add them to your catalogues, then mark them as added.'
+    status_tabs: 'Status'
+    status:
+        pending: 'Pending'
+        added: 'Added'
+        validated: 'Validated'
+    col:
+        id: 'ID'
+        locale: 'Locale'
+        domain: 'Domain'
+        message_id: 'Message id'
+        call_site: 'Call site'
+        route: 'Route'
+        method: 'Method'
+        path: 'Path'
+        hits: 'Hits'
+        last_seen: 'Last seen'
+        actions: 'Actions'
+    mark_added: 'Mark added'
+    empty: 'No rows with status "%status%".'
+    clear_status:
+        button: 'Clear current status'
+        confirm_title: 'Clear the "%status%" rows?'
+        confirm_message: 'Every row with status "%status%" is deleted. This action cannot be undone.'
+    clear_all:
+        button: 'Clear all rows'
+        confirm_title: 'Clear the whole log?'
+        confirm_message: 'Every missing-log row is deleted, whatever its status. This action cannot be undone.'
+    flash:
+        marked_added: 'Row #%id% marked as added.'
+        cleared_all: '{0}No missing-log row to clear.|{1}Cleared 1 missing-log row.|]1,Inf[Cleared %count% missing-log rows.'
+        cleared_status: '{0}No row with status "%status%" to clear.|{1}Cleared 1 row with status "%status%".|]1,Inf[Cleared %count% rows with status "%status%".'

@@ -12,13 +12,17 @@ This bundle is **FrankenPHP worker mode friendly**.
 
 <table>
   <tr>
-    <td align="center" width="50%">
+    <td align="center" width="33%">
       <img src="docs/images/demo/translation-insights.webp" alt="Demo insights page: default and enabled locales, resolved translation directories and YAML files per domain" />
       <br /><sub>Translation paths, locales and missing YAML files per domain</sub>
     </td>
-    <td align="center" width="50%">
-      <img src="docs/images/demo/missing-log-ui.webp" alt="Missing translation log Web UI listing keys requested at runtime with call site, route and hit count" />
+    <td align="center" width="33%">
+      <img src="docs/images/demo/missing-log-ui.webp" alt="Missing translation log Web UI (UiKit list page) listing keys requested at runtime with status tabs, call site, route and hit count" />
       <br /><sub>Missing translation log — runtime keys with call site, route and hits</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/images/demo/text-overrides.webp" alt="Text-overrides desk (UiKit form page): one tab per locale with the shipped text and the Restore shipped text action" />
+      <br /><sub>Text overrides — edit a catalogue message per locale</sub>
     </td>
   </tr>
 </table>
@@ -33,11 +37,11 @@ This bundle is **FrankenPHP worker mode friendly**.
 - **`nowo:translation-yaml:fill-missing`** — merges missing keys into a target locale using the configured machine translator (Google, DeepL, or LibreTranslate); optional `--tree` output with the same validation as the tree command.
 - **`nowo:translation-yaml:audit`** — read-only report: tree-safe YAML, alphabetical key order, missing keys vs source locale; compact **OK** line per domain when everything passes. **`--strict`** also fails on extra keys and empty values (CI).
 - **`Testing\TranslationParityAssertions`** — PHPUnit trait for host suites: `assertTranslationKeyParity()` (missing / extra / empty keys vs the source locale) `assertNoUntranslatedValues()` (values copied from the source) and `assertLiteralKeysExist()` (literal `trans()` / `addFlash()` keys present in the catalogue), with per-locale allowlists — see [Usage — Strict parity](docs/USAGE.md#strict-parity-in-ci-and-phpunit).
-- **Missing translation log** (opt-in `missing_translation_log`): persist keys that Twig/PHP requested but were missing, with a **Web UI** and CLI:
+- **Missing translation log** (opt-in `missing_translation_log`): persist keys that Twig/PHP requested but were missing, with a **Web UI** (UiKit list page: status tabs, pagination, confirm dialogs) and CLI:
   - **`nowo:translation-yaml:missing-log-list`**
   - **`nowo:translation-yaml:missing-log-mark-added`**
   - **`nowo:translation-yaml:missing-log-validate`**
-- **Text overrides** (opt-in `overrides`): operators replace editable catalogue messages per locale from a Web UI (search + groups, one tab per locale, reset, CSRF, no inline JS); a `translator` decorator serves them everywhere (Twig, forms, mails). Editable domains/prefixes by config, cached map, markup sanitized on save and load, form bridge for host forms. Needs Doctrine and the bundle in **all** environments — see [Configuration — Text overrides](docs/CONFIGURATION.md#text-overrides-database).
+- **Text overrides** (opt-in `overrides`): operators replace editable catalogue messages per locale from a Web UI (UiKit list + form pages: search + groups, one tab per locale, restore behind a confirm dialog, CSRF, no inline JS); a `translator` decorator serves them everywhere (Twig, forms, mails). Editable domains/prefixes by config, cached map, markup sanitized on save and load, form bridge for host forms. Needs Doctrine and the bundle in **all** environments — see [Configuration — Text overrides](docs/CONFIGURATION.md#text-overrides-database).
 - Configurable **YAML indent** (`yaml_tree_indent`) and **leaf-prefix suffix** (`yaml_tree_leaf_prefix_suffix` for `tree --fix-leaf-prefix`) for dumps / renames.
 
 ## Version information
@@ -77,6 +81,7 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 - [Installation](docs/INSTALLATION.md)
 - [Configuration](docs/CONFIGURATION.md)
 - [Usage](docs/USAGE.md)
+- [Templates (UiKit page contract)](docs/TEMPLATES.md)
 - [Contributing](docs/CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Changelog](docs/CHANGELOG.md)

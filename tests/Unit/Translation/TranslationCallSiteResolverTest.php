@@ -26,6 +26,7 @@ final class TranslationCallSiteResolverTest extends TestCase
         self::assertTrue($m->invoke(null, '/any/path/TranslationCallSiteResolver.php'));
         self::assertTrue($m->invoke(null, '/any/path/MissingTranslationLogCallSiteBuilder.php'));
         self::assertTrue($m->invoke(null, '/any/path/RecordingTranslatorDecorator.php'));
+        self::assertTrue($m->invoke(null, '/vendor/nowo-tech/translation-yaml-tools-bundle/src/TextOverride/OverridingTranslator.php'));
         self::assertTrue($m->invoke(null, '/any/path/DoctrineMissingTranslationRecorder.php'));
         self::assertTrue($m->invoke(null, '/vendor/symfony/translation/Translator.php'));
         self::assertTrue($m->invoke(null, '/vendor/symfony/twig-bridge/Extension/TranslationExtension.php'));

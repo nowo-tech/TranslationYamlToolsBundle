@@ -1,49 +1,30 @@
-{% extends layout_template %}
+{#
+  Text-overrides desk, texts list (REQ-UI-003): UiKit list scaffold. Variable: page (View\ListPage from
+  TranslationOverridePageFactory::index(): header overrides.title / overrides.intro; filters = the GET
+  TranslationOverrideFilterType (q, group); columns key, text (default locale), overridden; rows = list of
+  {key, text, overridden}; row action Edit; Pagination; EmptyState overrides.empty).
+  Extra variables (1.x, kept for web_ui.templates overrides): filter_form (the FormView of page.filters: render it
+  only once), rows, groups, group, query, default_locale, override_count.
+  Data blocks filled: nowo_ui_list_row (cells), nowo_ui_content (the override count, then parent()).
+#}
+{% extends '@NowoUiKit/page/list.html.twig' %}
 {% trans_default_domain 'NowoTranslationYamlToolsBundle' %}
 
-{% block title %}{{ 'overrides.title'|trans }}{% endblock %}
+{% block nowo_ui_content %}
+    <p class="{{ nowo_ui_class('muted', page.bundle) }}" data-testid="tyt-overrides-count">{{ 'overrides.override_count'|trans({'%count%': override_count}) }}</p>
+    {{ parent() }}
+{% endblock %}
 
-{% block body %}
-<div class="nowo-tyt-overrides mb-4" data-testid="tyt-overrides-index">
-    <h1 class="h3">{{ 'overrides.title'|trans }}</h1>
-    <p class="text-muted mb-1">{{ 'overrides.intro'|trans }}</p>
-    <p class="text-muted small" data-testid="tyt-overrides-count">{{ 'overrides.override_count'|trans({'%count%': override_count}) }}</p>
-</div>
-
-{% form_theme filter_form 'bootstrap_5_layout.html.twig' %}
-{{ form_start(filter_form, {attr: {class: 'row g-2 align-items-end mb-3', role: 'search', 'data-testid': 'tyt-overrides-filter'}}) }}
-    {% for child in filter_form %}
-        {% if not child.rendered %}
-            {{ form_row(child) }}
-        {% endif %}
-    {% endfor %}
-    <div class="col-12 col-md-3">
-        <button class="btn btn-primary" type="submit">{{ 'overrides.filter'|trans }}</button>
-    </div>
-{{ form_end(filter_form) }}
-
-<div class="table-responsive">
-    <table class="table table-sm table-hover align-middle bg-white" data-testid="tyt-overrides-table">
-        <thead>
-            <tr>
-                <th scope="col">{{ 'overrides.col.key'|trans }}</th>
-                <th scope="col">{{ 'overrides.col.text'|trans({'%locale%': default_locale|upper}) }}</th>
-                <th scope="col">{{ 'overrides.col.overridden'|trans }}</th>
-                <th scope="col"><span class="visually-hidden">{{ 'overrides.col.actions'|trans }}</span></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in rows %}
-                <tr>
-                    <td><code class="small">{{ row.key }}</code></td>
-                    <td>{{ row.text }}</td>
-                    <td>{% for locale in row.overridden %}<span class="badge text-bg-info me-1">{{ locale|upper }}</span>{% endfor %}</td>
-                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ path('nowo_translation_yaml_tools_overrides_edit', {key: row.key}) }}">{{ 'overrides.edit'|trans }}</a></td>
-                </tr>
-            {% else %}
-                <tr><td class="text-muted" colspan="4">{{ 'overrides.empty'|trans }}</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+{% block nowo_ui_list_row %}
+    {% set _b = page.bundle %}
+    {% set _cell = nowo_ui_class('table_cell', _b) %}
+    <td class="{{ _cell }}" data-label="{{ 'overrides.col.key'|trans }}" data-required="1"><code class="{{ nowo_ui_class('code', _b) }}">{{ row.key }}</code></td>
+    <td class="{{ _cell }}" data-label="{{ 'overrides.col.text'|trans({'%locale%': default_locale|upper}) }}">{{ row.text }}</td>
+    <td class="{{ _cell }}{{ row.overridden is empty ? ' ' ~ nowo_ui_class('table_cell_muted', _b) }}" data-label="{{ 'overrides.col.overridden'|trans }}" data-nowo-ui-priority="2">
+        {%- for locale in row.overridden -%}
+            <span class="{{ nowo_ui_class('badge_info', _b) }}" data-testid="tyt-overrides-overridden">{{ locale|upper }}</span>{{ not loop.last ? ' ' }}
+        {%- else -%}
+            —
+        {%- endfor -%}
+    </td>
 {% endblock %}

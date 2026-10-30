@@ -1,46 +1,29 @@
-{% extends '@NowoTranslationYamlToolsBundle/missing_translation_log/base.html.twig' %}
+{#
+  Missing-translation log (REQ-UI-003): UiKit list scaffold. Variable: page (View\ListPage from
+  MissingTranslationLogPageFactory::index(): header missing_log.title / missing_log.intro with the status tabs
+  (Pending / Added / Validated) and the actions Clear current status / Clear all rows (POST + CSRF-only FormView
+  behind a Confirm); columns id, locale, domain, message id, call site, route, method, path, hits, last seen;
+  rows = list<MissingTranslationLog>; row action Mark added (pending rows: POST + CSRF-only FormView); Pagination;
+  EmptyState missing_log.empty).
+  Extra variables (1.x, kept for web_ui.templates overrides): rows, status, clear_status_form, clear_form,
+  mark_added_forms (the same FormViews back the page actions: render each only once).
+  Data block filled: nowo_ui_list_row (cells).
+#}
+{% extends '@NowoUiKit/page/list.html.twig' %}
+{% trans_default_domain 'NowoTranslationYamlToolsBundle' %}
 
-{% block missing_log_title %}Missing translation log{% endblock %}
-
-{% block missing_log_breadcrumb %}
-    {# Pass {@code trail} from a controller / listener to render BreadcrumbKit; bundle optional. #}
-    {% if trail is defined and trail is not null %}
-        <div class="mb-1">
-            {% include '@NowoBreadcrumbKitBundle/breadcrumb.html.twig' ignore missing %}
-        </div>
-    {% endif %}
-    {% block missing_log_breadcrumb_extra %}{% endblock %}
-{% endblock %}
-
-{% block missing_log_body %}
-    {% block missing_log_page_header %}
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
-            <h1 class="h3 mb-0">Missing translation log</h1>
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                {# CSRF-only action forms (MissingTranslationLogActionType): hidden children via the child loop, button outside it. #}
-                {{ form_start(clear_status_form, {attr: {class: 'd-inline', onsubmit: 'return confirm(\'Delete rows with status ' ~ status ~ '? This action cannot be undone.\');'}}) }}
-                    {% for child in clear_status_form %}
-                        {% if not child.rendered %}
-                            {{ form_row(child) }}
-                        {% endif %}
-                    {% endfor %}
-                    <button type="submit" class="btn btn-sm btn-outline-warning">Clear current status</button>
-                {{ form_end(clear_status_form) }}
-                {{ form_start(clear_form, {attr: {class: 'd-inline', onsubmit: 'return confirm(\'Delete all missing-log rows? This action cannot be undone.\');'}}) }}
-                    {% for child in clear_form %}
-                        {% if not child.rendered %}
-                            {{ form_row(child) }}
-                        {% endif %}
-                    {% endfor %}
-                    <button type="submit" class="btn btn-sm btn-outline-danger">Clear all rows</button>
-                {{ form_end(clear_form) }}
-            </div>
-        </div>
-    {% endblock %}
-    {% block missing_log_status_filters %}
-        {% include '@NowoTranslationYamlToolsBundle/missing_translation_log/_status_filters.html.twig' %}
-    {% endblock %}
-    {% block missing_log_table %}
-        {% include '@NowoTranslationYamlToolsBundle/missing_translation_log/_table.html.twig' %}
-    {% endblock %}
+{% block nowo_ui_list_row %}
+    {% set _b = page.bundle %}
+    {% set _cell = nowo_ui_class('table_cell', _b) %}
+    {% set _muted = nowo_ui_class('table_cell_muted', _b) %}
+    <td class="{{ _cell }}" data-label="{{ 'missing_log.col.id'|trans }}" data-nowo-ui-priority="3">{{ row.id }}</td>
+    <td class="{{ _cell }}" data-label="{{ 'missing_log.col.locale'|trans }}"><span class="{{ nowo_ui_class('badge_neutral', _b) }}">{{ row.locale }}</span></td>
+    <td class="{{ _cell }}" data-label="{{ 'missing_log.col.domain'|trans }}" data-nowo-ui-priority="2">{{ row.domain }}</td>
+    <td class="{{ _cell }}" data-label="{{ 'missing_log.col.message_id'|trans }}" data-required="1"><code class="{{ nowo_ui_class('code', _b) }}">{{ row.messageId }}</code></td>
+    {% for _key, _value in {call_site: row.callSite, route: row.requestRoute, method: row.requestMethod} %}
+        <td class="{{ _cell }}{{ _value is null ? ' ' ~ _muted }}" data-label="{{ ('missing_log.col.' ~ _key)|trans }}" data-nowo-ui-priority="3">{{ _value ?? '—' }}</td>
+    {% endfor %}
+    <td class="{{ _cell }}{{ row.requestPath is null ? ' ' ~ _muted }}" data-label="{{ 'missing_log.col.path'|trans }}" data-nowo-ui-priority="2">{{ row.requestPath ?? '—' }}</td>
+    <td class="{{ _cell }} nowo-ui-cell--end" data-label="{{ 'missing_log.col.hits'|trans }}">{{ row.hitCount }}</td>
+    <td class="{{ _cell }}" data-label="{{ 'missing_log.col.last_seen'|trans }}" data-nowo-ui-priority="2"><time datetime="{{ row.lastSeenAt|date('c') }}">{{ row.lastSeenAt|date('Y-m-d H:i:s') }}</time></td>
 {% endblock %}
