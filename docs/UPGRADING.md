@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [Security behaviour changes (REQ-SEC-004)](#security-behaviour-changes-req-sec-004)
   - [Template contract (REQ-UI-003)](#template-contract-req-ui-003)
   - [Configuration (REQ-UI-003 vocabulary)](#configuration-req-ui-003-vocabulary)
 - [To 1.13.0](#to-1130)
@@ -60,7 +61,26 @@
 
 ## Unreleased
 
-Applies only when `missing_translation_log.web_ui.enabled` or `overrides.web_ui.enabled` is `true`.
+Applies only when `missing_translation_log.web_ui.enabled` or `overrides.web_ui.enabled` is `true` (except the
+security notes, which apply to every configuration).
+
+### Security behaviour changes (REQ-SEC-004)
+
+- **Literal booleans (L1).** `missing_translation_log.enabled`, `missing_translation_log.web_ui.enabled`,
+  `missing_translation_log.web_ui.security.allow_unauthenticated` (and the deprecated top-level
+  `web_ui.allow_unauthenticated`), `overrides.enabled`, `overrides.web_ui.enabled` and
+  `overrides.web_ui.security.allow_unauthenticated` no longer accept `%env(bool:…)%` (or any non-boolean): the
+  container build fails with "must be a literal boolean". Such a value used to be treated as `true` whatever the env.
+  Use per-environment config files (`config/packages/dev/…`) instead.
+- **`allow_unauthenticated` is dev-only (L2).** With `web_ui.security.allow_unauthenticated: true` the container now
+  refuses to compile unless `kernel.debug` is true. Production configs must set it to `false` (default) and protect the
+  UI with `security.access_roles` + `access_control`.
+- **Override placeholders (L4).** Saving an override whose placeholders (`%name%`, ICU `{name}`) differ from the
+  shipped text is refused: HTTP 422 with a field error in the desk, `InvalidArgumentException` from
+  `TranslationOverrideEditor::save()` (host form bridge: call `placeholderErrors()` first). Existing rows are not
+  touched. The default sanitizer drops `class` on `<span>`: overrides relying on host CSS classes lose them on the next
+  save / map load.
+- **Dist archive (L3).** `demo/`, `tests/`, tooling and `docs/images/` are no longer in the Composer dist (zipball).
 
 ```bash
 composer update nowo-tech/translation-yaml-tools-bundle nowo-tech/ui-kit-bundle

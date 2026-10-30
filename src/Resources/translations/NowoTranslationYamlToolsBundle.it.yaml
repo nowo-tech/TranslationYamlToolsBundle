@@ -36,6 +36,7 @@ overrides:
         confirm_required: 'Conferma il ripristino per recuperare il testo originale.'
     error:
         too_long: Questo testo è troppo lungo (massimo %max% caratteri).
+        placeholders: 'Mantieni esattamente i segnaposto del testo originale: %placeholders%.'
 missing_log:
     title: 'Registro delle traduzioni mancanti'
     intro: 'Messaggi che il traduttore non ha trovato in fase di esecuzione. Aggiungili ai tuoi cataloghi, poi segnali come aggiunti.'

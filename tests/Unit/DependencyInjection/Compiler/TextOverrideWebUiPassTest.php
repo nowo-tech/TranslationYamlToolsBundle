@@ -66,6 +66,16 @@ final class TextOverrideWebUiPassTest extends TestCase
         (new TextOverrideWebUiPass())->process($this->container(true, true, ['security.csrf.token_manager', 'twig']));
     }
 
+    public function testRefusesAllowUnauthenticatedWithoutKernelDebug(): void
+    {
+        $container = $this->container(true, true, ['security.csrf.token_manager', 'twig', 'form.factory']);
+        $container->setParameter('kernel.debug', false);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('overrides.web_ui.security.allow_unauthenticated: true is only allowed when kernel.debug is true');
+        (new TextOverrideWebUiPass())->process($container);
+    }
+
     public function testRequiresUiKit(): void
     {
         $this->expectException(InvalidConfigurationException::class);
@@ -85,6 +95,7 @@ final class TextOverrideWebUiPassTest extends TestCase
     private function container(bool $enabled, bool $allowUnauthenticated, array $services, bool $csrfExtension = true, bool $uiKit = true): ContainerBuilder
     {
         $container = new ContainerBuilder();
+        $container->setParameter('kernel.debug', true);
         $container->setParameter('kernel.bundles', $uiKit ? ['NowoUiKitBundle' => 'Nowo\\UiKitBundle\\NowoUiKitBundle'] : []);
         $container->setParameter('nowo_translation_yaml_tools.overrides.web_ui.enabled', $enabled);
         $container->setParameter('nowo_translation_yaml_tools.overrides.web_ui.security.allow_unauthenticated', $allowUnauthenticated);

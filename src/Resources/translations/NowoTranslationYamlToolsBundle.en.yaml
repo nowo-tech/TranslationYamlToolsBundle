@@ -36,6 +36,7 @@ overrides:
         confirm_required: 'Confirm the restore to bring back the shipped text.'
     error:
         too_long: This text is too long (maximum %max% characters).
+        placeholders: 'Keep exactly the placeholders of the shipped text: %placeholders%.'
 missing_log:
     title: 'Missing translation log'
     intro: 'Messages the translator could not find at runtime. Add them to your catalogues, then mark them as added.'

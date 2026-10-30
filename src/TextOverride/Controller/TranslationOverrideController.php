@@ -187,6 +187,14 @@ final class TranslationOverrideController extends AbstractController
                 }
             }
 
+            foreach ($this->editor->placeholderErrors($domain, $key, $texts) as $locale => $expected) {
+                if (isset($errors[$locale])) {
+                    continue;
+                }
+                $errors[$locale] = $this->t('overrides.error.placeholders', ['%placeholders%' => $expected === [] ? '—' : implode(' ', $expected)]);
+                $form->get($locale)->addError(new FormError($errors[$locale]));
+            }
+
             if ($errors === [] && $form->isValid()) {
                 $this->editor->save($domain, $key, $texts, true, $this->userIdentifier());
                 $this->addFlash('success', $this->t('overrides.flash.saved'));

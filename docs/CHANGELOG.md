@@ -55,6 +55,26 @@ All notable changes to this project are documented in this file.
 Both opt-in Web UIs (missing-translation log, text-overrides desk) move to the UiKit page contract (REQ-UI-001 /
 REQ-UI-003). See [UPGRADING](UPGRADING.md#unreleased).
 
+### Security
+
+REQ-SEC-004 re-audit 2026-10-30 (`main` `2d5e355`, Pass (good) / Low, monorepo Appendix BL); the five Lows are fixed:
+
+- **L1:** `missing_translation_log.enabled`, `.web_ui.enabled`, `.web_ui.security.allow_unauthenticated` (and its
+  deprecated top-level alias), `overrides.enabled`, `overrides.web_ui.enabled` and
+  `overrides.web_ui.security.allow_unauthenticated` must be literal booleans. An `%env(bool:…)%` placeholder was
+  `(bool)`-cast as a placeholder string — always `true`, whatever the env value (fail-open); it is now refused with an
+  `InvalidConfigurationException`.
+- **L2:** `web_ui.security.allow_unauthenticated: true` (both UIs) makes the container refuse to compile unless
+  `kernel.debug` is true (`DebugOnlyRequirement`).
+- **L3:** `.gitattributes` `export-ignore` keeps `demo/` (in-memory `admin` / `admin` user, MySQL root password),
+  `tests/`, `.cursor/`, `.specify/`, `.github/`, `.scripts/`, `.githooks/`, `specs/`, `scripts/`, `docs/images/` and
+  the tooling configs out of the dist archive.
+- **L4:** overrides must keep exactly the placeholders of the shipped text (`%name%`, ICU `{name}`): the desk shows a
+  field error and `TranslationOverrideEditor::save()` throws (`placeholderErrors()` / `TranslationOverridePlaceholders`
+  for host forms) — parameters are substituted after sanitizing, so an added `%url%` could inject a host value into a
+  `|raw` message. The default sanitizer no longer allows `span[class]` (no host CSS class for UI redress).
+- **L5:** `docs/SECURITY.md`: text-override desk threat row, REQ-SEC-004 audit table, release checklist updated.
+
 ### Added
 
 - **UiKit page contract (REQ-UI-003):** the missing-translation log is a UiKit `page/list` (status tabs, Clear current

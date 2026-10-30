@@ -36,6 +36,7 @@ overrides:
         confirm_required: 'Confirmez la restauration pour retrouver le texte d''origine.'
     error:
         too_long: Ce texte est trop long (%max% caractères maximum).
+        placeholders: 'Conservez exactement les variables du texte d''origine : %placeholders%.'
 missing_log:
     title: 'Journal des traductions manquantes'
     intro: 'Messages que le traducteur n''a pas trouvés à l''exécution. Ajoutez-les à vos catalogues, puis marquez-les comme ajoutés.'

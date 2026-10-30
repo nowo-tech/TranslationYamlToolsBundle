@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\TextOverride\Html;
 
+use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverridePlaceholders;
 use Symfony\Component\HtmlSanitizer\HtmlSanitizer;
 use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
 use Symfony\Component\HtmlSanitizer\HtmlSanitizerInterface;
@@ -11,7 +12,12 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerInterface;
 /**
  * Default sanitizer when symfony/html-sanitizer is installed: an inline allowlist (links,
  * emphasis, line breaks, small/code/abbr/span) with http(s)/mailto/tel and relative links only.
- * Scripts, styles, event handlers and javascript: URLs are removed.
+ * Scripts, styles, event handlers, `class` attributes (no host CSS class for UI redress, REQ-SEC-004 L4) and
+ * javascript: URLs are removed.
+ *
+ * The sanitizer runs on the stored text, **before** message parameters (`%name%`, ICU `{name}`) are substituted:
+ * hosts that print a message with `|raw` must escape its parameters. Overrides may only use the placeholders of the
+ * shipped text ({@see TranslationOverridePlaceholders}).
  *
  * Pass your own {@see HtmlSanitizerInterface} (e.g. a framework.html_sanitizer service) to change
  * the allowlist.
@@ -44,7 +50,7 @@ final class SymfonyTranslationOverrideHtmlSanitizer implements TranslationOverri
             ->allowElement('small')
             ->allowElement('code')
             ->allowElement('abbr', ['title'])
-            ->allowElement('span', ['class'])
+            ->allowElement('span')
             ->allowElement('br')
             ->allowLinkSchemes(['http', 'https', 'mailto', 'tel'])
             ->allowRelativeLinks();

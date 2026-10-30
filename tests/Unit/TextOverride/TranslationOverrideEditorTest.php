@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\TextOverride;
 
+use InvalidArgumentException;
 use Nowo\TranslationYamlToolsBundle\Service\TranslationDefaultLocaleResolver;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Html\StripTagsTranslationOverrideHtmlSanitizer;
@@ -54,6 +55,24 @@ final class TranslationOverrideEditorTest extends TestCase
         self::assertSame(['es=Hola amigos@ana'], $persisted);
     }
 
+    public function testPlaceholderMismatchIsReportedAndRefused(): void
+    {
+        $repository = $this->createMock(TranslationOverrideRepository::class);
+        $repository->expects(self::never())->method('persist');
+        $editor = $this->editor($repository);
+
+        self::assertSame([], $editor->placeholderErrors('messages', 'site.welcome', ['en' => 'Hi %name%!', 'es' => '', 'fr' => null]));
+        self::assertSame(
+            ['en' => ['%name%'], 'es' => []],
+            $editor->placeholderErrors('messages', 'site.welcome', ['en' => 'Hi <a href="%url%">%name%</a>', 'es' => 'Hola %name%']),
+            'es ships no text: no placeholder may be added.',
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('must keep exactly the placeholders of the shipped text (locales: en)');
+        $editor->save('messages', 'site.welcome', ['en' => 'Welcome <a href="%url%">back</a> %name%']);
+    }
+
     public function testResetRemovesEveryLocale(): void
     {
         $row        = (new TranslationOverride('es', 'messages', 'site.hello'))->setValue('x');
@@ -73,7 +92,7 @@ final class TranslationOverrideEditorTest extends TestCase
     {
         $translator = new Translator('en');
         $translator->addLoader('array', new ArrayLoader());
-        $translator->addResource('array', ['site.hello' => 'Hello'], 'en');
+        $translator->addResource('array', ['site.hello' => 'Hello', 'site.welcome' => 'Welcome %name%'], 'en');
         $translator->addResource('array', ['site.hello' => 'Hola'], 'es');
 
         $overrides = new TranslationOverrides($repository, new ArrayAdapter(), new StripTagsTranslationOverrideHtmlSanitizer());

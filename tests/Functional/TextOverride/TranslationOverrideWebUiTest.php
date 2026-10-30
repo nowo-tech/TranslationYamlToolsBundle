@@ -158,11 +158,25 @@ final class TranslationOverrideWebUiTest extends WebTestCase
 
         $crawler           = $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . self::KEY);
         $form              = $crawler->filter('[data-testid="tyt-overrides-form"]')->form();
-        $form['texts[es]'] = str_repeat('x', 5001);
+        $form['texts[es]'] = str_repeat('x', 5001) . '%url%'; // too long wins over the placeholder error
         $client->submit($form);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('[data-testid="tyt-overrides-panel-es"][data-invalid]');
         self::assertSelectorTextContains('[data-testid="tyt-overrides-panel-es"]', '5000');
+        self::assertCount(0, $this->entityManager()->getRepository(TranslationOverride::class)->findAll());
+    }
+
+    public function testRejectsOverridesThatAddOrDropPlaceholders(): void
+    {
+        $client  = $this->client();
+        $crawler = $client->request('GET', '/_translation_yaml_tools/texts/edit?key=' . self::KEY);
+        $form    = $crawler->filter('[data-testid="tyt-overrides-form"]')->form();
+
+        $form['texts[en]'] = 'Open Mon–Fri — <a href="%url%">details</a>';
+        $client->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('[data-testid="tyt-overrides-panel-en"][data-invalid]');
+        self::assertSelectorTextContains('[data-testid="tyt-overrides-panel-en"]', 'Keep exactly the placeholders of the shipped text');
         self::assertCount(0, $this->entityManager()->getRepository(TranslationOverride::class)->findAll());
     }
 

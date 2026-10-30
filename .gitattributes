@@ -1,0 +1,26 @@
+# Dist contents (REQ-SEC-004 L3): the GitHub zipball served by Packagist honours export-ignore, not
+# composer.json archive.exclude. Keep only the runtime package (src/, docs, recipe, LICENSE, composer.json).
+/.coderabbit.yaml        export-ignore
+/.cursor                 export-ignore
+/.cursorignore           export-ignore
+/.gitattributes          export-ignore
+/.githooks               export-ignore
+/.github                 export-ignore
+/.gitignore              export-ignore
+/.php-cs-fixer.dist.php  export-ignore
+/.scripts                export-ignore
+/.scrutinizer.yml        export-ignore
+/.specify                export-ignore
+/.twig-cs-fixer.php      export-ignore
+/Dockerfile              export-ignore
+/Makefile                export-ignore
+/demo                    export-ignore
+/docker-compose.yml      export-ignore
+/docs/images             export-ignore
+/igor.json               export-ignore
+/phpstan.neon.dist       export-ignore
+/phpunit.xml.dist        export-ignore
+/rector.php              export-ignore
+/scripts                 export-ignore
+/specs                   export-ignore
+/tests                   export-ignore

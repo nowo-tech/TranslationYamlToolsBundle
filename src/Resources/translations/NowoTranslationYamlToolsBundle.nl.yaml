@@ -36,6 +36,7 @@ overrides:
         confirm_required: 'Bevestig het herstel om de oorspronkelijke tekst terug te krijgen.'
     error:
         too_long: Deze tekst is te lang (maximaal %max% tekens).
+        placeholders: 'Behoud precies de plaatsaanduidingen van de oorspronkelijke tekst: %placeholders%.'
 missing_log:
     title: 'Logboek ontbrekende vertalingen'
     intro: 'Berichten die de vertaler tijdens het uitvoeren niet vond. Voeg ze toe aan je catalogi en markeer ze daarna als toegevoegd.'

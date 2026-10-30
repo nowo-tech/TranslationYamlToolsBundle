@@ -28,6 +28,7 @@ use function in_array;
 use function is_array;
 use function is_bool;
 use function is_string;
+use function sprintf;
 
 /**
  * Loads services and parameters for Translation YAML Tools.
@@ -172,14 +173,14 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $tablePrefix     = 'nowo_translation_';
         $webUiPathPrefix = '/_translation_yaml_tools/missing-log';
 
-        $missingLogEnabled    = (bool) ($missingLog['enabled'] ?? false);
+        $missingLogEnabled    = $this->literalBool($missingLog['enabled'] ?? false, 'missing_translation_log.enabled');
         $tablePrefix          = (string) ($missingLog['table_prefix'] ?? $tablePrefix);
         $recordCallSite       = (bool) ($missingLog['record_call_site'] ?? true);
         $recordRequestContext = (bool) ($missingLog['record_request_context'] ?? true);
         $asyncPersist         = (bool) ($missingLog['async_persist'] ?? false);
         $asyncPersistStrategy = (string) ($missingLog['async_persist_strategy'] ?? 'messenger');
         $webUi                = is_array($missingLog['web_ui'] ?? null) ? $missingLog['web_ui'] : [];
-        $webUiEnabled         = (bool) ($webUi['enabled'] ?? false);
+        $webUiEnabled         = $this->literalBool($webUi['enabled'] ?? false, 'missing_translation_log.web_ui.enabled');
         $webUiPathPrefix      = (string) ($webUi['path_prefix'] ?? $webUiPathPrefix);
         $webUiLayoutTemplate  = is_string($webUi['layout_template'] ?? null) && $webUi['layout_template'] !== '' ? $webUi['layout_template'] : null;
         /** @var array<string, string> $webUiTemplates */
@@ -195,7 +196,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         }
         $accessCheckerId           = $security['access_checker'] ?? null;
         $customAccessChecker       = is_string($accessCheckerId) && $accessCheckerId !== '';
-        $webUiAllowUnauthenticated = (bool) ($security['allow_unauthenticated'] ?? $webUi['allow_unauthenticated'] ?? false);
+        $webUiAllowUnauthenticated = $this->literalBool($security['allow_unauthenticated'] ?? $webUi['allow_unauthenticated'] ?? false, 'missing_translation_log.web_ui.security.allow_unauthenticated');
         // BC parameter: first configured role, or null when bundle-level role checks are disabled.
         $webUiRequiredRoleBc = $accessRoles[0] ?? null;
 
@@ -248,12 +249,13 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
      */
     private function loadOverrides(array $overrides, ContainerBuilder $container, YamlFileLoader $loader): void
     {
-        $enabled = (bool) $overrides['enabled'];
+        $enabled = $this->literalBool($overrides['enabled'], 'overrides.enabled');
         /** @var array<string, mixed> $webUi */
         $webUi        = $overrides['web_ui'];
-        $webUiEnabled = $enabled && (bool) $webUi['enabled'];
+        $webUiEnabled = $this->literalBool($webUi['enabled'], 'overrides.web_ui.enabled') && $enabled;
         /** @var array<string, mixed> $security */
-        $security = $webUi['security'];
+        $security             = $webUi['security'];
+        $allowUnauthenticated = $this->literalBool($security['allow_unauthenticated'], 'overrides.web_ui.security.allow_unauthenticated');
 
         $editable = [];
         /** @var array<string, list<string>> $configuredEditable */
@@ -292,7 +294,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $container->setParameter($prefix . 'web_ui.templates', $webUi['templates']);
         $container->setParameter($prefix . 'web_ui.form_themes', array_values($webUi['form_themes']));
         $container->setParameter($prefix . 'web_ui.security.access_roles', $accessRoles);
-        $container->setParameter($prefix . 'web_ui.security.allow_unauthenticated', (bool) $security['allow_unauthenticated']);
+        $container->setParameter($prefix . 'web_ui.security.allow_unauthenticated', $allowUnauthenticated);
 
         if (!$enabled) {
             return;
@@ -335,6 +337,22 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         }
 
         $container->setAlias(MissingLogUiAccessCheckerInterface::class, $accessCheckerId);
+    }
+
+    /**
+     * REQ-SEC-004 (L1): the switches that open a Web UI (or skip its access check) must be literal booleans. An env
+     * placeholder (e.g. "%env(bool:UI_PUBLIC)%") reaches load() as a placeholder string, which a (bool) cast would
+     * turn into true whatever the env value: refuse it instead of failing open.
+     *
+     * @throws InvalidConfigurationException when the value is not a boolean
+     */
+    private function literalBool(mixed $value, string $path): bool
+    {
+        if (!is_bool($value)) {
+            throw new InvalidConfigurationException(sprintf('nowo_translation_yaml_tools.%s must be a literal boolean (true / false); env placeholders and other values are not supported for this security-relevant switch.', $path));
+        }
+
+        return $value;
     }
 
     private function rawConfigEnablesOverrides(ContainerBuilder $container): bool
