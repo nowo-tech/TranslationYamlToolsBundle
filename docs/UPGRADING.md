@@ -62,6 +62,20 @@
 
 ## Unreleased
 
+The missing-log and overrides Web UI routes are no longer picked up by the Symfony >= 7.3 default `routing.controllers`
+import. If a Web UI is enabled and your application never imported its routes, import them explicitly (see
+[USAGE](USAGE.md)):
+
+```yaml
+# config/routes/nowo_translation_yaml_tools.yaml
+nowo_translation_yaml_tools_missing_log_ui:
+    resource: '@NowoTranslationYamlToolsBundle/Resources/config/routes/missing_translation_log_ui.yaml'
+    prefix: '%nowo_translation_yaml_tools.missing_translation_log.web_ui.path_prefix%'
+nowo_translation_yaml_tools_overrides_ui:
+    resource: '@NowoTranslationYamlToolsBundle/Resources/config/routes/translation_override_ui.yaml'
+    prefix: '%nowo_translation_yaml_tools.overrides.web_ui.path_prefix%'
+```
+
 ## To 1.14.0
 
 From **1.13.0**:

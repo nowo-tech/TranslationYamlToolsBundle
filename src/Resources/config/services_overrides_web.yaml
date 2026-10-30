@@ -4,7 +4,11 @@ services:
         autowire: true
         autoconfigure: true
 
+    # Routes stay opt-in (REQ-SF-004 rule 7): not autoconfigured, so the #[Route] class never gets the
+    # `routing.controller` tag and a host `routing.controllers` import does not mount it without the prefix.
     Nowo\TranslationYamlToolsBundle\TextOverride\Controller\TranslationOverrideController:
+        autoconfigure: false
+        tags: ['controller.service_arguments', 'container.service_subscriber']
         arguments:
             $translator: '@translator'
             $pages: '@Nowo\TranslationYamlToolsBundle\Ui\TranslationOverridePageFactory'
