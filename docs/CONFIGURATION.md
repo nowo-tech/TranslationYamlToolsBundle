@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Reference (`nowo_translation_yaml_tools`)](#reference-nowo_translation_yaml_tools)
+  - [Example: key command locales](#example-key-command-locales)
 - [Web UI layout and theme (REQ-UI-003)](#web-ui-layout-and-theme-req-ui-003)
   - [Form profile (FormKit)](#form-profile-formkit)
 - [Missing translation log (database)](#missing-translation-log-database)
@@ -24,6 +25,7 @@
 | `default_locale` | `string\|null` | `null` | When set, used as the default **source** locale for `fill-missing`. When `null`, the bundle uses Symfony parameter **`translator.default_locale`** if defined, then **`kernel.default_locale`**, then **`en`**. On some Symfony versions (e.g. **8.x**), only **`kernel.default_locale`** may be available. |
 | `yaml_tree_indent` | `int` | `4` | Spaces per indentation level when writing nested YAML (`tree`, `sort`, `fill-missing`). Allowed range: 2–12. |
 | `yaml_tree_leaf_prefix_suffix` | `string` | `index` | Final segment appended to a conflicting leaf when using **`nowo:translation-yaml:tree --fix-leaf-prefix`** (e.g. key `a` becomes `a.index`). Single segment: `[a-zA-Z0-9_-]+`, no dots. |
+| `key_command.locales` | `list<string>` | `[]` | Locales every key edited by **`nowo:translation-yaml:key`** must exist in (`add` needs a value for each). Empty = **`framework.enabled_locales`**, else the locale files found for the domain. `--locales` overrides it per run. Entries match `[a-zA-Z0-9_-]+`. |
 | `machine_translator` | `string` | `google` | **Default** backend for `fill-missing` when `machine_translator_by_locale` does not match: `google`, `deepl`, or `libretranslate`. |
 | `machine_translation_min_interval_ms` | `int` | `0` | Minimum delay between MT HTTP calls (`0` = no pacing). Use e.g. `100`–`250` for public LibreTranslate quotas. |
 | `machine_translation_max_requests_per_run` | `int` | `0` | Max string translations per `fill-missing` run (`0` = unlimited). |
@@ -91,6 +93,15 @@ nowo_translation_yaml_tools:
     #         enabled: true
     #         path_prefix: '/_translation_yaml_tools/missing-log'
     #         # layout_template: null   # default: nowo_ui_kit.layouts.admin (REQ-UI-003)
+```
+
+### Example: key command locales
+
+```yaml
+# config/packages/nowo_translation_yaml_tools.yaml
+nowo_translation_yaml_tools:
+    key_command:
+        locales: [en, es, de, fr, it, nl, pt]
 ```
 
 ## Web UI layout and theme (REQ-UI-003)

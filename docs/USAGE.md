@@ -5,6 +5,7 @@
 - [Commands overview](#commands-overview)
 - [Interactive selection](#interactive-selection)
 - [Examples](#examples)
+- [Editing one key in every locale](#editing-one-key-in-every-locale)
 - [Strict parity in CI and PHPUnit](#strict-parity-in-ci-and-phpunit)
   - [`audit --strict`](#audit---strict)
   - [PHPUnit trait](#phpunit-trait)
@@ -31,6 +32,7 @@
 | `nowo:translation-yaml:sort` | Same pattern; sorts associative keys recursively. Omit **`--locale`** to sort **all** locale files for the domain. |
 | `nowo:translation-yaml:fill-missing` | Uses the **default source locale** (see [Configuration](CONFIGURATION.md)) and a **target locale** file; translates missing keys via the configured backend (**Google**, **DeepL**, or **LibreTranslate**). |
 | `nowo:translation-yaml:audit` | Read-only **audit** of all domains (or `--domain`): tree convertibility (with `leaf_and_prefix` conflict counts and samples), recursive **alphabetical** key order, and **missing keys** vs `--source-locale` (default: Symfony default). Domains that pass every check show **one** summary line (no per-locale breakdown). Exits **non-zero** if any domain has issues. **`--strict`** also fails on **extra** keys and **empty** values and lists the keys (see [Strict parity](#strict-parity-in-ci-and-phpunit)). |
+| `nowo:translation-yaml:key` | `get` / `list` / `add` / `rename` / `remove` one key in **every** locale catalogue of a domain, and `missing` (key parity). Textual edits, all locales or none, `--dry-run`. See [Editing one key in every locale](#editing-one-key-in-every-locale). |
 
 The write commands (`tree`, `flatten`, `sort`, `fill-missing`) accept **`--inline`**: dump translations as compact **YAML flow style** (e.g. `{ demo: { title: … } }` or `{ demo.title: … }`) instead of expanded blocks and multi-line literals.
 
@@ -119,6 +121,45 @@ Fill and write nested YAML:
 ```bash
 php bin/console nowo:translation-yaml:fill-missing --domain=messages --target-locale=es --tree
 ```
+
+## Editing one key in every locale
+
+`nowo:translation-yaml:key <action> <domain> [key] [value]` reads and edits one key across all locale files of a domain
+(`translations/<domain>.<locale>.yaml`) so you never open a large catalogue by hand:
+
+```bash
+php bin/console nowo:translation-yaml:key get messages nav.inbox            # value in every locale ("(missing)" / "(group of N key(s))")
+php bin/console nowo:translation-yaml:key list messages nav                 # keys under a prefix in the reference locale, [missing: es] flags
+php bin/console nowo:translation-yaml:key add messages nav.inbox '{"en":"Inbox","es":"Bandeja de entrada"}'
+php bin/console nowo:translation-yaml:key add messages nav.inbox '{"en":"Mail","es":"Correo"}' --replace
+echo '{"en":"Inbox","es":"Bandeja"}' | php bin/console nowo:translation-yaml:key add messages nav.inbox -   # or a JSON file path
+php bin/console nowo:translation-yaml:key rename messages nav.inbox nav.mailbox   # a value or a whole group
+php bin/console nowo:translation-yaml:key remove messages nav.mailbox            # a value or a whole group
+php bin/console nowo:translation-yaml:key missing [messages]                      # exit 1 on any difference (CI)
+php bin/console nowo:translation-yaml:key add messages nav.x '{…}' --dry-run      # prints the changed lines per file, writes nothing
+```
+
+**Locales.** `--locales=en,es` for one run; else `key_command.locales`; else `framework.enabled_locales`; else the
+locale files found for the domain. `list` and `missing` compare against the default locale (`default_locale`, else
+the translator default) when it is one of them, else the first locale. `--dir=path` reads `<domain>.<locale>.yaml` from
+another directory instead of the translator paths (e.g. a bundle's `src/Resources/translations`).
+
+**Parity is kept.**
+
+- `add` needs a value for **every** locale (and no unknown locale) and refuses an existing key without `--replace`, a
+  group of keys, or a key under a value (`nav.title` is a value, so `nav.title.x` cannot exist).
+- `rename` needs the old key in every locale and the new key in none; a group is moved leaf by leaf.
+- `remove` deletes the key (or group) wherever it exists and names the locales that already lacked it; parents left
+  empty are removed too.
+- `missing` lists keys of the reference locale missing in a locale and keys only a locale has, and exits 1.
+
+**Format is kept.** Edits are textual: the rest of each file keeps its quoting, order, blank lines and comments. A new
+key goes in alphabetical position when its siblings are already sorted (so `audit` key order stays green), else at the
+end of its parent block; missing parents are created with the file's indentation (`yaml_tree_indent` when the file has
+none); a flat file (`app.title: …`) gets a flat dotted key. Values are written single-quoted, double-quoted with
+escapes when they hold line breaks. Before anything is written every edited file is re-parsed and compared with the
+original: the edited keys must read back and no other key may change, otherwise the command fails and **no** file is
+written (flow mappings, anchors / merge keys or ambiguous paths end up here — edit those by hand).
 
 ## Strict parity in CI and PHPUnit
 

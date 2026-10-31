@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\DependencyInjection;
 
 use Doctrine\Bundle\DoctrineBundle\DependencyInjection\DoctrineExtension;
+use Nowo\TranslationYamlToolsBundle\Command\TranslationYamlKeyCommand;
 use Nowo\TranslationYamlToolsBundle\Controller\MissingTranslationLogUiController;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Configuration;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\NowoTranslationYamlToolsExtension;
@@ -94,6 +95,15 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         /** @var array<string, string> $map */
         $map = $container->getParameter('nowo_translation_yaml_tools.machine_translation_locale_map');
         self::assertSame(['pt_br' => 'should-not-win'], $map);
+    }
+
+    public function testKeyCommandLocalesParameterIsDeduplicated(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoTranslationYamlToolsExtension())->load([['key_command' => ['locales' => ['en', 'es', 'en']]]], $container);
+
+        self::assertSame(['en', 'es'], $container->getParameter('nowo_translation_yaml_tools.key_command.locales'));
+        self::assertTrue($container->hasDefinition(TranslationYamlKeyCommand::class));
     }
 
     public function testGetAlias(): void
