@@ -129,6 +129,17 @@ final class TranslationYamlKeyCommandTest extends TestCase
         self::assertStringContainsString('OK added nav.inbox in 2 locale(s)', $tester->getDisplay());
         self::assertSame("# Main\nnav:\n    home: 'Home'\n    inbox: 'Inbox'\n    settings: 'Settings'\nsection:\n    a: 'A'\n    b: 'B'\n", $this->read('messages.en.yaml'));
         self::assertSame('Bandeja', Yaml::parse($this->read('messages.es.yaml'))['nav']['inbox']);
+        self::assertSame([], glob($this->translations . '/*.tmp') ?: [], 'staged files are swapped in');
+    }
+
+    public function testWritesKeepTheFileMode(): void
+    {
+        chmod($this->translations . '/messages.en.yaml', 0o640);
+        $tester = $this->tester();
+
+        self::assertSame(Command::SUCCESS, $tester->execute(['action' => 'remove', 'domain' => 'messages', 'key' => 'nav.home']));
+        clearstatcache();
+        self::assertSame(0o640, fileperms($this->translations . '/messages.en.yaml') & 0o7777);
     }
 
     public function testAddRefusesAnExistingKeyUnlessReplace(): void

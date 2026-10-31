@@ -33,10 +33,13 @@ use function array_slice;
 use function array_unique;
 use function array_values;
 use function basename;
+use function bin2hex;
+use function chmod;
 use function count;
 use function explode;
 use function file_get_contents;
 use function file_put_contents;
+use function fileperms;
 use function glob;
 use function implode;
 use function in_array;
@@ -51,6 +54,8 @@ use function ksort;
 use function max;
 use function min;
 use function preg_match;
+use function random_bytes;
+use function rename;
 use function rtrim;
 use function sort;
 use function sprintf;
@@ -59,6 +64,7 @@ use function stream_get_contents;
 use function strlen;
 use function substr;
 use function trim;
+use function unlink;
 
 use const JSON_UNESCAPED_SLASHES;
 use const JSON_UNESCAPED_UNICODE;
@@ -394,10 +400,31 @@ final class TranslationYamlKeyCommand extends AbstractTranslationYamlCommand
             return Command::SUCCESS;
         }
 
+        // Stage every file next to its catalogue first, then swap them in: a failed write leaves no catalogue changed.
+        $staged = [];
         foreach ($changes as $change) {
-            if (file_put_contents($change['path'], $change['after']) === false) {
+            $tmp = $change['path'] . '.' . bin2hex(random_bytes(6)) . '.tmp';
+            if (@file_put_contents($tmp, $change['after']) === false) {
                 // @codeCoverageIgnoreStart
-                return $this->fail($output, sprintf('Cannot write %s.', $change['path']));
+                foreach ($staged as $file) {
+                    @unlink($file);
+                }
+
+                return $this->fail($output, sprintf('Cannot write next to %s; no catalogue changed.', $change['path']));
+                // @codeCoverageIgnoreEnd
+            }
+            $mode = fileperms($change['path']);
+            if ($mode !== false) {
+                @chmod($tmp, $mode & 0o7777);
+            }
+            $staged[$change['path']] = $tmp;
+        }
+        foreach ($staged as $path => $tmp) {
+            if (!@rename($tmp, $path)) {
+                // @codeCoverageIgnoreStart
+                @unlink($tmp);
+
+                return $this->fail($output, sprintf('Cannot replace %s; check the catalogues with the missing action.', $path));
                 // @codeCoverageIgnoreEnd
             }
         }

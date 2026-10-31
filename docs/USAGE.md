@@ -159,7 +159,9 @@ end of its parent block; missing parents are created with the file's indentation
 none); a flat file (`app.title: …`) gets a flat dotted key. Values are written single-quoted, double-quoted with
 escapes when they hold line breaks. Before anything is written every edited file is re-parsed and compared with the
 original: the edited keys must read back and no other key may change, otherwise the command fails and **no** file is
-written (flow mappings, anchors / merge keys or ambiguous paths end up here — edit those by hand).
+written (flow mappings, anchors / merge keys or ambiguous paths end up here — edit those by hand). The new files are
+written next to the catalogues first and then renamed over them (file mode kept), so a failed write changes no
+catalogue.
 
 ## Strict parity in CI and PHPUnit
 
