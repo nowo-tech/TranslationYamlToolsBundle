@@ -32,6 +32,7 @@ final class ConfigurationTest extends TestCase
         self::assertFalse($config['libretranslate_allow_http']);
         self::assertSame([], $config['machine_translation_locale_map']);
         self::assertSame([], $config['machine_translator_by_locale']);
+        self::assertSame(['locales' => []], $config['key_command']);
         self::assertSame([
             'enabled'                => false,
             'table_prefix'           => 'nowo_translation_',
@@ -54,6 +55,16 @@ final class ConfigurationTest extends TestCase
                 ],
             ],
         ], $config['missing_translation_log']);
+    }
+
+    public function testKeyCommandLocales(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), [['key_command' => ['locales' => ['en', 'pt_BR']]]]);
+        self::assertSame(['en', 'pt_BR'], $config['key_command']['locales']);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('key_command.locales entries must match');
+        (new Processor())->processConfiguration(new Configuration(), [['key_command' => ['locales' => ['en/../x']]]]);
     }
 
     public function testInvalidCssFrameworkRejected(): void

@@ -55,6 +55,11 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **`nowo:translation-yaml:key`** — `get` / `list` / `add` / `rename` / `remove` one key in every locale catalogue of a domain and `missing` (key parity, exit 1 for CI). Textual edits keep each file's quoting, order and comments (new keys placed alphabetically when the siblings are sorted); every result is re-parsed and compared with the original before writing, so all locales change or none does; `--dry-run` prints the changed lines; `--locales` / `--dir` per run. New service `Service\YamlCatalogueTextEditor`. See [Usage — Editing one key](USAGE.md#editing-one-key-in-every-locale).
+- Config **`key_command.locales`** (default `[]` = `framework.enabled_locales`, else the locale files found).
+
 ## [1.15.0] - 2026-10-30
 
 Page forms are FormKit types with a bundle FormKit profile; requires nowo-tech/form-kit-bundle (REQ-TWIG-005 rule 11). See [UPGRADING](UPGRADING.md#to-1150).

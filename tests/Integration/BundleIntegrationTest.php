@@ -39,6 +39,7 @@ final class BundleIntegrationTest extends KernelTestCase
         self::assertTrue($application->has('nowo:translation-yaml:sort'));
         self::assertTrue($application->has('nowo:translation-yaml:fill-missing'));
         self::assertTrue($application->has('nowo:translation-yaml:audit'));
+        self::assertTrue($application->has('nowo:translation-yaml:key'));
     }
 
     public function testTreeCommandDryRunAgainstFixtureTranslations(): void

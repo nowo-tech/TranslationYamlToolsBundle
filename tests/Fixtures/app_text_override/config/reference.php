@@ -1234,6 +1234,9 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     default_locale?: scalar|Param|null, // Override default source locale; null uses translator.default_locale if defined, else kernel.default_locale, else en (Symfony 8 may only expose kernel.default_locale) // Default: null
  *     yaml_tree_indent?: int|Param, // Spaces per indentation level when dumping nested YAML // Default: 4
  *     yaml_tree_leaf_prefix_suffix?: scalar|Param|null, // Final segment appended to a conflicting leaf when using nowo:translation-yaml:tree --fix-leaf-prefix (e.g. "index" renames key "a" to "a.index") // Default: "index"
+ *     key_command?: array{ // nowo:translation-yaml:key (get / list / add / rename / remove / missing a key in every locale catalogue of a domain)
+ *         locales?: list<scalar|Param|null>,
+ *     },
  *     machine_translator?: "google"|"deepl"|"libretranslate"|Param, // Machine translation backend used by nowo:translation-yaml:fill-missing // Default: "google"
  *     machine_translation_min_interval_ms?: int|Param, // Minimum delay between machine-translation HTTP calls (0 = no pacing). Useful for public LibreTranslate / API quotas. // Default: 0
  *     machine_translation_max_requests_per_run?: int|Param, // Max string translations per fill-missing run (0 = unlimited). Prevents accidental bulk API burn. // Default: 0

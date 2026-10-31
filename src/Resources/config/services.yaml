@@ -92,3 +92,10 @@ services:
     Nowo\TranslationYamlToolsBundle\Command\TranslationYamlAuditCommand:
         arguments:
             $bundleDefaultLocaleOverride: '%nowo_translation_yaml_tools.default_locale%'
+
+    Nowo\TranslationYamlToolsBundle\Command\TranslationYamlKeyCommand:
+        arguments:
+            $configuredLocales: '%nowo_translation_yaml_tools.key_command.locales%'
+            $enabledLocales: '%kernel.enabled_locales%'
+            $bundleDefaultLocaleOverride: '%nowo_translation_yaml_tools.default_locale%'
+            $configuredIndent: '%nowo_translation_yaml_tools.yaml_tree_indent%'
