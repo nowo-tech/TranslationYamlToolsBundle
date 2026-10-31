@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.16.0] - 2026-10-31](#1160---2026-10-31)
 - [[1.15.0] - 2026-10-30](#1150---2026-10-30)
 - [[1.14.1] - 2026-10-30](#1141---2026-10-30)
 - [[1.14.0] - 2026-10-30](#1140---2026-10-30)
@@ -54,6 +55,10 @@ All notable changes to this project are documented in this file.
 - [[0.1.0] - 2026-04-09](#010---2026-04-09)
 
 ## [Unreleased]
+
+## [1.16.0] - 2026-10-31
+
+nowo:translation-yaml:key: get/add/rename/remove/list/missing a key across every locale catalogue, format-preserving, all-or-nothing writes. See [UPGRADING](UPGRADING.md#to-1160).
 
 ### Added
 
