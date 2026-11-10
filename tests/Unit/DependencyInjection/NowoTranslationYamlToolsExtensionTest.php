@@ -384,6 +384,40 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         self::assertArrayNotHasKey('mappings', $merged['orm']);
         self::assertArrayHasKey('NowoTranslationYamlToolsMissingLog', $merged['orm']['entity_managers']['texts']['mappings']);
         self::assertArrayHasKey('NowoTranslationYamlToolsTextOverride', $merged['orm']['entity_managers']['texts']['mappings']);
+        self::assertSame('default', $container->getExtensionConfig('doctrine')[0]['orm']['default_entity_manager']);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $hostConfigs
+     */
+    #[DataProvider('hostDefaults')]
+    public function testPrependKeepsTheHostDefaultEntityManager(array $hostConfigs, string $expected): void
+    {
+        $container = new ContainerBuilder();
+        $container->registerExtension(new DoctrineExtension());
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+        foreach ($hostConfigs as $config) {
+            $container->loadFromExtension('doctrine', $config);
+        }
+        $container->loadFromExtension('nowo_translation_yaml_tools', [
+            'overrides' => ['enabled' => true],
+            'doctrine'  => ['entity_manager' => 'texts'],
+        ]);
+
+        $extension->prepend($container);
+
+        self::assertSame($expected, $container->getExtensionConfig('doctrine')[0]['orm']['default_entity_manager']);
+    }
+
+    /**
+     * @return iterable<string, array{list<array<string, mixed>>, string}>
+     */
+    public static function hostDefaults(): iterable
+    {
+        yield 'flex shorthand' => [[['dbal' => ['url' => 'sqlite:///:memory:']], ['orm' => ['auto_mapping' => true]]], 'default'];
+        yield 'first host manager' => [[['orm' => ['entity_managers' => ['app' => [], 'texts' => []]]]], 'app'];
+        yield 'explicit default' => [[['orm' => ['default_entity_manager' => 'main', 'entity_managers' => ['app' => []]]]], 'main'];
     }
 
     public function testPrependDoesNothingWhenMissingLogDisabled(): void

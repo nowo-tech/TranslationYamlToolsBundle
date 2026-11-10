@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Tests\Kernel;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Kernel;
@@ -13,7 +14,7 @@ use function sys_get_temp_dir;
 
 /**
  * The text-override fixture app as a DDD-style host: the bundle entities on a dedicated "texts" manager
- * (doctrine.entity_manager), the host's own entities on "default".
+ * (doctrine.entity_manager), the host's own entities on "default" (auto_mapping, no explicit default_entity_manager).
  */
 final class WorkerTextOverrideTestKernel extends Kernel
 {
@@ -41,6 +42,7 @@ final class WorkerTextOverrideTestKernel extends Kernel
         $container->import($dir . 'twig.yaml');
         $container->import($dir . 'nowo_translation_yaml_tools.yaml');
         $container->extension('nowo_translation_yaml_tools', ['doctrine' => ['entity_manager' => 'texts']]);
+        $container->services()->alias('test.worker.entity_manager', EntityManagerInterface::class)->public();
         $container->extension('doctrine', [
             'dbal' => [
                 'default_connection' => 'default',
@@ -49,10 +51,10 @@ final class WorkerTextOverrideTestKernel extends Kernel
                     'texts'   => ['url' => 'sqlite:///:memory:'],
                 ],
             ],
+            // Audit LD-TYT-M1 / L1: no default_entity_manager, and auto_mapping on the host's default manager.
             'orm' => [
-                'default_entity_manager' => 'default',
-                'entity_managers'        => [
-                    'default' => ['connection' => 'default'],
+                'entity_managers' => [
+                    'default' => ['connection' => 'default', 'auto_mapping' => true],
                     'texts'   => ['connection' => 'texts'],
                 ],
             ],

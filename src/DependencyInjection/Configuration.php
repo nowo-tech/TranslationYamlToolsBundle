@@ -34,7 +34,7 @@ final class Configuration implements ConfigurationInterface
                     ->addDefaultsIfNotSet()
                     ->children()
                         ->scalarNode('entity_manager')
-                            ->info('Since 1.16.1: entity manager that maps the bundle entities (e.g. a dedicated manager in a DDD host). The bundle writes to, and resets after a failure, only this manager; host managers are never touched. null (default): the default manager, as before.')
+                            ->info('Since 1.17.0: entity manager that maps the bundle entities (e.g. a dedicated manager in a DDD host). The entities are mapped there only (also removed from an auto-mapped manager); the bundle writes to, and resets after a failure, only this manager; host managers are never touched; the host default manager stays the default. The build fails when the manager does not exist. null (default): the default manager, as before.')
                             ->defaultNull()
                             ->validate()
                                 ->ifTrue(static fn (mixed $v): bool => $v !== null && (!is_string($v) || $v === ''))

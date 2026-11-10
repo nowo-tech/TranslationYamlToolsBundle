@@ -76,7 +76,7 @@ Example:
 ```yaml
 nowo_translation_yaml_tools:
     doctrine:
-        entity_manager: null   # 1.16.1+: manager that maps the bundle entities (missing log + overrides); null = default
+        entity_manager: null   # 1.17.0+: dedicated manager for the bundle entities (missing log + overrides); null = default
     default_locale: null
     yaml_tree_indent: 4
     yaml_tree_leaf_prefix_suffix: index

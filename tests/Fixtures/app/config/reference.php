@@ -692,7 +692,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  * }
  * @psalm-type NowoTranslationYamlToolsConfig = array{
  *     doctrine?: array{ // Doctrine storage of the bundle entities (missing_translation_log and overrides).
- *         entity_manager?: scalar|Param|null, // Since 1.16.1: entity manager that maps the bundle entities (e.g. a dedicated manager in a DDD host). The bundle writes to, and resets after a failure, only this manager; host managers are never touched. null (default): the default manager, as before. // Default: null
+ *         entity_manager?: scalar|Param|null, // Since 1.17.0: entity manager that maps the bundle entities (e.g. a dedicated manager in a DDD host). The entities are mapped there only (also removed from an auto-mapped manager); the bundle writes to, and resets after a failure, only this manager; host managers are never touched; the host default manager stays the default. The build fails when the manager does not exist. null (default): the default manager, as before. // Default: null
  *     },
  *     default_locale?: scalar|Param|null, // Override default source locale; null uses translator.default_locale if defined, else kernel.default_locale, else en (Symfony 8 may only expose kernel.default_locale) // Default: null
  *     yaml_tree_indent?: int|Param, // Spaces per indentation level when dumping nested YAML // Default: 4

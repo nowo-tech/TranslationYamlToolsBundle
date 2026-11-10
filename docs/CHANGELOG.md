@@ -56,7 +56,7 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-Target 1.16.1.
+Target 1.17.0 (minor: a new public configuration key and a behaviour change on hosts with several entity managers).
 
 ### Fixed
 
@@ -68,8 +68,13 @@ Target 1.16.1.
 ### Added
 
 - `nowo_translation_yaml_tools.doctrine.entity_manager` (default `null`): maps the bundle entities (missing log and
-  overrides) on that manager only, so a DDD host can keep them off its own manager. `null` keeps them on the default
-  manager.
+  overrides) on that manager only, so a DDD host can keep them off its own manager. Also:
+  - the entities are removed from every other manager, including one with `auto_mapping` (audit LD-TYT-L1);
+  - the host's default manager stays the default even when the host does not set `default_entity_manager`, including
+    the Flex shorthand (audit LD-TYT-M1);
+  - the build fails when the manager does not exist.
+
+  `null` keeps them on the default manager.
 
 ## [1.16.0] - 2026-10-31
 

@@ -7,6 +7,7 @@ namespace Nowo\TranslationYamlToolsBundle\Tests\Functional\Worker;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
+use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Tests\Kernel\WorkerTextOverrideTestKernel;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Repository\TranslationOverrideRepository;
@@ -39,6 +40,12 @@ final class WorkerEntityManagerRecoveryTest extends KernelTestCase
         $host  = $this->manager($doctrine, 'default');
         $texts = $this->manager($doctrine, 'texts');
         self::assertSame($texts, $doctrine->getManagerForClass(TranslationOverride::class), 'doctrine.entity_manager maps the entity on "texts".');
+        // Audit LD-TYT-M1: the host's default manager stays the default (and the autowired EntityManagerInterface).
+        self::assertSame('default', $container->getParameter('doctrine.default_entity_manager'));
+        self::assertSame($host, $container->get('test.worker.entity_manager'));
+        // Audit LD-TYT-L1: auto_mapping on "default" does not map the bundle entities there too.
+        self::assertTrue($host->getMetadataFactory()->isTransient(MissingTranslationLog::class));
+        self::assertTrue($host->getMetadataFactory()->isTransient(TranslationOverride::class));
         (new SchemaTool($texts))->createSchema([$texts->getClassMetadata(TranslationOverride::class)]);
         $repository = $container->get(TranslationOverrideRepository::class);
         self::assertInstanceOf(TranslationOverrideRepository::class, $repository);

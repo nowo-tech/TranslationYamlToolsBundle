@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 
 use InvalidArgumentException;
+use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\EntityManagerOptionPass;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateBaseUrlGuard;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper;
 use Nowo\TranslationYamlToolsBundle\Security\ConfigurableMissingLogUiAccessChecker;
@@ -24,6 +25,7 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizer;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 use function array_key_exists;
+use function array_keys;
 use function in_array;
 use function is_array;
 use function is_bool;
@@ -267,6 +269,8 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         /** @var array<string, mixed> $overrides */
         $overrides = $config['overrides'];
         $this->loadOverrides($overrides, $container, $loader);
+        // 1.17.0 (audit LD-TYT-M1/L1): the named manager must exist and map the bundle entities.
+        $container->setParameter(EntityManagerOptionPass::PARAMETER, $missingLogEnabled || $overrides['enabled'] === true ? $config['doctrine']['entity_manager'] : null);
 
         if ($missingLogEnabled) {
             $loader->load('services_missing_translation.yaml');
@@ -397,7 +401,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
     }
 
     /**
-     * 1.16.1: `doctrine.entity_manager` maps the bundle entities on that manager only (rule 6: the bundle's own
+     * 1.17.0: `doctrine.entity_manager` maps the bundle entities on that manager only (rule 6: the bundle's own
      * manager); null keeps them on the default manager.
      *
      * @param array<string, array<string, mixed>> $mappings
@@ -414,7 +418,49 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
             }
         }
 
-        return $entityManager === null ? ['mappings' => $mappings] : ['entity_managers' => [$entityManager => ['mappings' => $mappings]]];
+        if ($entityManager === null) {
+            return ['mappings' => $mappings];
+        }
+
+        // 1.17.0: the host's default manager stays the default (LD-TYT-M1); EntityManagerOptionPass removes the
+        // entities from every other manager, including an auto-mapped one (LD-TYT-L1).
+        return [
+            'default_entity_manager' => $this->hostDefaultEntityManager($container),
+            'entity_managers'        => [$entityManager => ['mappings' => $mappings]],
+        ];
+    }
+
+    /**
+     * The host's default entity manager, resolved from the host's own `doctrine` configuration before the bundle
+     * prepends its manager. Without it, a host that leaves `default_entity_manager` unset (Flex shorthand included)
+     * would get the bundle's manager as its default, because DoctrineBundle takes the first configured manager
+     * (audit LD-TYT-M1).
+     */
+    private function hostDefaultEntityManager(ContainerBuilder $container): string
+    {
+        $default = null;
+        $first   = null;
+        foreach ($container->getExtensionConfig('doctrine') as $config) {
+            $orm = is_array($config['orm'] ?? null) ? $config['orm'] : null;
+            if ($orm === null) {
+                continue;
+            }
+            if (is_string($orm['default_entity_manager'] ?? null) && $orm['default_entity_manager'] !== '') {
+                $default = $orm['default_entity_manager'];
+            }
+            if (!is_array($orm['entity_managers'] ?? null)) {
+                $first ??= 'default';
+
+                continue;
+            }
+            foreach (array_keys($orm['entity_managers']) as $name) {
+                $first ??= (string) $name;
+
+                break;
+            }
+        }
+
+        return $default ?? $first ?? 'default';
     }
 
     private function rawConfigEnablesOverrides(ContainerBuilder $container): bool

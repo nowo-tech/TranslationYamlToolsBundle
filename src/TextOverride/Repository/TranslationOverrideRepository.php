@@ -86,7 +86,7 @@ class TranslationOverrideRepository extends ServiceEntityRepository
             throw new LogicException('No Doctrine ORM entity manager manages ' . TranslationOverride::class . '.');
         }
         if (!$em->isOpen()) {
-            // 1.16.1: reset this manager by name; resetManager() without a name reset the host's default manager.
+            // 1.17.0: reset this manager by name; resetManager() without a name reset the host's default manager.
             $this->resetManager($em);
             $em = $this->managerRegistry->getManagerForClass(TranslationOverride::class);
             if (!$em instanceof EntityManagerInterface) {
