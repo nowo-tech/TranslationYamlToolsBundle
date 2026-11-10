@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [To 1.16.1](#to-1161)
 - [To 1.16.0](#to-1160)
 - [To 1.15.0](#to-1150)
 - [To 1.14.1](#to-1141)
@@ -64,6 +65,15 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+### To 1.16.1
+
+From **1.16.0**: `composer update nowo-tech/translation-yaml-tools-bundle`. No configuration change is needed.
+
+- A closed override manager is now reset by name; the bundle no longer resets the host's default manager.
+- Optional: `nowo_translation_yaml_tools.doctrine.entity_manager: <name>` maps the bundle entities on a dedicated
+  manager (it must exist in `doctrine.orm.entity_managers`, with its own connection and schema). Default `null`: the
+  default manager, as before.
 
 ## To 1.16.0
 

@@ -56,6 +56,21 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Target 1.16.1.
+
+### Fixed
+
+- `TranslationOverrideRepository` called `ManagerRegistry::resetManager()` **without a name** when the override manager
+  was closed. That reset the host's default manager (and left the bundle's closed when it is another one). It now
+  resets the manager of `TranslationOverride` by name (rule 6 of the bundle architecture bar). Standard hosts with one
+  default manager see no change.
+
+### Added
+
+- `nowo_translation_yaml_tools.doctrine.entity_manager` (default `null`): maps the bundle entities (missing log and
+  overrides) on that manager only, so a DDD host can keep them off its own manager. `null` keeps them on the default
+  manager.
+
 ## [1.16.0] - 2026-10-31
 
 nowo:translation-yaml:key: get/add/rename/remove/list/missing a key across every locale catalogue, format-preserving, all-or-nothing writes. See [UPGRADING](UPGRADING.md#to-1160).

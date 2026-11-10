@@ -66,33 +66,25 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
     public function prepend(ContainerBuilder $container): void
     {
         if ($container->hasExtension('doctrine') && $this->rawConfigEnablesMissingTranslationLog($container)) {
-            $container->prependExtensionConfig('doctrine', [
-                'orm' => [
-                    'mappings' => [
-                        'NowoTranslationYamlToolsMissingLog' => [
-                            'is_bundle' => false,
-                            'type'      => 'attribute',
-                            'dir'       => __DIR__ . '/../Entity',
-                            'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\Entity',
-                        ],
-                    ],
+            $container->prependExtensionConfig('doctrine', ['orm' => $this->ormMappings($container, [
+                'NowoTranslationYamlToolsMissingLog' => [
+                    'is_bundle' => false,
+                    'type'      => 'attribute',
+                    'dir'       => __DIR__ . '/../Entity',
+                    'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\Entity',
                 ],
-            ]);
+            ])]);
         }
 
         if ($container->hasExtension('doctrine') && $this->rawConfigEnablesOverrides($container)) {
-            $container->prependExtensionConfig('doctrine', [
-                'orm' => [
-                    'mappings' => [
-                        'NowoTranslationYamlToolsTextOverride' => [
-                            'is_bundle' => false,
-                            'type'      => 'attribute',
-                            'dir'       => __DIR__ . '/../TextOverride/Entity',
-                            'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\TextOverride\\Entity',
-                        ],
-                    ],
+            $container->prependExtensionConfig('doctrine', ['orm' => $this->ormMappings($container, [
+                'NowoTranslationYamlToolsTextOverride' => [
+                    'is_bundle' => false,
+                    'type'      => 'attribute',
+                    'dir'       => __DIR__ . '/../TextOverride/Entity',
+                    'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\TextOverride\\Entity',
                 ],
-            ]);
+            ])]);
         }
 
         $this->prependUiKitDefaults($container);
@@ -402,6 +394,27 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         }
 
         return $value;
+    }
+
+    /**
+     * 1.16.1: `doctrine.entity_manager` maps the bundle entities on that manager only (rule 6: the bundle's own
+     * manager); null keeps them on the default manager.
+     *
+     * @param array<string, array<string, mixed>> $mappings
+     *
+     * @return array<string, mixed>
+     */
+    private function ormMappings(ContainerBuilder $container, array $mappings): array
+    {
+        $entityManager = null;
+        foreach ($container->getExtensionConfig('nowo_translation_yaml_tools') as $chunk) {
+            $name = is_array($chunk) && is_array($chunk['doctrine'] ?? null) ? ($chunk['doctrine']['entity_manager'] ?? null) : null;
+            if (is_string($name) && $name !== '') {
+                $entityManager = $name;
+            }
+        }
+
+        return $entityManager === null ? ['mappings' => $mappings] : ['entity_managers' => [$entityManager => ['mappings' => $mappings]]];
     }
 
     private function rawConfigEnablesOverrides(ContainerBuilder $container): bool

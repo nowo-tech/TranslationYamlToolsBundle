@@ -78,7 +78,8 @@ final class TranslationOverrideRepositoryTest extends TestCase
         $registry->method('getManagerForClass')->willReturnCallback(
             static fn (): ?EntityManager => $state['reset'] === true ? $after : $before,
         );
-        $registry->expects(self::once())->method('resetManager')->willReturnCallback(static function () use ($state, $before): EntityManager {
+        $registry->method('getManagers')->willReturn(['default' => $before]);
+        $registry->expects(self::once())->method('resetManager')->with('default')->willReturnCallback(static function () use ($state, $before): EntityManager {
             $state['reset'] = true;
 
             return $before;

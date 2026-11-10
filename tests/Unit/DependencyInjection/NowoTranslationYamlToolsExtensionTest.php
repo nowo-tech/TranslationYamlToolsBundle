@@ -366,6 +366,26 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         self::assertArrayHasKey('NowoTranslationYamlToolsMissingLog', $merged['orm']['mappings']);
     }
 
+    public function testPrependMapsBothFeaturesOnTheConfiguredEntityManager(): void
+    {
+        $container = new ContainerBuilder();
+        $container->registerExtension(new DoctrineExtension());
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+        $container->loadFromExtension('nowo_translation_yaml_tools', [
+            'missing_translation_log' => ['enabled' => true],
+            'overrides'               => ['enabled' => true],
+            'doctrine'                => ['entity_manager' => 'texts'],
+        ]);
+
+        $extension->prepend($container);
+
+        $merged = array_merge_recursive(...$container->getExtensionConfig('doctrine'));
+        self::assertArrayNotHasKey('mappings', $merged['orm']);
+        self::assertArrayHasKey('NowoTranslationYamlToolsMissingLog', $merged['orm']['entity_managers']['texts']['mappings']);
+        self::assertArrayHasKey('NowoTranslationYamlToolsTextOverride', $merged['orm']['entity_managers']['texts']['mappings']);
+    }
+
     public function testPrependDoesNothingWhenMissingLogDisabled(): void
     {
         $container = new ContainerBuilder();
