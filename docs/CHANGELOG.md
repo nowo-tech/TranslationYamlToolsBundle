@@ -72,7 +72,8 @@ Target 1.17.0 (minor: a new public configuration key and a behaviour change on h
   - the entities are removed from every other manager, including one with `auto_mapping` (audit LD-TYT-L1);
   - the host's default manager stays the default even when the host does not set `default_entity_manager`, including
     the Flex shorthand (audit LD-TYT-M1);
-  - the build fails when the manager does not exist.
+  - the build fails when the host's `doctrine.orm.entity_managers` does not declare the manager, so a mistyped name
+    no longer creates a new manager on the default connection (audit LD-TYT-L2).
 
   `null` keeps them on the default manager.
 

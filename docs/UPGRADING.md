@@ -72,8 +72,8 @@ From **1.16.0**: `composer update nowo-tech/translation-yaml-tools-bundle`. No c
 
 - A closed override manager is now reset by name; the bundle no longer resets the host's default manager.
 - Optional: `nowo_translation_yaml_tools.doctrine.entity_manager: <name>` maps the bundle entities on a dedicated
-  manager. It must exist in `doctrine.orm.entity_managers`, with its own connection and schema; otherwise the build
-  fails.
+  manager. The host must declare it in its own `doctrine.orm.entity_managers`, with its own connection and schema.
+  Otherwise the build fails, also for a mistyped name: the bundle never creates the manager for you.
   - The entities are mapped there only, also when the default manager uses `auto_mapping`.
   - The host's default manager (its `default_entity_manager`, or `default` when unset) stays the default and the
     autowired `EntityManagerInterface`.

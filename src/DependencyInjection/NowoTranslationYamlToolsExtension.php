@@ -26,6 +26,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 use function array_key_exists;
 use function array_keys;
+use function array_unique;
+use function array_values;
+use function implode;
 use function in_array;
 use function is_array;
 use function is_bool;
@@ -422,12 +425,40 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
             return ['mappings' => $mappings];
         }
 
+        // Audit LD-TYT-L2: the returned config declares entity_managers.<name> itself, so an undeclared (mistyped) name
+        // would silently become a new manager on the default connection. The host must declare it.
+        $declared = $this->hostEntityManagerNames($container);
+        if (!in_array($entityManager, $declared, true)) {
+            throw new InvalidConfigurationException(sprintf('nowo_translation_yaml_tools.doctrine.entity_manager is "%s", but the host Doctrine configuration does not declare that entity manager (declared: "%s"). Add it under doctrine.orm.entity_managers (with its own connection) or fix the name.', $entityManager, implode('", "', $declared)));
+        }
+
         // 1.17.0: the host's default manager stays the default (LD-TYT-M1); EntityManagerOptionPass removes the
         // entities from every other manager, including an auto-mapped one (LD-TYT-L1).
         return [
             'default_entity_manager' => $this->hostDefaultEntityManager($container),
             'entity_managers'        => [$entityManager => ['mappings' => $mappings]],
         ];
+    }
+
+    /**
+     * @return list<string> the entity manager names the host declares under `doctrine.orm.entity_managers` (or
+     *                      `default` for the shorthand), read before the bundle prepends its manager
+     */
+    private function hostEntityManagerNames(ContainerBuilder $container): array
+    {
+        $names = [];
+        foreach ($container->getExtensionConfig('doctrine') as $config) {
+            if (!is_array($config['orm'] ?? null)) {
+                continue;
+            }
+            // The shorthand (no entity_managers key) configures the "default" manager.
+            $managers = is_array($config['orm']['entity_managers'] ?? null) ? $config['orm']['entity_managers'] : ['default' => []];
+            foreach (array_keys($managers) as $name) {
+                $names[] = (string) $name;
+            }
+        }
+
+        return array_values(array_unique($names));
     }
 
     /**
