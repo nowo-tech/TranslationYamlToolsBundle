@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.17.0] - 2026-11-11](#1170---2026-11-11)
 - [[1.16.0] - 2026-10-31](#1160---2026-10-31)
 - [[1.15.0] - 2026-10-30](#1150---2026-10-30)
 - [[1.14.1] - 2026-10-30](#1141---2026-10-30)
@@ -56,7 +57,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-Target 1.17.0 (minor: a new public configuration key and a behaviour change on hosts with several entity managers).
+## [1.17.0] - 2026-11-11
+
+New doctrine.entity_manager maps the bundle entities on a host-declared dedicated manager only; the host default entity manager stays the default; recovery resets only the bundle's manager. See [UPGRADING](https://github.com/nowo-tech/TranslationYamlToolsBundle/blob/v1.17.0/docs/UPGRADING.md#to-1170).
+
 
 ### Fixed
 

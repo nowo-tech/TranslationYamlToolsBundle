@@ -3,7 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
-  - [To 1.17.0](#to-1170)
+- [To 1.17.0](#to-1170)
 - [To 1.16.0](#to-1160)
 - [To 1.15.0](#to-1150)
 - [To 1.14.1](#to-1141)
@@ -66,7 +66,7 @@
 
 ## Unreleased
 
-### To 1.17.0
+## To 1.17.0
 
 From **1.16.0**: `composer update nowo-tech/translation-yaml-tools-bundle`. No configuration change is needed.
 
