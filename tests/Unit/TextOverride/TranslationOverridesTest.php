@@ -32,6 +32,25 @@ final class TranslationOverridesTest extends TestCase
         self::assertSame('A', $overrides->get('es', 'messages', 'site.a'), 'Second load comes from the cache pool.');
     }
 
+    public function testResetDropsTheMemoSoAnotherWorkersEditIsSeen(): void
+    {
+        $repository = $this->createMock(TranslationOverrideRepository::class);
+        $repository->expects(self::exactly(2))->method('loadMap')->willReturnOnConsecutiveCalls(
+            ['en' => ['messages' => ['site.a' => 'Before']]],
+            ['en' => ['messages' => ['site.a' => 'After']]],
+        );
+        $cache     = new ArrayAdapter();
+        $overrides = new TranslationOverrides($repository, $cache, new SymfonyTranslationOverrideHtmlSanitizer());
+
+        self::assertSame('Before', $overrides->get('en', 'messages', 'site.a'));
+        // Another worker saves and drops the shared cache entry; this instance still serves its memo.
+        $cache->delete(TranslationOverrides::CACHE_KEY);
+        self::assertSame('Before', $overrides->get('en', 'messages', 'site.a'));
+
+        $overrides->reset();
+        self::assertSame('After', $overrides->get('en', 'messages', 'site.a'));
+    }
+
     public function testStorageFailureMeansNoOverrides(): void
     {
         $cache = $this->createStub(CacheInterface::class);

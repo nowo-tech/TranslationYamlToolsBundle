@@ -24,6 +24,16 @@ services:
     Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideProviderInterface:
         alias: Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides
 
+    # REQ-RUNTIME-002: drops the override map memo at the request / Messenger / console boundaries. Lazy iterator of
+    # IGNORE_ON_UNINITIALIZED references ('@!'): a boundary never builds the service.
+    Nowo\TranslationYamlToolsBundle\TextOverride\EventSubscriber\TranslationOverridesClearSubscriber:
+        autowire: false
+        arguments:
+            $resettables: !iterator
+                - '@!Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides'
+        tags:
+            - { name: kernel.event_subscriber }
+
     Nowo\TranslationYamlToolsBundle\TextOverride\EditableTranslationKeys:
         arguments:
             $editable: '%nowo_translation_yaml_tools.overrides.editable%'

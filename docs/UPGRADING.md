@@ -66,6 +66,11 @@
 
 ## Unreleased
 
+No configuration change is needed. The override map memo is now dropped at the request, Messenger and console
+boundaries by a bundle-registered subscriber, so hosts that run without the services resetter (or consumers with
+`--no-reset`) see overrides saved by other workers. Hosts that bypass the resetter must still clear their own entity
+managers at those boundaries (see [FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md#usage-recommendations-in-worker-mode)).
+
 ## To 1.17.0
 
 From **1.16.0**: `composer update nowo-tech/translation-yaml-tools-bundle`. No configuration change is needed.
