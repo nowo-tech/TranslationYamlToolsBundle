@@ -366,6 +366,97 @@ final class NowoTranslationYamlToolsExtensionTest extends TestCase
         self::assertArrayHasKey('NowoTranslationYamlToolsMissingLog', $merged['orm']['mappings']);
     }
 
+    public function testPrependMapsBothFeaturesOnTheConfiguredEntityManager(): void
+    {
+        $container = new ContainerBuilder();
+        $container->registerExtension(new DoctrineExtension());
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+        $container->loadFromExtension('doctrine', ['orm' => ['entity_managers' => ['default' => [], 'texts' => []]]]);
+        $container->loadFromExtension('nowo_translation_yaml_tools', [
+            'missing_translation_log' => ['enabled' => true],
+            'overrides'               => ['enabled' => true],
+            'doctrine'                => ['entity_manager' => 'texts'],
+        ]);
+
+        $extension->prepend($container);
+
+        $merged = array_merge_recursive(...$container->getExtensionConfig('doctrine'));
+        self::assertArrayNotHasKey('mappings', $merged['orm']);
+        self::assertArrayHasKey('NowoTranslationYamlToolsMissingLog', $merged['orm']['entity_managers']['texts']['mappings']);
+        self::assertArrayHasKey('NowoTranslationYamlToolsTextOverride', $merged['orm']['entity_managers']['texts']['mappings']);
+        self::assertSame('default', $container->getExtensionConfig('doctrine')[0]['orm']['default_entity_manager']);
+    }
+
+    /**
+     * Audit LD-TYT-L2: a mistyped name must fail the build instead of creating a new manager on the default connection.
+     *
+     * @param list<array<string, mixed>> $hostConfigs
+     */
+    #[DataProvider('undeclaredEntityManagers')]
+    public function testPrependRejectsAnEntityManagerTheHostDoesNotDeclare(array $hostConfigs): void
+    {
+        $container = new ContainerBuilder();
+        $container->registerExtension(new DoctrineExtension());
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+        foreach ($hostConfigs as $config) {
+            $container->loadFromExtension('doctrine', $config);
+        }
+        $container->loadFromExtension('nowo_translation_yaml_tools', [
+            'overrides' => ['enabled' => true],
+            'doctrine'  => ['entity_manager' => 'txets'],
+        ]);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('nowo_translation_yaml_tools.doctrine.entity_manager is "txets", but the host Doctrine configuration does not declare that entity manager');
+
+        $extension->prepend($container);
+    }
+
+    /**
+     * @return iterable<string, array{list<array<string, mixed>>}>
+     */
+    public static function undeclaredEntityManagers(): iterable
+    {
+        yield 'no host doctrine config' => [[]];
+        yield 'flex shorthand' => [[['dbal' => ['url' => 'sqlite:///:memory:']], ['orm' => ['auto_mapping' => true]]]];
+        yield 'typo of a declared manager' => [[['orm' => ['entity_managers' => ['default' => [], 'texts' => []]]]]];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $hostConfigs
+     */
+    #[DataProvider('hostDefaults')]
+    public function testPrependKeepsTheHostDefaultEntityManager(array $hostConfigs, string $expected): void
+    {
+        $container = new ContainerBuilder();
+        $container->registerExtension(new DoctrineExtension());
+        $extension = new NowoTranslationYamlToolsExtension();
+        $container->registerExtension($extension);
+        foreach ($hostConfigs as $config) {
+            $container->loadFromExtension('doctrine', $config);
+        }
+        $container->loadFromExtension('nowo_translation_yaml_tools', [
+            'overrides' => ['enabled' => true],
+            'doctrine'  => ['entity_manager' => 'texts'],
+        ]);
+
+        $extension->prepend($container);
+
+        self::assertSame($expected, $container->getExtensionConfig('doctrine')[0]['orm']['default_entity_manager']);
+    }
+
+    /**
+     * @return iterable<string, array{list<array<string, mixed>>, string}>
+     */
+    public static function hostDefaults(): iterable
+    {
+        yield 'flex shorthand plus a chunk declaring the bundle manager' => [[['dbal' => ['url' => 'sqlite:///:memory:']], ['orm' => ['auto_mapping' => true]], ['orm' => ['entity_managers' => ['texts' => []]]]], 'default'];
+        yield 'first host manager' => [[['orm' => ['entity_managers' => ['app' => [], 'texts' => []]]]], 'app'];
+        yield 'explicit default' => [[['orm' => ['default_entity_manager' => 'main', 'entity_managers' => ['app' => [], 'texts' => []]]]], 'main'];
+    }
+
     public function testPrependDoesNothingWhenMissingLogDisabled(): void
     {
         $container = new ContainerBuilder();

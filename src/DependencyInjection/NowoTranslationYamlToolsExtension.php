@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 
 use InvalidArgumentException;
+use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\EntityManagerOptionPass;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateBaseUrlGuard;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper;
 use Nowo\TranslationYamlToolsBundle\Security\ConfigurableMissingLogUiAccessChecker;
@@ -24,6 +25,10 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizer;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 use function array_key_exists;
+use function array_keys;
+use function array_unique;
+use function array_values;
+use function implode;
 use function in_array;
 use function is_array;
 use function is_bool;
@@ -66,33 +71,25 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
     public function prepend(ContainerBuilder $container): void
     {
         if ($container->hasExtension('doctrine') && $this->rawConfigEnablesMissingTranslationLog($container)) {
-            $container->prependExtensionConfig('doctrine', [
-                'orm' => [
-                    'mappings' => [
-                        'NowoTranslationYamlToolsMissingLog' => [
-                            'is_bundle' => false,
-                            'type'      => 'attribute',
-                            'dir'       => __DIR__ . '/../Entity',
-                            'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\Entity',
-                        ],
-                    ],
+            $container->prependExtensionConfig('doctrine', ['orm' => $this->ormMappings($container, [
+                'NowoTranslationYamlToolsMissingLog' => [
+                    'is_bundle' => false,
+                    'type'      => 'attribute',
+                    'dir'       => __DIR__ . '/../Entity',
+                    'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\Entity',
                 ],
-            ]);
+            ])]);
         }
 
         if ($container->hasExtension('doctrine') && $this->rawConfigEnablesOverrides($container)) {
-            $container->prependExtensionConfig('doctrine', [
-                'orm' => [
-                    'mappings' => [
-                        'NowoTranslationYamlToolsTextOverride' => [
-                            'is_bundle' => false,
-                            'type'      => 'attribute',
-                            'dir'       => __DIR__ . '/../TextOverride/Entity',
-                            'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\TextOverride\\Entity',
-                        ],
-                    ],
+            $container->prependExtensionConfig('doctrine', ['orm' => $this->ormMappings($container, [
+                'NowoTranslationYamlToolsTextOverride' => [
+                    'is_bundle' => false,
+                    'type'      => 'attribute',
+                    'dir'       => __DIR__ . '/../TextOverride/Entity',
+                    'prefix'    => 'Nowo\\TranslationYamlToolsBundle\\TextOverride\\Entity',
                 ],
-            ]);
+            ])]);
         }
 
         $this->prependUiKitDefaults($container);
@@ -275,6 +272,8 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         /** @var array<string, mixed> $overrides */
         $overrides = $config['overrides'];
         $this->loadOverrides($overrides, $container, $loader);
+        // 1.17.0 (audit LD-TYT-M1/L1): the named manager must exist and map the bundle entities.
+        $container->setParameter(EntityManagerOptionPass::PARAMETER, $missingLogEnabled || $overrides['enabled'] === true ? $config['doctrine']['entity_manager'] : null);
 
         if ($missingLogEnabled) {
             $loader->load('services_missing_translation.yaml');
@@ -402,6 +401,97 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         }
 
         return $value;
+    }
+
+    /**
+     * 1.17.0: `doctrine.entity_manager` maps the bundle entities on that manager only (rule 6: the bundle's own
+     * manager); null keeps them on the default manager.
+     *
+     * @param array<string, array<string, mixed>> $mappings
+     *
+     * @return array<string, mixed>
+     */
+    private function ormMappings(ContainerBuilder $container, array $mappings): array
+    {
+        $entityManager = null;
+        foreach ($container->getExtensionConfig('nowo_translation_yaml_tools') as $chunk) {
+            $name = is_array($chunk) && is_array($chunk['doctrine'] ?? null) ? ($chunk['doctrine']['entity_manager'] ?? null) : null;
+            if (is_string($name) && $name !== '') {
+                $entityManager = $name;
+            }
+        }
+
+        if ($entityManager === null) {
+            return ['mappings' => $mappings];
+        }
+
+        // Audit LD-TYT-L2: the returned config declares entity_managers.<name> itself, so an undeclared (mistyped) name
+        // would silently become a new manager on the default connection. The host must declare it.
+        $declared = $this->hostEntityManagerNames($container);
+        if (!in_array($entityManager, $declared, true)) {
+            throw new InvalidConfigurationException(sprintf('nowo_translation_yaml_tools.doctrine.entity_manager is "%s", but the host Doctrine configuration does not declare that entity manager (declared: "%s"). Add it under doctrine.orm.entity_managers (with its own connection) or fix the name.', $entityManager, implode('", "', $declared)));
+        }
+
+        // 1.17.0: the host's default manager stays the default (LD-TYT-M1); EntityManagerOptionPass removes the
+        // entities from every other manager, including an auto-mapped one (LD-TYT-L1).
+        return [
+            'default_entity_manager' => $this->hostDefaultEntityManager($container),
+            'entity_managers'        => [$entityManager => ['mappings' => $mappings]],
+        ];
+    }
+
+    /**
+     * @return list<string> the entity manager names the host declares under `doctrine.orm.entity_managers` (or
+     *                      `default` for the shorthand), read before the bundle prepends its manager
+     */
+    private function hostEntityManagerNames(ContainerBuilder $container): array
+    {
+        $names = [];
+        foreach ($container->getExtensionConfig('doctrine') as $config) {
+            if (!is_array($config['orm'] ?? null)) {
+                continue;
+            }
+            // The shorthand (no entity_managers key) configures the "default" manager.
+            $managers = is_array($config['orm']['entity_managers'] ?? null) ? $config['orm']['entity_managers'] : ['default' => []];
+            foreach (array_keys($managers) as $name) {
+                $names[] = (string) $name;
+            }
+        }
+
+        return array_values(array_unique($names));
+    }
+
+    /**
+     * The host's default entity manager, resolved from the host's own `doctrine` configuration before the bundle
+     * prepends its manager. Without it, a host that leaves `default_entity_manager` unset (Flex shorthand included)
+     * would get the bundle's manager as its default, because DoctrineBundle takes the first configured manager
+     * (audit LD-TYT-M1).
+     */
+    private function hostDefaultEntityManager(ContainerBuilder $container): string
+    {
+        $default = null;
+        $first   = null;
+        foreach ($container->getExtensionConfig('doctrine') as $config) {
+            $orm = is_array($config['orm'] ?? null) ? $config['orm'] : null;
+            if ($orm === null) {
+                continue;
+            }
+            if (is_string($orm['default_entity_manager'] ?? null) && $orm['default_entity_manager'] !== '') {
+                $default = $orm['default_entity_manager'];
+            }
+            if (!is_array($orm['entity_managers'] ?? null)) {
+                $first ??= 'default';
+
+                continue;
+            }
+            foreach (array_keys($orm['entity_managers']) as $name) {
+                $first ??= (string) $name;
+
+                break;
+            }
+        }
+
+        return $default ?? $first ?? 'default';
     }
 
     private function rawConfigEnablesOverrides(ContainerBuilder $container): bool

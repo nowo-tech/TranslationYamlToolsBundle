@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle;
 
 use LogicException;
+use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\EntityManagerOptionPass;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\MissingLogWebUiSecurityPass;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\TextOverrideWebUiPass;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\TwigPathsPass;
@@ -23,6 +24,8 @@ final class NowoTranslationYamlToolsBundle extends Bundle
         $container->addCompilerPass(new TwigPathsPass());
         $container->addCompilerPass(new MissingLogWebUiSecurityPass());
         $container->addCompilerPass(new TextOverrideWebUiPass());
+        // 1.17.0 (audit LD-TYT-L1): the entities on doctrine.entity_manager only, never also on an auto-mapped manager.
+        $container->addCompilerPass(new EntityManagerOptionPass());
     }
 
     /**
