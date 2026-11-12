@@ -10,12 +10,15 @@ use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Console\Event\ConsoleErrorEvent;
 use Symfony\Component\Console\Event\ConsoleTerminateEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\Event\TerminateEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Contracts\Service\ResetInterface;
 
 use const PHP_INT_MAX;
+use const PHP_INT_MIN;
 
 /**
  * Drops the per-request override map memo ({@see TranslationOverrides::reset()}) at every unit-of-work boundary, so a
@@ -50,6 +53,8 @@ final class TranslationOverridesClearSubscriber implements EventSubscriberInterf
     public const MESSENGER_WORKER_MESSAGE_HANDLED  = 'Symfony\Component\Messenger\Event\WorkerMessageHandledEvent';
     public const MESSENGER_WORKER_MESSAGE_FAILED   = 'Symfony\Component\Messenger\Event\WorkerMessageFailedEvent';
     public const MESSENGER_WORKER_STOPPED          = 'Symfony\Component\Messenger\Event\WorkerStoppedEvent';
+    public const MESSENGER_WORKER_STARTED          = 'Symfony\Component\Messenger\Event\WorkerStartedEvent';
+    public const MESSENGER_WORKER_RUNNING          = 'Symfony\Component\Messenger\Event\WorkerRunningEvent';
     /** Dispatched by `messenger:failed:retry` only, when a message is skipped. */
     public const MESSENGER_WORKER_MESSAGE_SKIPPED = 'Symfony\Component\Messenger\Event\WorkerMessageSkipEvent';
 
@@ -63,11 +68,13 @@ final class TranslationOverridesClearSubscriber implements EventSubscriberInterf
 
     /**
      * @param iterable<ResetInterface> $resettables the override map memo ({@see TranslationOverrides})
+     * @param RequestStack|null $requestStack the HTTP kernel's request stack (read only, see {@see UnitOfWorkFrames})
      */
     public function __construct(
         private readonly iterable $resettables,
+        ?RequestStack $requestStack = null,
     ) {
-        $this->units = new UnitOfWorkFrames();
+        $this->units = new UnitOfWorkFrames($requestStack);
     }
 
     /**
@@ -79,10 +86,12 @@ final class TranslationOverridesClearSubscriber implements EventSubscriberInterf
             KernelEvents::REQUEST                   => ['onRequest', PHP_INT_MAX],
             KernelEvents::FINISH_REQUEST            => ['onFinishRequest', PHP_INT_MAX],
             KernelEvents::TERMINATE                 => [['onRequestBoundaryEnded', PHP_INT_MAX], ['clearState', 0]],
-            self::MESSENGER_WORKER_MESSAGE_RECEIVED => ['onMessageReceived', PHP_INT_MAX],
+            self::MESSENGER_WORKER_STARTED          => ['onWorkerStarted', PHP_INT_MAX],
+            self::MESSENGER_WORKER_MESSAGE_RECEIVED => [['onMessageReceived', PHP_INT_MAX], ['onMessageReceivedDecided', PHP_INT_MIN]],
             self::MESSENGER_WORKER_MESSAGE_HANDLED  => [['onMessageEnded', PHP_INT_MAX], ['clearState', -4096]],
             self::MESSENGER_WORKER_MESSAGE_FAILED   => [['onMessageEnded', PHP_INT_MAX], ['clearState', -4096]],
             self::MESSENGER_WORKER_MESSAGE_SKIPPED  => ['onMessageEnded', PHP_INT_MAX],
+            self::MESSENGER_WORKER_RUNNING          => ['onWorkerRunning', PHP_INT_MAX],
             self::MESSENGER_WORKER_STOPPED          => ['onWorkerStopped', PHP_INT_MAX],
             self::CONSOLE_COMMAND                   => ['onConsoleCommand', PHP_INT_MAX],
             self::CONSOLE_ERROR                     => ['onConsoleError', PHP_INT_MAX],
@@ -96,14 +105,14 @@ final class TranslationOverridesClearSubscriber implements EventSubscriberInterf
             return;
         }
 
-        $this->units->requestStarted();
+        $this->units->requestStarted($event->getRequest());
         $this->clearState();
     }
 
     public function onFinishRequest(FinishRequestEvent $event): void
     {
         if ($event->isMainRequest()) {
-            $this->units->requestFinished();
+            $this->units->requestFinished($event->getRequest());
         }
     }
 
@@ -111,34 +120,58 @@ final class TranslationOverridesClearSubscriber implements EventSubscriberInterf
      * `kernel.terminate` (PHP_INT_MAX): a top-level request boundary resets the main-request counter, even when the
      * request's `kernel.finish_request` never came (audit NR-b M1).
      */
-    public function onRequestBoundaryEnded(): void
+    public function onRequestBoundaryEnded(TerminateEvent $event): void
     {
-        $this->units->requestBoundaryEnded();
+        $this->units->requestBoundaryEnded($event);
     }
 
     /**
      * Start of a Messenger message: nothing of the previous message or the worker's idle time is kept.
      */
-    public function onMessageReceived(): void
+    public function onMessageReceived(object $event): void
     {
-        $this->units->messageReceived();
+        $this->units->messageReceived($event);
         $this->clearState();
     }
 
     /**
      * A message was handled, failed or skipped (PHP_INT_MAX): no message is in flight any more.
      */
-    public function onMessageEnded(): void
+    public function onMessageEnded(object $event): void
     {
-        $this->units->messageFinished();
+        $this->units->messageFinished($event);
+    }
+
+    /**
+     * A Messenger worker starts (its own message state, audit NX CR1).
+     */
+    public function onWorkerStarted(object $event): void
+    {
+        $this->units->workerStarted($event);
+    }
+
+    /**
+     * End of the received event (PHP_INT_MIN): a message skipped with `shouldHandle(false)` ends (audit NX CR3).
+     */
+    public function onMessageReceivedDecided(object $event): void
+    {
+        $this->units->messageReceivedDecided($event);
+    }
+
+    /**
+     * The worker finished a message or is idle: its message is not in flight any more.
+     */
+    public function onWorkerRunning(object $event): void
+    {
+        $this->units->workerRunning($event);
     }
 
     /**
      * The worker stopped: no message is in flight any more.
      */
-    public function onWorkerStopped(): void
+    public function onWorkerStopped(object $event): void
     {
-        $this->units->workerStopped();
+        $this->units->workerStopped($event);
     }
 
     /**

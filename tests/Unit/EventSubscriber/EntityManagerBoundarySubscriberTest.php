@@ -24,10 +24,13 @@ use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageHandledEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageReceivedEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageSkipEvent;
+use Symfony\Component\Messenger\Event\WorkerRunningEvent;
+use Symfony\Component\Messenger\Event\WorkerStartedEvent;
 use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
 use Symfony\Contracts\Service\ResetInterface;
 
 use const PHP_INT_MAX;
+use const PHP_INT_MIN;
 
 #[CoversClass(EntityManagerBoundarySubscriber::class)]
 #[CoversClass(UnitOfWorkFrames::class)]
@@ -42,7 +45,9 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
         self::assertSame(['onRequest', PHP_INT_MAX], $events[KernelEvents::REQUEST]);
         self::assertSame(['onFinishRequest', PHP_INT_MAX], $events[KernelEvents::FINISH_REQUEST]);
         self::assertSame([['onRequestBoundaryEnded', PHP_INT_MAX], ['onTerminate', -4096]], $events[KernelEvents::TERMINATE]);
-        self::assertSame(['onMessageReceived', PHP_INT_MAX], $events[WorkerMessageReceivedEvent::class]);
+        self::assertSame([['onMessageReceived', PHP_INT_MAX], ['onMessageReceivedDecided', PHP_INT_MIN]], $events[WorkerMessageReceivedEvent::class]);
+        self::assertSame(['onWorkerStarted', PHP_INT_MAX], $events[WorkerStartedEvent::class]);
+        self::assertSame(['onWorkerRunning', PHP_INT_MAX], $events[WorkerRunningEvent::class]);
         self::assertSame([['onMessageEnded', PHP_INT_MAX], ['onMessageFinished', -4096]], $events[WorkerMessageHandledEvent::class]);
         self::assertSame([['onMessageEnded', PHP_INT_MAX], ['onMessageFinished', -4096]], $events[WorkerMessageFailedEvent::class]);
         self::assertSame(['onMessageEnded', PHP_INT_MAX], $events[WorkerMessageSkipEvent::class]);
