@@ -99,7 +99,7 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
         return [
             KernelEvents::REQUEST                   => ['onRequest', PHP_INT_MAX],
             KernelEvents::FINISH_REQUEST            => ['onFinishRequest', PHP_INT_MAX],
-            KernelEvents::TERMINATE                 => ['onTerminate', -4096],
+            KernelEvents::TERMINATE                 => [['onRequestBoundaryEnded', PHP_INT_MAX], ['onTerminate', -4096]],
             self::MESSENGER_WORKER_MESSAGE_RECEIVED => ['onMessageReceived', PHP_INT_MAX],
             self::MESSENGER_WORKER_MESSAGE_HANDLED  => [['onMessageEnded', PHP_INT_MAX], ['onMessageFinished', -4096]],
             self::MESSENGER_WORKER_MESSAGE_FAILED   => [['onMessageEnded', PHP_INT_MAX], ['onMessageFinished', -4096]],
@@ -126,6 +126,15 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
         if ($event->isMainRequest()) {
             $this->units->requestFinished();
         }
+    }
+
+    /**
+     * `kernel.terminate` (PHP_INT_MAX): a top-level request boundary resets the main-request counter, even when the
+     * request's `kernel.finish_request` never came (audit NR-b M1).
+     */
+    public function onRequestBoundaryEnded(): void
+    {
+        $this->units->requestBoundaryEnded();
     }
 
     /**

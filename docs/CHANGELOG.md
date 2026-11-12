@@ -79,7 +79,7 @@ All notable changes to this project are documented in this file.
   marks the frame, and a marked frame whose terminate never came is dropped at the next main request, received
   message, command or worker stop; the end of a main request or a message drops the frames started inside it. Main
   requests are counted, so a main request handled in-process inside another one no longer clears or ends the outer
-  unit. The clears keep their priorities (the end-of-command clear only for the run that started as the outermost
+  unit. A top-level `kernel.terminate` (nothing else running) resets the main-request count, so a request whose `kernel.finish_request` never came (a throwing `kernel.exception` listener) does not stop the next clears (audit NR-b M1). The clears keep their priorities (the end-of-command clear only for the run that started as the outermost
   unit). `WorkerMessageSkipEvent` (dispatched by `messenger:failed:retry`) ends the in-flight message.
   Affected: 1.17.1 (overrides memo) and 1.18.0 (entity manager boundary).
 

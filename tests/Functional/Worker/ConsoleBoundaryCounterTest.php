@@ -27,6 +27,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Controller\ArgumentResolver;
 use Symfony\Component\HttpKernel\Controller\ControllerResolver;
 use Symfony\Component\HttpKernel\HttpKernel;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageReceivedEvent;
@@ -311,6 +312,38 @@ final class ConsoleBoundaryCounterTest extends TestCase
         $this->dispatcher->dispatch(new WorkerMessageFailedEvent($envelope, 'async', new RuntimeException('handler failed')));
         $this->dispatcher->dispatch(new WorkerStoppedEvent((new ReflectionClass(Worker::class))->newInstanceWithoutConstructor()));
         $this->assertNextUnitsClear();
+    }
+
+    /**
+     * Audit NR-b M1: a kernel.exception listener throws, so the request's kernel.finish_request never comes; the
+     * request is still terminated. The next main requests clear again at their start and at kernel.terminate.
+     *
+     * @param Closure(self): EventSubscriberInterface $factory
+     */
+    #[DataProvider('subscribers')]
+    public function testAMainRequestWithoutFinishRequestDoesNotStopTheNextClears(Closure $factory): void
+    {
+        $this->boot($factory);
+        $throw = static function (): never {
+            throw new RuntimeException('exception listener failed');
+        };
+        $this->dispatcher->addListener(KernelEvents::EXCEPTION, $throw);
+        $request = Request::create('/');
+        $request->attributes->set('_controller', static function (): never {
+            throw new RuntimeException('controller failed');
+        });
+        try {
+            $this->kernel->handle($request);
+        } catch (RuntimeException) {
+            // The throwing exception listener: no kernel.finish_request.
+        }
+        $this->kernel->terminate($request, new Response('', 500));
+        $this->dispatcher->removeListener(KernelEvents::EXCEPTION, $throw);
+
+        $before = $this->clears;
+        $this->handleRequest();
+        $this->handleRequest();
+        self::assertSame($before + 4, $this->clears, 'Both next main requests clear at their start and at kernel.terminate.');
     }
 
     public function entityManagerSubscriber(): EventSubscriberInterface

@@ -78,7 +78,7 @@ final class TranslationOverridesClearSubscriber implements EventSubscriberInterf
         return [
             KernelEvents::REQUEST                   => ['onRequest', PHP_INT_MAX],
             KernelEvents::FINISH_REQUEST            => ['onFinishRequest', PHP_INT_MAX],
-            KernelEvents::TERMINATE                 => 'clearState',
+            KernelEvents::TERMINATE                 => [['onRequestBoundaryEnded', PHP_INT_MAX], ['clearState', 0]],
             self::MESSENGER_WORKER_MESSAGE_RECEIVED => ['onMessageReceived', PHP_INT_MAX],
             self::MESSENGER_WORKER_MESSAGE_HANDLED  => [['onMessageEnded', PHP_INT_MAX], ['clearState', -4096]],
             self::MESSENGER_WORKER_MESSAGE_FAILED   => [['onMessageEnded', PHP_INT_MAX], ['clearState', -4096]],
@@ -105,6 +105,15 @@ final class TranslationOverridesClearSubscriber implements EventSubscriberInterf
         if ($event->isMainRequest()) {
             $this->units->requestFinished();
         }
+    }
+
+    /**
+     * `kernel.terminate` (PHP_INT_MAX): a top-level request boundary resets the main-request counter, even when the
+     * request's `kernel.finish_request` never came (audit NR-b M1).
+     */
+    public function onRequestBoundaryEnded(): void
+    {
+        $this->units->requestBoundaryEnded();
     }
 
     /**

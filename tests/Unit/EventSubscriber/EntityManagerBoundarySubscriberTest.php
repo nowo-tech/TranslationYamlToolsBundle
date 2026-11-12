@@ -40,7 +40,7 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
 
         self::assertSame(['onRequest', PHP_INT_MAX], $events[KernelEvents::REQUEST]);
         self::assertSame(['onFinishRequest', PHP_INT_MAX], $events[KernelEvents::FINISH_REQUEST]);
-        self::assertSame(['onTerminate', -4096], $events[KernelEvents::TERMINATE]);
+        self::assertSame([['onRequestBoundaryEnded', PHP_INT_MAX], ['onTerminate', -4096]], $events[KernelEvents::TERMINATE]);
         self::assertSame(['onMessageReceived', PHP_INT_MAX], $events[WorkerMessageReceivedEvent::class]);
         self::assertSame([['onMessageEnded', PHP_INT_MAX], ['onMessageFinished', -4096]], $events[WorkerMessageHandledEvent::class]);
         self::assertSame([['onMessageEnded', PHP_INT_MAX], ['onMessageFinished', -4096]], $events[WorkerMessageFailedEvent::class]);
@@ -84,9 +84,9 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
         $units = $this->driver();
 
         $units->request();
+        // In-process http_kernel->handle() (no terminate(): only the front controller terminates the outer request).
         $units->request();
         $units->finishRequest();
-        $units->terminate();
         self::assertSame(1, $this->clears, 'The nested main request neither starts nor ends a unit.');
         $units->commandStarts();
         self::assertSame(1, $this->clears, 'The outer request is still in flight.');

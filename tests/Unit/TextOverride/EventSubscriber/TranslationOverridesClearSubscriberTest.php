@@ -30,7 +30,7 @@ final class TranslationOverridesClearSubscriberTest extends TestCase
 
         self::assertSame(['onRequest', PHP_INT_MAX], $events[KernelEvents::REQUEST]);
         self::assertSame(['onFinishRequest', PHP_INT_MAX], $events[KernelEvents::FINISH_REQUEST]);
-        self::assertSame('clearState', $events[KernelEvents::TERMINATE]);
+        self::assertSame([['onRequestBoundaryEnded', PHP_INT_MAX], ['clearState', 0]], $events[KernelEvents::TERMINATE]);
         self::assertSame(['onMessageReceived', PHP_INT_MAX], $events[WorkerMessageReceivedEvent::class]);
         self::assertSame([['onMessageEnded', PHP_INT_MAX], ['clearState', -4096]], $events[WorkerMessageHandledEvent::class]);
         self::assertSame([['onMessageEnded', PHP_INT_MAX], ['clearState', -4096]], $events[WorkerMessageFailedEvent::class]);
