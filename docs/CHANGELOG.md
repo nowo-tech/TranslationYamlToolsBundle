@@ -57,6 +57,32 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Worker state (REQ-RUNTIME-002 rule 1).** `TranslationOverrides` memoises the override map per unit of work, but
+  only `kernel.reset` dropped the memo. Where the services resetter does not run between units of work (a host that
+  removes, replaces or bypasses `services_resetter`, or drives `http_kernel` directly; Messenger consumers started with
+  `--no-reset`; long-running console commands), a worker kept serving the map it loaded first and never saw overrides
+  saved, changed or removed by another worker or process, until it saved an override itself. With the stock Symfony
+  kernel, `FRANKENPHP_RESET_KERNEL=false` alone is not affected: `Kernel::handle()` still runs the resetter before every
+  request. Affected: 1.6.0 to 1.17.0 with `overrides.enabled: true`. No cross-user data is involved (the map is the same
+  for every user); the effect is stale text.
+  The new internal `TranslationOverridesClearSubscriber` drops the memo at the start of every main request and at
+  `kernel.terminate`, when a Messenger message is received, handled or failed, and when the outermost console command
+  starts and terminates. A command run in-process from another command or from a message handler
+  (`Application::doRun()`) does not drop the outer unit's memo (console depth counter plus an in-flight message flag,
+  cleared on handled, failed and `WorkerStoppedEvent`). The subscriber receives the memo as an
+  `IGNORE_ON_UNINITIALIZED_REFERENCE` reference, so a boundary never builds it. `TranslationOverrides` keeps
+  `ResetInterface`.
+
+### Tests
+
+- `tests/Functional/Worker/WorkerBoundariesTest.php`: one kept-alive kernel with the services resetter never called;
+  500 HTTP requests through `http_kernel`, 500 messages through a Messenger `Worker` without `ResetServicesListener`
+  (every 7th handler fails) and 500 console runs, two tenants (English / Spanish) in alternation, another worker
+  editing both overrides before every unit; 1 MiB memory margin after a 50-unit warm-up. Nested `doRun()` tests from a
+  command and from a message handler, unit tests of the subscriber and a direct `reset()` test.
+
 ## [1.17.0] - 2026-11-11
 
 New doctrine.entity_manager maps the bundle entities on a host-declared dedicated manager only; the host default entity manager stays the default; recovery resets only the bundle's manager. See [UPGRADING](https://github.com/nowo-tech/TranslationYamlToolsBundle/blob/v1.17.0/docs/UPGRADING.md#to-1170).

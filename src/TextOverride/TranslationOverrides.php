@@ -18,7 +18,8 @@ use Throwable;
  *
  * The whole map (usually a few hundred short strings) is cached in a cache pool
  * ({@code overrides.cache_pool}, default {@code cache.app}) for {@code overrides.cache_ttl} seconds
- * and memoised per request; every write through this service drops the cache entry. Any storage
+ * and memoised per unit of work (dropped at the request, Messenger and console boundaries by
+ * {@see EventSubscriber\TranslationOverridesClearSubscriber}, and by {@code kernel.reset}); every write through this service drops the cache entry. Any storage
  * failure (schema not migrated yet, cache backend down) means "no overrides": catalogue text is
  * shown and a warning is logged.
  *
@@ -67,7 +68,7 @@ class TranslationOverrides implements TranslationOverrideProviderInterface, Rese
             $map = [];
         }
 
-        // @igor-ignore - Per-request memo; cleared by reset() (kernel.reset) and invalidate().
+        // @igor-ignore - Per-unit-of-work memo; cleared by TranslationOverridesClearSubscriber at the request / Messenger / console boundaries, reset() (kernel.reset) and invalidate().
         return $this->map = $map;
     }
 
