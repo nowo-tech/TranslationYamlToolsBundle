@@ -8,6 +8,7 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use LogicException;
+use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
 
 /**
@@ -15,6 +16,9 @@ use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
  *
  * Not final so unit tests can mock it. The entity manager is resolved per call (and a closed one
  * replaced) so the repository stays usable in FrankenPHP worker mode.
+ *
+ * Since 1.18.0 the registry it gets is {@see TranslationYamlToolsManagerRegistry}
+ * by default, so the manager is the bundle's private one: {@see self::flush()} never flushes the application's manager.
  */
 class TranslationOverrideRepository extends ServiceEntityRepository
 {

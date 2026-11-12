@@ -7,9 +7,11 @@ namespace Nowo\TranslationYamlToolsBundle;
 use LogicException;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\EntityManagerOptionPass;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\MissingLogWebUiSecurityPass;
+use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\PrivateEntityManagerPass;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\TextOverrideWebUiPass;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\TwigPathsPass;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\NowoTranslationYamlToolsExtension;
+use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
@@ -26,6 +28,9 @@ final class NowoTranslationYamlToolsBundle extends Bundle
         $container->addCompilerPass(new TextOverrideWebUiPass());
         // 1.17.0 (audit LD-TYT-L1): the entities on doctrine.entity_manager only, never also on an auto-mapped manager.
         $container->addCompilerPass(new EntityManagerOptionPass());
+        // 1.18.0 (rule 6): the private entity manager's rollback middleware only on its own connection, before
+        // DoctrineBundle's middleware pass.
+        $container->addCompilerPass(new PrivateEntityManagerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 10);
     }
 
     /**

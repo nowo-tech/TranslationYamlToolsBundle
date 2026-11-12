@@ -6,16 +6,28 @@ namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 
 use InvalidArgumentException;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\EntityManagerOptionPass;
+use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\PrivateEntityManagerPass;
+use Nowo\TranslationYamlToolsBundle\Doctrine\PrivateEntityManagerFlushBridge;
+use Nowo\TranslationYamlToolsBundle\Doctrine\PrivateEntityManagerMiddleware;
+use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsEntityManager;
+use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsManagerRegistry;
+use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
+use Nowo\TranslationYamlToolsBundle\EventSubscriber\EntityManagerBoundarySubscriber;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateBaseUrlGuard;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper;
+use Nowo\TranslationYamlToolsBundle\Repository\MissingTranslationLogRepository;
 use Nowo\TranslationYamlToolsBundle\Security\ConfigurableMissingLogUiAccessChecker;
 use Nowo\TranslationYamlToolsBundle\Security\MissingLogUiAccessCheckerInterface;
+use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Html\StripTagsTranslationOverrideHtmlSanitizer;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Html\SymfonyTranslationOverrideHtmlSanitizer;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Html\TranslationOverrideHtmlSanitizerInterface;
+use Nowo\TranslationYamlToolsBundle\TextOverride\Repository\TranslationOverrideRepository;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
@@ -290,6 +302,74 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
                 }
             }
         }
+
+        $entityClasses = [];
+        if ($missingLogEnabled) {
+            $entityClasses[] = MissingTranslationLog::class;
+        }
+        if ($overrides['enabled'] === true) {
+            $entityClasses[] = TranslationOverride::class;
+        }
+        if ($entityClasses !== []) {
+            /** @var array{entity_manager: string|null, private_entity_manager: bool} $doctrine */
+            $doctrine = $config['doctrine'];
+            $this->registerEntityManagerBoundaries($container, $doctrine, $entityClasses);
+        }
+    }
+
+    /**
+     * 1.18.0 (REQ-ARCH-001 rule 6, REQ-RUNTIME-002 rule 4): the bundle never flushes or resets the application's
+     * manager.
+     *
+     * - `doctrine.entity_manager` null (zero config): the repositories see {@see TranslationYamlToolsManagerRegistry},
+     *   so they read and write the bundle rows through the private manager ({@see TranslationYamlToolsEntityManager})
+     *   built on the default manager's connection and configuration. It is dropped at every outermost boundary and at
+     *   `kernel.reset`; the rollback middleware goes on its connection only ({@see PrivateEntityManagerPass},
+     *   doctrine/dbal 4); {@see PrivateEntityManagerFlushBridge} keeps the deprecated "flush: false + host flush"
+     *   bridge working.
+     * - `doctrine.private_entity_manager: false` (deprecated): the pre-1.18 behaviour on the default manager.
+     * - `doctrine.entity_manager` set: {@see EntityManagerOptionPass} hands that manager to the boundary subscriber,
+     *   unless it is the host's default manager.
+     *
+     * @param array{entity_manager: string|null, private_entity_manager: bool} $doctrine
+     * @param list<class-string> $entityClasses
+     */
+    private function registerEntityManagerBoundaries(ContainerBuilder $container, array $doctrine, array $entityClasses): void
+    {
+        $subscriber = (new Definition(EntityManagerBoundarySubscriber::class))
+            ->setArgument('$resettables', new IteratorArgument([]))
+            ->setArgument('$entityManagers', new IteratorArgument([]))
+            ->setArgument('$registries', new IteratorArgument([]))
+            ->setArgument('$managerName', $doctrine['entity_manager'])
+            ->setArgument('$logger', new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE))
+            ->addTag('kernel.event_subscriber');
+        $container->setDefinition(EntityManagerBoundarySubscriber::class, $subscriber);
+
+        if ($doctrine['entity_manager'] !== null || $doctrine['private_entity_manager'] !== true) {
+            return;
+        }
+
+        $container->register(TranslationYamlToolsEntityManager::class, TranslationYamlToolsEntityManager::class)
+            ->setArguments([new Reference('doctrine'), $entityClasses, new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE)])
+            ->addTag('kernel.reset', ['method' => 'reset']);
+        $container->register(TranslationYamlToolsManagerRegistry::class, TranslationYamlToolsManagerRegistry::class)
+            ->setArguments([new Reference('doctrine'), new Reference(TranslationYamlToolsEntityManager::class)]);
+        foreach ([MissingTranslationLogRepository::class, TranslationOverrideRepository::class] as $repository) {
+            if ($container->hasDefinition($repository)) {
+                $container->getDefinition($repository)->setArgument('$registry', new Reference(TranslationYamlToolsManagerRegistry::class));
+            }
+        }
+        if (PrivateEntityManagerPass::supportsRollbackMiddleware()) {
+            $container->register(PrivateEntityManagerMiddleware::class, PrivateEntityManagerMiddleware::class)
+                ->setArguments([new Reference(TranslationYamlToolsEntityManager::class)])
+                ->addTag('doctrine.middleware');
+        }
+
+        $lazyPrivate = new IteratorArgument([new Reference(TranslationYamlToolsEntityManager::class, ContainerInterface::IGNORE_ON_UNINITIALIZED_REFERENCE)]);
+        $subscriber->setArgument('$resettables', $lazyPrivate);
+        $container->register(PrivateEntityManagerFlushBridge::class, PrivateEntityManagerFlushBridge::class)
+            ->setArguments([$lazyPrivate, new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE)])
+            ->addTag('doctrine.event_listener', ['event' => 'postFlush']);
     }
 
     /**

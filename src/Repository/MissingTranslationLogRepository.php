@@ -18,6 +18,7 @@ use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use LogicException;
+use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use SortDirection;
@@ -37,6 +38,10 @@ use function strlen;
  * ({@see Query::HINT_REFRESH}) because hit counts and deletions are written with DBAL behind the identity map.
  * After DBAL deletes, managed {@see MissingTranslationLog} instances are detached.
  * This keeps the Web UI correct in FrankenPHP worker mode even when {@code kernel.reset} does not run.
+ *
+ * Since 1.18.0 the registry it gets is {@see TranslationYamlToolsManagerRegistry}
+ * by default, so the manager is the bundle's private one: {@see self::flush()} and {@see self::clearManaged()} never
+ * flush or clear the application's manager.
  */
 class MissingTranslationLogRepository extends ServiceEntityRepository
 {

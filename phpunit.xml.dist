@@ -10,6 +10,8 @@
          failOnWarning="false"
          displayDetailsOnTestsThatTriggerWarnings="true">
     <php>
+        <!-- 1.18.0: the entity-manager mode kernels (equivalence, lint:container, worker) need more than the 128M default. -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="test" force="true"/>
         <env name="GOOGLE_TRANSLATE_API_KEY" value="" force="true"/>
         <env name="DEEPL_AUTH_KEY" value="" force="true"/>

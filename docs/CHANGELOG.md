@@ -58,6 +58,61 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **The bundle never flushes the application's entity manager (REQ-ARCH-001 rule 6).** Before, with
+  `doctrine.entity_manager` unset (the default), the bundle wrote its rows through the application's default manager:
+  a text-override save (Web UI, `TranslationOverrides::set()` / `flush()`, `TranslationOverrideEditor`), the missing-log
+  "mark added" action and the `missing-log-mark-added` / `missing-log-validate` commands flushed every change the
+  application had left pending, and a failed bundle flush closed the application's manager. The bundle now writes
+  through a **private entity manager** built on the connection, configuration (mapping, metadata cache, proxies),
+  event manager and SQL filters of the manager that maps the bundle entities (`TranslationYamlToolsEntityManager`).
+  Same tables, same connection, no migration, no configuration change. Details:
+  - the private manager holds only bundle rows; a failed bundle write closes only it, and it is created again on the
+    next call; the application's manager is never flushed, cleared, closed or reset;
+  - the source manager's enabled SQL filters and their parameters are mirrored on every call (a filter whose
+    parameters changed is re-created, so no stale parameter survives);
+  - a DBAL middleware on that connection only (doctrine/dbal 4) marks the private manager stale after a rollback or a
+    savepoint rollback; a stale manager is replaced before its next use unless it still has pending work;
+  - it is dropped at every outermost unit-of-work boundary and at `kernel.reset` (see Fixed).
+  `doctrine.private_entity_manager: false` restores the pre-1.18 behaviour (deprecated, removed in 2.0).
+- Writing texts staged with `TranslationOverrideEditor::save(..., flush: false)` (or `TranslationOverrides::set(...,
+  flush: false)`) through the application's `$entityManager->flush()` is deprecated: a `postFlush` bridge still writes
+  them, right after the application's commit, and triggers a deprecation. Call `$editor->flush()`; wrap both flushes
+  in `$connection->transactional()` to commit them together. A failure of that bridge flush is logged at error level
+  and never rethrown (the application's commit is done; rethrowing from `postFlush` would leave its unit of work dirty
+  and its next flush would write its rows twice). The application manager is recognised by its unit of work, so a
+  decorated manager works too.
+- `doctrine.entity_manager` naming the application's default manager keeps the 1.17 write path (bundle flushes commit
+  its pending changes; a failed one resets it) and now triggers a build-time deprecation.
+- A boundary that discards unflushed bundle changes (private or dedicated manager) logs a warning with the count.
+- The rollback middleware goes on the connection of the manager whose mapping holds the bundle entities (found in the
+  metadata driver chains), the default manager's only when none does.
+
+### Fixed
+
+- **Bundle-owned entity managers are cleared at the unit-of-work boundaries (REQ-RUNTIME-002 rule 4).** The new
+  `EntityManagerBoundarySubscriber` drops the private manager, or clears the dedicated `doctrine.entity_manager` (and
+  recreates it by name when a failed write closed it), at the main request start and `kernel.terminate`, Messenger
+  message received / handled / failed, and the outermost console command start / terminate. It does nothing inside a
+  nested command, a command run from a request or a message, or a request handled from a command or a message, and
+  nothing when `doctrine.entity_manager` names the host's default manager (the host clears its own managers).
+  Before, override and missing-log rows loaded by the Web UI or a command stayed managed until `kernel.reset`.
+
+### Documentation
+
+- USAGE and CONFIGURATION: "Standard Symfony host" and "DDD / hexagonal host" sections; the form bridge example
+  uses `$editor->flush()`; FRANKENPHP-WORKER-AUDIT lists the new boundary subscriber and worker tests.
+
+### Tests
+
+- Equivalence of the write path with v1.17.1 (literal copies under `tests/Support/Legacy`): same reads and the same
+  override and missing-log rows through the old path, the private manager, the opt-out and a dedicated manager.
+- Private manager integration tests (host pending changes untouched on every write path, rollback / savepoint
+  staleness, failed flush, filters, nested commands, host transaction, flush bridge), a kept-alive worker test (800
+  requests, two locales, no services resetter, flat memory, host identity map never flushed), a DDD host kernel test
+  (XML-mapped domain, bundle on its own manager) and `lint:container` for every mode.
+
 ## [1.17.1] - 2026-11-12
 
 ### Fixed

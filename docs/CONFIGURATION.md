@@ -6,6 +6,9 @@
   - [Example: key command locales](#example-key-command-locales)
 - [Web UI layout and theme (REQ-UI-003)](#web-ui-layout-and-theme-req-ui-003)
   - [Form profile (FormKit)](#form-profile-formkit)
+- [Entity manager: standard and DDD hosts](#entity-manager-standard-and-ddd-hosts)
+  - [Standard Symfony host](#standard-symfony-host)
+  - [DDD / hexagonal host](#ddd--hexagonal-host)
 - [Missing translation log (database)](#missing-translation-log-database)
 - [Text overrides (database)](#text-overrides-database)
 - [Machine translator by locale](#machine-translator-by-locale)
@@ -22,6 +25,8 @@
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `doctrine.entity_manager` | `string\|null` | `null` | Since 1.17.0: a host-declared entity manager that maps the bundle entities (missing log + overrides) only; the bundle writes to, clears (1.18.0) and resets only that manager. `null`: the manager that maps the entities (the default one), written through the bundle's **private entity manager** (1.18.0). See [Entity manager: standard and DDD hosts](#entity-manager-standard-and-ddd-hosts). |
+| `doctrine.private_entity_manager` | `bool` | `true` | Since 1.18.0, **deprecated** (removed in 2.0): `false` restores the pre-1.18 behaviour (bundle writes flush the application's default manager). Ignored when `doctrine.entity_manager` is set. |
 | `default_locale` | `string\|null` | `null` | When set, used as the default **source** locale for `fill-missing`. When `null`, the bundle uses Symfony parameter **`translator.default_locale`** if defined, then **`kernel.default_locale`**, then **`en`**. On some Symfony versions (e.g. **8.x**), only **`kernel.default_locale`** may be available. |
 | `yaml_tree_indent` | `int` | `4` | Spaces per indentation level when writing nested YAML (`tree`, `sort`, `fill-missing`). Allowed range: 2–12. |
 | `yaml_tree_leaf_prefix_suffix` | `string` | `index` | Final segment appended to a conflicting leaf when using **`nowo:translation-yaml:tree --fix-leaf-prefix`** (e.g. key `a` becomes `a.index`). Single segment: `[a-zA-Z0-9_-]+`, no dots. |
@@ -76,7 +81,7 @@ Example:
 ```yaml
 nowo_translation_yaml_tools:
     doctrine:
-        entity_manager: null   # 1.17.0+: dedicated manager for the bundle entities (missing log + overrides); null = default
+        entity_manager: null   # 1.17.0+: dedicated manager for the bundle entities (missing log + overrides); null = private manager on the default one (1.18.0)
     default_locale: null
     yaml_tree_indent: 4
     yaml_tree_leaf_prefix_suffix: index
@@ -164,6 +169,78 @@ To customise the fields (CSS classes, row wrappers, per-type defaults), define
 defines that profile, the bundle does not prepend its own, so copy the keys above and change what you need. The
 form **theme** stays the host `twig.form_themes` plus `overrides.web_ui.form_themes` (edit page) — no bundle page
 hard-codes `form_theme`.
+
+## Entity manager: standard and DDD hosts
+
+The bundle owns two entities, `MissingTranslationLog` (`missing_translation_log`) and `TranslationOverride`
+(`overrides`). The host never extends or references them; it uses them through services and ports. Since 1.18.0 the
+bundle **never flushes, clears, closes or resets an entity manager of the application** (REQ-ARCH-001 rule 6), with
+two configured exceptions: the deprecated `doctrine.private_entity_manager: false` restores the pre-1.18 write path
+(bundle writes flush the default manager), and a manager named in `doctrine.entity_manager` is cleared at the
+outermost boundaries (so keep your own entities off it; never done when it is your default manager).
+
+If `doctrine.entity_manager` names **your default manager** (e.g. `default`), the 1.17 write path applies unchanged:
+bundle writes flush your pending changes and a failed one resets your default manager. The container build triggers a
+deprecation; remove the option (private manager) or name a dedicated manager.
+
+Zero config: the private manager is built on the manager whose mapping holds the bundle entities (the default one,
+unless you mapped the bundle namespace on another manager yourself), and the rollback middleware goes on that manager's
+connection only.
+
+### Standard Symfony host
+
+Zero config. The bundle prepends the mapping of its entities on the default manager (attribute mapping), so
+`doctrine:migrations:diff` creates the tables as before. Reads and writes go through a **private entity manager**
+(`TranslationYamlToolsEntityManager`) that the bundle builds on the default manager's connection, configuration
+(mapping, metadata cache, proxies), event manager and enabled SQL filters:
+
+- a bundle flush commits only bundle rows: your pending changes stay pending until **you** flush;
+- a failed bundle write closes only the private manager, which is created again on the next call;
+- same connection: a transaction you open around a bundle call (`$connection->transactional()`) includes its rows;
+- your Doctrine listeners still see the bundle's flushes (shared event manager);
+- worker mode: the private manager is dropped at every outermost unit-of-work boundary (main request start /
+  `kernel.terminate`, Messenger message received / handled / failed, outermost console command) and at
+  `kernel.reset`; after a rollback on the connection it is replaced before its next use (doctrine/dbal 4).
+
+```yaml
+nowo_translation_yaml_tools:
+    overrides:
+        enabled: true
+        editable: { messages: ['site.'] }
+    # doctrine:
+    #     private_entity_manager: false   # deprecated opt-out: pre-1.18 writes through the default manager
+```
+
+### DDD / hexagonal host
+
+Keep your domain manager free of bundle entities: declare a dedicated manager for them (on the same or another
+connection) and name it in `doctrine.entity_manager`. The bundle maps its entities there only (also removed from an
+auto-mapped manager), writes and resets only that manager, and clears it at the outermost boundaries (1.18.0; never
+when the name is your default manager). Your domain stays plain PHP with its own mapping (XML or attributes) and
+references texts by translation key, never by a bundle entity.
+
+```yaml
+doctrine:
+    orm:
+        default_entity_manager: default
+        entity_managers:
+            default:
+                connection: default
+                mappings:
+                    Domain: { type: xml, dir: '%kernel.project_dir%/config/doctrine', prefix: 'App\Domain', is_bundle: false }
+            translations:
+                connection: default          # or its own connection / schema
+
+nowo_translation_yaml_tools:
+    doctrine:
+        entity_manager: translations
+```
+
+Ports for the host: `TranslationOverrideProviderInterface` (read the override map), `TranslationOverrideEditor`
+(write texts by domain + key), `MissingTranslationRecorderInterface`, `MachineTranslatorInterface` and
+`MissingLogUiAccessCheckerInterface` (SPI). Configuration comes from the bundle config tree only. Generate the
+migration with `doctrine:migrations:diff --em=translations`. Test coverage: `tests/Integration/Ddd/DddHostKernelTest.php`
+(XML-mapped domain, bundle on its own manager) and `tests/Integration/PrivateEntityManager/` (standard host).
 
 ## Missing translation log (database)
 

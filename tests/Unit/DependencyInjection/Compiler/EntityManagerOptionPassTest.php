@@ -5,10 +5,19 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\DependencyInjection\Compiler;
 
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\EntityManagerOptionPass;
+use Nowo\TranslationYamlToolsBundle\EventSubscriber\EntityManagerBoundarySubscriber;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
+use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Reference;
+
+use function restore_error_handler;
+use function set_error_handler;
+
+use const E_USER_DEPRECATED;
 
 /**
  * Audit LD: the named entity manager must exist and map the bundle entities.
@@ -72,6 +81,56 @@ final class EntityManagerOptionPassTest extends TestCase
         (new EntityManagerOptionPass())->process($container);
 
         self::assertCount(2, $container->getDefinition('doctrine.orm.bundle_metadata_driver')->getMethodCalls());
+    }
+
+    /**
+     * 1.18.0: the dedicated manager is handed to the boundary subscriber (cleared at the outermost boundaries) as
+     * IGNORE_ON_UNINITIALIZED references; nothing when the option names the host's default manager.
+     */
+    #[IgnoreDeprecations]
+    public function testDedicatedManagerIsWiredIntoTheBoundarySubscriberUnlessItIsTheDefault(): void
+    {
+        $container = $this->container('bundle', ['default' => [], 'bundle' => [self::ENTITIES]]);
+        $container->setParameter('doctrine.default_entity_manager', 'default');
+        $container->register(EntityManagerBoundarySubscriber::class)
+            ->setArgument('$entityManagers', new IteratorArgument([]))
+            ->setArgument('$registries', new IteratorArgument([]));
+
+        (new EntityManagerOptionPass())->process($container);
+
+        $subscriber = $container->getDefinition(EntityManagerBoundarySubscriber::class);
+        $managers   = $subscriber->getArgument('$entityManagers');
+        self::assertInstanceOf(IteratorArgument::class, $managers);
+        $reference = $managers->getValues()[0];
+        self::assertInstanceOf(Reference::class, $reference);
+        self::assertSame('doctrine.orm.bundle_entity_manager', (string) $reference);
+        self::assertSame(ContainerInterface::IGNORE_ON_UNINITIALIZED_REFERENCE, $reference->getInvalidBehavior());
+        $registries = $subscriber->getArgument('$registries');
+        self::assertInstanceOf(IteratorArgument::class, $registries);
+        self::assertSame('doctrine', (string) $registries->getValues()[0]);
+
+        // The option names the host's default manager: the host clears it (REQ-RUNTIME-002 rule 7), not the bundle.
+        $container = $this->container('default', ['default' => [self::ENTITIES]]);
+        $container->setParameter('doctrine.default_entity_manager', 'default');
+        $container->register(EntityManagerBoundarySubscriber::class)->setArgument('$entityManagers', new IteratorArgument([]));
+        $deprecations = [];
+        // Test-only handler, restored in finally.
+        // @phpstan-ignore frankenphp.worker.noSetErrorExceptionHandler
+        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        }, E_USER_DEPRECATED);
+        try {
+            (new EntityManagerOptionPass())->process($container);
+        } finally {
+            restore_error_handler();
+        }
+        self::assertCount(1, $deprecations, 'Audit ND-L4: naming the host default manager is deprecated at build time.');
+        self::assertStringContainsString('names the application\'s default entity manager "default"', $deprecations[0]);
+        $managers = $container->getDefinition(EntityManagerBoundarySubscriber::class)->getArgument('$entityManagers');
+        self::assertInstanceOf(IteratorArgument::class, $managers);
+        self::assertSame([], $managers->getValues());
     }
 
     /**
