@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.17.1] - 2026-11-12](#1171---2026-11-12)
 - [[1.17.0] - 2026-11-11](#1170---2026-11-11)
 - [[1.16.0] - 2026-10-31](#1160---2026-10-31)
 - [[1.15.0] - 2026-10-30](#1150---2026-10-30)
@@ -57,6 +58,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.17.1] - 2026-11-12
+
 ### Fixed
 
 - **Worker state (REQ-RUNTIME-002 rule 1).** `TranslationOverrides` memoises the override map per unit of work, but
@@ -86,7 +89,6 @@ All notable changes to this project are documented in this file.
 ## [1.17.0] - 2026-11-11
 
 New doctrine.entity_manager maps the bundle entities on a host-declared dedicated manager only; the host default entity manager stays the default; recovery resets only the bundle's manager. See [UPGRADING](https://github.com/nowo-tech/TranslationYamlToolsBundle/blob/v1.17.0/docs/UPGRADING.md#to-1170).
-
 
 ### Fixed
 
