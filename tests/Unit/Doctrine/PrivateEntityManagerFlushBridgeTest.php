@@ -8,6 +8,7 @@ use Doctrine\ORM\Decorator\EntityManagerDecorator;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\PostFlushEventArgs;
 use Doctrine\ORM\Tools\SchemaTool;
+use Doctrine\ORM\UnitOfWork;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\Doctrine\PrivateEntityManagerFlushBridge;
 use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsEntityManager;
@@ -16,6 +17,8 @@ use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use ReflectionProperty;
+use RuntimeException;
 use Throwable;
 
 use function dirname;
@@ -92,5 +95,31 @@ final class PrivateEntityManagerFlushBridgeTest extends TestCase
         (new PrivateEntityManagerFlushBridge([$private], $logger))->postFlush(new PostFlushEventArgs($source));
 
         self::assertFalse($private->hasPendingWork(), 'The closed private manager has nothing left to write.');
+    }
+
+    /** Audit NX follow-up: a throwing pending-work inspection is logged (class only) and never escapes the host's postFlush. */
+    public function testThrowingPendingWorkInspectionIsLoggedAndSkipped(): void
+    {
+        $mapping    = ['Nowo\\TranslationYamlToolsBundle\\TextOverride\\Entity' => dirname(__DIR__, 3) . '/src/TextOverride/Entity'];
+        $doctrine   = new SqliteManagerRegistry(['default' => $mapping]);
+        $private    = new TranslationYamlToolsEntityManager($doctrine, [TranslationOverride::class]);
+        $source     = $private->source();
+        $unitOfWork = $this->createStub(UnitOfWork::class);
+        $unitOfWork->method('computeChangeSets')->willThrowException(new RuntimeException('secret value'));
+        $broken = $this->createStub(EntityManagerInterface::class);
+        $broken->method('isOpen')->willReturn(true);
+        $broken->method('getUnitOfWork')->willReturn($unitOfWork);
+        $broken->method('flush')->willThrowException(new RuntimeException('must not flush'));
+        (new ReflectionProperty(TranslationYamlToolsEntityManager::class, 'current'))->setValue($private, $broken);
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('error')->with(
+            self::stringContains('could not be inspected'),
+            ['exception_class' => RuntimeException::class],
+        );
+        (new PrivateEntityManagerFlushBridge([$private], $logger))->postFlush(new PostFlushEventArgs($source));
+
+        // Without a logger nothing is thrown either.
+        (new PrivateEntityManagerFlushBridge([$private]))->postFlush(new PostFlushEventArgs($source));
     }
 }

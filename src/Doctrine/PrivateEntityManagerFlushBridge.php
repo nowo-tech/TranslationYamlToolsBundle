@@ -56,7 +56,15 @@ final class PrivateEntityManagerFlushBridge
             $manager = $args->getObjectManager();
             // Same unit of work, not the same object: the registry may hand out a decorator of the flushed manager
             // (audit ND-L1).
-            if ($private->owns($manager) || !$private->hasPendingWork() || $manager->getUnitOfWork() !== $private->source()->getUnitOfWork()) {
+            try {
+                if ($private->owns($manager) || !$private->hasPendingWork() || $manager->getUnitOfWork() !== $private->source()->getUnitOfWork()) {
+                    continue;
+                }
+                $pending = $private->pendingCount();
+            } catch (Throwable $exception) {
+                // Never throw out of the host's postFlush (its commit is done): skip the bridge flush (audit NX follow-up, 1.18.3).
+                $this->logger?->error('Bundle rows staged with "flush: false" could not be inspected after the application flush ({exception_class}); the bridge flush is skipped.', ['exception_class' => $exception::class]);
+
                 continue;
             }
 
@@ -64,7 +72,6 @@ final class PrivateEntityManagerFlushBridge
 
             // @igor-ignore - Re-entrancy guard around one flush, always unset in finally.
             $this->flushing = true;
-            $pending        = $private->pendingCount();
             try {
                 $private->flush();
             } catch (Throwable $exception) {

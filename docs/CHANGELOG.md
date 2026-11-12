@@ -61,6 +61,11 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`PrivateEntityManagerFlushBridge::postFlush()` could throw out of the host's `postFlush`** (audit NX follow-up, Low). `hasPendingWork()` and `pendingCount()` ran unguarded after the host's commit; a throwing unit of work escaped. They are now guarded: the exception class is logged and the bridge flush is skipped.
+- **The stale check of `TranslationYamlToolsEntityManager::live()` could throw.** On any `Throwable` the manager is now treated as stale and replaced (as `reset()` drops it), logging only the exception class.
+
 ## [1.18.2] - 2026-11-12
 
 Target version: **1.18.2** (patch, no configuration change). See [UPGRADING](UPGRADING.md#to-1182).

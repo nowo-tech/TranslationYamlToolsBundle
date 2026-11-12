@@ -97,7 +97,11 @@ final class TranslationYamlToolsEntityManager extends EntityManagerDecorator imp
         if (!$current instanceof EntityManagerInterface || !$current->isOpen() || $current->getConnection() !== $source->getConnection()
             || ($this->stale && !$this->hasScheduledWork($current))) {
             if ($current instanceof EntityManagerInterface && $current->isOpen()) {
-                $current->clear();
+                try {
+                    $current->clear();
+                } catch (Throwable $exception) {
+                    $this->logger?->warning('Could not clear the replaced private entity manager of {class} ({exception_class}).', ['class' => self::class, 'exception_class' => $exception::class]);
+                }
             }
             // DoctrineBundle's ContainerAwareEventManager extends EventManager; any other implementation gets a fresh one.
             $eventManager = $source->getEventManager();
@@ -234,7 +238,14 @@ final class TranslationYamlToolsEntityManager extends EntityManagerDecorator imp
      */
     private function hasScheduledWork(EntityManagerInterface $manager): bool
     {
-        return PendingWork::count($manager) > 0;
+        try {
+            return PendingWork::count($manager) > 0;
+        } catch (Throwable $exception) {
+            // A throwing unit of work: treated as stale without work, so live() replaces the manager like reset() (audit NX follow-up, 1.18.3).
+            $this->logger?->warning('Could not inspect the pending bundle changes of a stale private manager of {class} ({exception_class}); it is replaced.', ['class' => self::class, 'exception_class' => $exception::class]);
+
+            return false;
+        }
     }
 
     /**
