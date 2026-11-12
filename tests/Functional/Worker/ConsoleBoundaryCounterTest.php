@@ -11,6 +11,7 @@ use Nowo\TranslationYamlToolsBundle\TextOverride\EventSubscriber\TranslationOver
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use stdClass;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\ConsoleEvents;
@@ -25,10 +26,13 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Controller\ArgumentResolver;
 use Symfony\Component\HttpKernel\Controller\ControllerResolver;
 use Symfony\Component\HttpKernel\HttpKernel;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Event\WorkerMessageReceivedEvent;
 use Symfony\Contracts\Service\ResetInterface;
 use Throwable;
 
 use const PHP_INT_MAX;
+use const PHP_INT_MIN;
 
 /**
  * Audit NM (1.18.1): the console bookkeeping of both boundary subscribers survives listeners that throw or stop the
@@ -49,12 +53,12 @@ final class ConsoleBoundaryCounterTest extends TestCase
     private ?int $clearsAfterNested = null;
 
     /**
-     * @return iterable<string, array{Closure(self): EventSubscriberInterface}>
+     * @return iterable<string, array{Closure(self): EventSubscriberInterface, bool}>
      */
     public static function subscribers(): iterable
     {
-        yield 'entity manager boundary' => [static fn (self $test): EventSubscriberInterface => $test->entityManagerSubscriber()];
-        yield 'text overrides memo' => [static fn (self $test): EventSubscriberInterface => $test->overridesSubscriber()];
+        yield 'entity manager boundary' => [static fn (self $test): EventSubscriberInterface => $test->entityManagerSubscriber(), true];
+        yield 'text overrides memo' => [static fn (self $test): EventSubscriberInterface => $test->overridesSubscriber(), false];
     }
 
     /**
@@ -177,6 +181,107 @@ final class ConsoleBoundaryCounterTest extends TestCase
         $this->handleRequest(function (): void {
             $this->runCommand('app:fail');
         });
+        $this->assertNextUnitsClear();
+    }
+
+    /**
+     * Audit NL2-v: a command that runs itself in-process, whose inner run fails and whose error listener throws (no
+     * terminate for the inner run): the outer run ends normally and the next units still clear.
+     *
+     * @param Closure(self): EventSubscriberInterface $factory
+     */
+    #[DataProvider('subscribers')]
+    public function testASelfRecursiveCommandWithAThrowingErrorListener(Closure $factory): void
+    {
+        $this->boot($factory);
+        $runs = 0;
+        $this->application->addCommand((new Command('app:recursive'))->setCode(function () use (&$runs): int {
+            if (++$runs > 1) {
+                throw new RuntimeException('inner run failed');
+            }
+            $throw = static function (): never {
+                throw new RuntimeException('error listener failed');
+            };
+            $this->dispatcher->addListener(ConsoleEvents::ERROR, $throw);
+            $this->runCommand('app:recursive');
+            $this->dispatcher->removeListener(ConsoleEvents::ERROR, $throw);
+
+            return Command::SUCCESS;
+        }));
+
+        $this->runCommand('app:recursive');
+        self::assertSame(2, $this->clears, 'The outer run clears at its start and at its end only.');
+        $this->assertNextUnitsClear();
+    }
+
+    /**
+     * Audit NL2-v: an error listener at PHP_INT_MIN throws (after every other one): the next units still clear.
+     *
+     * @param Closure(self): EventSubscriberInterface $factory
+     */
+    #[DataProvider('subscribers')]
+    public function testAnErrorListenerAtTheLowestPriorityThatThrows(Closure $factory): void
+    {
+        $this->boot($factory);
+        $throw = static function (): never {
+            throw new RuntimeException('error listener failed');
+        };
+        $this->dispatcher->addListener(ConsoleEvents::ERROR, $throw, PHP_INT_MIN);
+
+        $this->runCommand('app:fail');
+        $this->dispatcher->removeListener(ConsoleEvents::ERROR, $throw);
+        $this->assertNextUnitsClear();
+    }
+
+    /**
+     * Audit NL2-v: a WorkerMessageReceivedEvent listener throws inside an in-process consume command (no handled,
+     * failed or stopped event follows): the message ends with the command and the next units still clear.
+     *
+     * @param Closure(self): EventSubscriberInterface $factory
+     */
+    #[DataProvider('subscribers')]
+    public function testAThrowingReceivedListenerInsideAConsumeCommand(Closure $factory): void
+    {
+        $this->boot($factory);
+        $this->application->addCommand((new Command('app:consume'))->setCode(function (): int {
+            $throw = static function (): never {
+                throw new RuntimeException('received listener failed');
+            };
+            $this->dispatcher->addListener(WorkerMessageReceivedEvent::class, $throw);
+            try {
+                $this->dispatcher->dispatch(new WorkerMessageReceivedEvent(new Envelope(new stdClass()), 'async'));
+            } finally {
+                $this->dispatcher->removeListener(WorkerMessageReceivedEvent::class, $throw);
+            }
+
+            return Command::SUCCESS;
+        }));
+
+        $this->runCommand('app:consume');
+        $this->assertNextUnitsClear();
+    }
+
+    /**
+     * Audit NL2-v: a main request handled in-process inside another main request does not end the outer unit.
+     *
+     * @param Closure(self): EventSubscriberInterface $factory
+     */
+    #[DataProvider('subscribers')]
+    public function testANestedMainRequestDoesNotEndTheOuterUnit(Closure $factory, bool $httpGated): void
+    {
+        $this->boot($factory);
+        $inside = null;
+        $this->handleRequest(function () use (&$inside): void {
+            $nested = Request::create('/nested');
+            $nested->attributes->set('_controller', static fn (): Response => new Response('nested'));
+            $this->kernel->handle($nested);
+            $before = $this->clears;
+            $this->runCommand('app:noop');
+            $inside = $this->clears - $before;
+        });
+
+        self::assertSame(0, $inside, 'A command run after the nested request is still inside the outer request.');
+        self::assertSame($httpGated ? 2 : 3, $this->clears, 'Outer start and terminate (plus the nested start for the memo).');
         $this->assertNextUnitsClear();
     }
 

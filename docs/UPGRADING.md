@@ -77,10 +77,12 @@ From **1.18.0**:
 composer update nowo-tech/translation-yaml-tools-bundle
 ```
 
-Patch release, no configuration change, no migration. The bundle's boundary subscribers now track running console
-commands per command (audit NM), so a host `console.terminate` / `console.error` listener that throws or stops the
-propagation can no longer stop the bundle's entity manager and override memo from being cleared between requests.
-Nothing to do in host code.
+Patch release, no configuration change, no migration. The bundle's boundary subscribers now track every console run,
+Messenger message and main request at `PHP_INT_MAX` (audit NM / NL2-v), so a host `console.terminate` /
+`console.error` listener that throws or stops the propagation can no longer stop the bundle's entity manager and
+override memo from being cleared between requests. Behaviour change for an edge case only: a main request handled
+in-process inside another main request no longer clears the bundle manager (it belongs to the outer request). Nothing
+to do in host code.
 
 ## To 1.18.0
 

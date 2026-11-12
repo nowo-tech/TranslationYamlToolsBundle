@@ -61,30 +61,37 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
-- **Console boundary counter could leak in a long-lived process (audit NM, REQ-RUNTIME-002).** The two boundary
-  subscribers (`EntityManagerBoundarySubscriber`, which clears the bundle's private / dedicated entity manager, and
-  `TranslationOverridesClearSubscriber`, which drops the override map memo) counted running console commands with `++`
-  on `console.command` (priority 4096) and `--` on `console.terminate` (priority -4096). A `console.terminate` listener
-  in between that threw or stopped the propagation, or a `console.error` listener that threw (Symfony then skips
-  `console.terminate`), left the count above zero forever. In a kept-alive worker that ran a command in-process, the
-  entity manager boundary then never cleared the bundle's manager again between HTTP requests (managed text overrides
-  and missing-log rows, and unflushed changes, kept across requests), and neither subscriber cleared at the end of the
-  outermost command any more. In the other direction, a `console.command` listener above 4096 that stopped the
-  propagation skipped the `++` while the `--` still ran, so a nested command cleared the outer unit mid-run.
-  Each running command is now recorded on `console.command` and dropped on its own `console.error` /
-  `console.terminate`, all at `PHP_INT_MAX` (together with any command recorded after it); a command that was never
-  recorded changes nothing, and the end-of-command clear runs at the previous late priority only for the command that
-  started as the outermost unit. A main request and a Messenger message snapshot the running commands when they start
-  and restore them when they end, and `WorkerMessageSkipEvent` now ends the in-flight message like
-  `WorkerStoppedEvent`. Affected: 1.17.1 (overrides memo) and 1.18.0 (entity manager boundary).
+- **Console boundary counter could leak in a long-lived process (audit NM / NL2-v, REQ-RUNTIME-002).** The two
+  boundary subscribers (`EntityManagerBoundarySubscriber`, which clears the bundle's private / dedicated entity
+  manager, and `TranslationOverridesClearSubscriber`, which drops the override map memo) counted running console
+  commands with `++` on `console.command` (priority 4096) and `--` on `console.terminate` (priority -4096). A
+  `console.terminate` listener in between that threw or stopped the propagation, or a `console.error` listener that
+  threw (Symfony then skips `console.terminate`), left the count above zero forever. In a kept-alive worker that ran a
+  command in-process, the entity manager boundary then never cleared the bundle's manager again between HTTP requests
+  (managed text overrides and missing-log rows, and unflushed changes, kept across requests), and neither subscriber
+  cleared at the end of the outermost command any more. In the other direction, a `console.command` listener above
+  4096 that stopped the propagation skipped the `++` while the `--` still ran, so a nested command cleared the outer
+  unit mid-run.
+  Every unit-of-work state change now happens at `PHP_INT_MAX` (new internal `UnitOfWorkFrames`): each console run is
+  a frame keyed by its command and its input (a command that runs itself in-process is one frame per run), which saves
+  the message flag and the main-request depth when pushed and restores them when removed; `console.terminate`
+  removes only its own frame (and the frames above it), a terminate without a frame removes nothing; `console.error`
+  marks the frame, and a marked frame whose terminate never came is dropped at the next main request, received
+  message, command or worker stop; the end of a main request or a message drops the frames started inside it. Main
+  requests are counted, so a main request handled in-process inside another one no longer clears or ends the outer
+  unit. The clears keep their priorities (the end-of-command clear only for the run that started as the outermost
+  unit). `WorkerMessageSkipEvent` (dispatched by `messenger:failed:retry`) ends the in-flight message.
+  Affected: 1.17.1 (overrides memo) and 1.18.0 (entity manager boundary).
 
 ### Tests
 
 - `tests/Functional/Worker/ConsoleBoundaryCounterTest.php`: a real console `Application` and a real `HttpKernel`
-  sharing one event dispatcher, no services resetter, for both subscribers: a throwing `console.terminate` listener, a
-  throwing `console.error` listener, an unknown nested command, a nested command whose `console.command` propagation
-  is stopped above 4096, a command run by a controller that never terminates, and the unchanged outermost / main
-  request clears. `tests/Unit/EventSubscriber/ConsoleUnitStackTest.php` covers the bookkeeping.
+  sharing one event dispatcher, no services resetter, for both subscribers: a throwing `console.terminate` listener,
+  a throwing `console.error` listener (also at `PHP_INT_MIN`), a self-recursive command whose inner run fails with a
+  throwing error listener, an unknown nested command, a nested command whose `console.command` propagation is stopped
+  above 4096, a throwing `WorkerMessageReceivedEvent` listener inside an in-process consume command, a nested main
+  request, a command run by a controller that never terminates, and the unchanged outermost / main request clears.
+  The subscriber unit tests drive every boundary through a real event dispatcher (`tests/Support/BoundaryDriver.php`).
 
 ## [1.18.0] - 2026-11-12
 
