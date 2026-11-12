@@ -323,8 +323,8 @@ $form->get('intro')->setData($editor->currentTexts('messages', 'site.specialty.i
 // on submit (same transaction as your entity: one connection)
 $editor->save('messages', 'site.specialty.intro', (array) $form->get('intro')->getData(), flush: false, updatedBy: $user?->getUserIdentifier());
 $connection->transactional(static function () use ($entityManager, $editor): void {
-    $entityManager->flush(); // your entities
-    $editor->flush();        // the texts (bundle entity manager) + invalidates the cached map
+    $editor->flush();        // the texts first (bundle entity manager) + invalidates the cached map
+    $entityManager->flush(); // then your entities (nothing staged is left for the deprecated bridge)
 });
 ```
 

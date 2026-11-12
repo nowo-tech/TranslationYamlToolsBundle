@@ -91,8 +91,8 @@ Check your code for these cases:
   ```php
   $editor->save('messages', 'site.intro', $texts, flush: false);
   $connection->transactional(function () use ($entityManager, $editor): void {
-      $entityManager->flush(); // your entities
-      $editor->flush();        // the texts (+ cache invalidation)
+      $editor->flush();        // the texts first (+ cache invalidation)
+      $entityManager->flush(); // then your entities: nothing staged is left for the deprecated bridge
   });
   ```
 

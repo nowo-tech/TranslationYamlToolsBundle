@@ -174,7 +174,10 @@ hard-codes `form_theme`.
 
 The bundle owns two entities, `MissingTranslationLog` (`missing_translation_log`) and `TranslationOverride`
 (`overrides`). The host never extends or references them; it uses them through services and ports. Since 1.18.0 the
-bundle **never flushes, clears, closes or resets an entity manager of the application** (REQ-ARCH-001 rule 6).
+bundle **never flushes, clears, closes or resets an entity manager of the application** (REQ-ARCH-001 rule 6), with
+two configured exceptions: the deprecated `doctrine.private_entity_manager: false` restores the pre-1.18 write path
+(bundle writes flush the default manager), and a manager named in `doctrine.entity_manager` is cleared at the
+outermost boundaries (so keep your own entities off it; never done when it is your default manager).
 
 ### Standard Symfony host
 

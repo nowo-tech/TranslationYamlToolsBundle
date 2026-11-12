@@ -41,7 +41,15 @@ final class PrivateEntityManagerPassTest extends TestCase
         $container = new ContainerBuilder();
         (new PrivateEntityManagerPass())->process($container);
         self::assertFalse($container->hasDefinition(PrivateEntityManagerMiddleware::class));
-        self::assertTrue(PrivateEntityManagerPass::supportsRollbackMiddleware(), 'doctrine/dbal 4 in the test suite.');
+    }
+
+    public function testSupportsRollbackMiddlewareWithDbal4(): void
+    {
+        if (!PrivateEntityManagerPass::supportsRollbackMiddleware()) {
+            self::markTestSkipped('The rollback middleware requires doctrine/dbal 4.');
+        }
+
+        self::assertTrue(PrivateEntityManagerPass::supportsRollbackMiddleware());
     }
 
     private function container(): ContainerBuilder

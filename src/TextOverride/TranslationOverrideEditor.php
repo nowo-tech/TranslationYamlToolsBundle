@@ -26,7 +26,8 @@ use function trim;
  *
  * Since 1.18.0 the texts are written through the bundle's own entity manager (REQ-ARCH-001 rule 6), never through the
  * application's: call {@see self::flush()} (or save with `flush: true`). To commit the host entity and the texts
- * together, wrap `$entityManager->flush()` and `$editor->flush()` in `$connection->transactional()` (same connection).
+ * together, call `$editor->flush()` then `$entityManager->flush()` inside `$connection->transactional()` (same
+ * connection; texts first, so the deprecated bridge below has nothing left to write).
  * Relying on the application's `$entityManager->flush()` to write staged texts is deprecated (a postFlush bridge still
  * does it in 1.x, with a deprecation).
  *
