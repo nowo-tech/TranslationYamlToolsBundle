@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.18.1](#to-1181)
 - [To 1.18.0](#to-1180)
 - [To 1.17.1](#to-1171)
 - [To 1.17.0](#to-1170)
@@ -67,6 +68,19 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.18.1
+
+From **1.18.0**:
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
+
+Patch release, no configuration change, no migration. The bundle's boundary subscribers now track running console
+commands per command (audit NM), so a host `console.terminate` / `console.error` listener that throws or stops the
+propagation can no longer stop the bundle's entity manager and override memo from being cleared between requests.
+Nothing to do in host code.
 
 ## To 1.18.0
 

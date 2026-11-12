@@ -7,6 +7,7 @@
 | Audit date | 2026-09-25; overrides and private manager 2026-11-12 |
 | Method | Manual review of every PHP file under `src/` (translator decorator, missing-log recorder, repository, Messenger handler, listeners, Web UI controller, subscriber, Twig extension, machine translators, CLI commands and services, DI extension, compiler passes, `Resources/config/*.yaml`) |
 | **Verdict** | ✅ **Viable under scenario B** — the request buffer is emptied on every flush, persistence errors in `kernel.terminate` are logged instead of ending the worker loop, Web UI re-hydrates rows / recovers a closed EntityManager, and DBAL clears detach managed log entities without `kernel.reset` |
+| Remediation (2026-11-12, 1.18.1) | Audit NM: the console depth counter of `EntityManagerBoundarySubscriber` and `TranslationOverridesClearSubscriber` could leak when a `console.terminate` / `console.error` listener threw or stopped the propagation, after which the bundle manager was never cleared between HTTP requests. Commands are now tracked per command at `PHP_INT_MAX` (`ConsoleUnitStack`), healed at the end of the enclosing request / message. Test: `tests/Functional/Worker/ConsoleBoundaryCounterTest.php` |
 | Remediation (2026-11-12, 1.17.1) | W-04 resolved: the override map memo is dropped at the request, Messenger and console boundaries by `TranslationOverridesClearSubscriber`, without relying on `kernel.reset`. Worker test: `tests/Functional/Worker/WorkerBoundariesTest.php` |
 | Remediation (2026-09-23→25) | W-01 and W-02 resolved; W-03 flush moved to terminate priority `-1024`; post-delete detach for managed logs (`src/Repository/MissingTranslationLogRepository.php`, `src/MissingTranslationLog/DoctrineMissingTranslationRecorder.php`, `src/Resources/config/services_missing_translation.yaml`). Regression tests: consecutive requests on the same recorder without `reset()` and DBAL writes between reads without `clear()` (`tests/Unit/MissingTranslationLog/DoctrineMissingTranslationRecorderTest.php`, `tests/Unit/Repository/MissingTranslationLogRepositoryTest.php`) |
 
@@ -42,7 +43,7 @@ Most of the bundle (YAML tree/sort/flatten/audit/fill-missing commands, `Service
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Mutable state in shared services | ✅ | `DoctrineMissingTranslationRecorder::$buffer` (cleared on terminate and on reset), `TranslationOverrides::$map` (dropped at every request / Messenger / console boundary by `TranslationOverridesClearSubscriber`, and on reset; W-04), `TranslationOverridesClearSubscriber::$consoleDepth` / `$messageInFlight` (nesting counter and in-flight flag, no request data) and `ThrottledMachineTranslator::$lastCallAt` (CLI only) |
+| Mutable state in shared services | ✅ | `DoctrineMissingTranslationRecorder::$buffer` (cleared on terminate and on reset), `TranslationOverrides::$map` (dropped at every request / Messenger / console boundary by `TranslationOverridesClearSubscriber`, and on reset; W-04), `TranslationOverridesClearSubscriber` running commands (`ConsoleUnitStack`, 1.18.1) / `$messageInFlight` (command objects and in-flight flag, no request data) and `ThrottledMachineTranslator::$lastCallAt` (CLI only) |
 | Static properties / `static` locals | ✅ | `TranslationCallSiteResolver` has only pure static methods; no static properties |
 | `ResetInterface` / `kernel.reset` coverage | ✅ | `DoctrineMissingTranslationRecorder` and `TranslationOverrides` implement `ResetInterface`; `reset()` clears their mutable property and is tested directly (`DoctrineMissingTranslationRecorderTest`, `TranslationOverridesTest::testResetDropsTheMemoSoAnotherWorkersEditIsSeen`). Neither relies on it alone |
 | Request / user / locale captured in services | ✅ | `RequestStack::getCurrentRequest()`, token storage and translator locale are read per call |
@@ -71,12 +72,12 @@ Most of the bundle (YAML tree/sort/flatten/audit/fill-missing commands, `Service
 | `Twig\MissingTranslationLogExtension` | yes | none; fixed config globals | ✅ | ✅ |
 | `TextOverride\OverridingTranslator` (decorates `translator`) | yes | none; reads `TranslationOverrides` through a service closure per call | ✅ | ✅ |
 | `TextOverride\TranslationOverrides` | yes | `$map` (override map memo) | ✅ reset | ✅ since 1.17.1, dropped at every boundary (W-04) |
-| `TextOverride\EventSubscriber\TranslationOverridesClearSubscriber` | yes | `$consoleDepth`, `$messageInFlight` (no request data) | ✅ | ✅ |
+| `TextOverride\EventSubscriber\TranslationOverridesClearSubscriber` | yes | running commands (`ConsoleUnitStack`, 1.18.1) and their request / message snapshots, `$messageInFlight` (no request data) | ✅ | ✅ |
 | `TextOverride\Repository\TranslationOverrideRepository`, `TranslationOverrideEditor`, Web UI controller | yes | none; manager resolved per call, closed manager reset by name | ✅ | ✅ |
 | `Doctrine\TranslationYamlToolsEntityManager` (1.18.0, private manager, zero config) | yes | `$current` (the bundle's own unit of work), `$stale` | ✅ reset | ✅ dropped at every outermost boundary (W-05); replaced when closed, on another connection, or stale after a rollback without pending work |
 | `Doctrine\TranslationYamlToolsManagerRegistry`, `PrivateEntityManagerMiddleware` / `Driver` / `Connection` | yes | none (`readonly`); the connection wrapper only reports rollbacks | ✅ | ✅ |
 | `Doctrine\PrivateEntityManagerFlushBridge` (deprecated bridge) | yes | `$flushing` re-entrancy guard, unset in `finally` | ✅ | ✅ |
-| `EventSubscriber\EntityManagerBoundarySubscriber` (1.18.0) | yes | `$consoleDepth`, `$messageInFlight`, `$requestInFlight` (no request data) | ✅ | ✅ |
+| `EventSubscriber\EntityManagerBoundarySubscriber` (1.18.0) | yes | running commands (`ConsoleUnitStack`, 1.18.1) and their request / message snapshots, `$messageInFlight`, `$requestInFlight` (no request data) | ✅ | ✅ |
 | 7 console commands (+ abstract base), 7 `Service\*` classes, 7 `MachineTranslation\*` classes | yes | none, except `ThrottledMachineTranslator::$lastCallAt` | ✅ N/A (CLI) | ✅ N/A (CLI) |
 
 The entity (`Entity\MissingTranslationLog`), buffer message/event and `MissingTranslationRecordContext` are created per call and never stored in a service.

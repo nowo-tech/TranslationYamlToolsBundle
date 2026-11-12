@@ -12,7 +12,12 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use stdClass;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\ConsoleEvents;
+use Symfony\Component\Console\Event\ConsoleCommandEvent;
+use Symfony\Component\Console\Event\ConsoleTerminateEvent;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -23,6 +28,11 @@ use Symfony\Component\Messenger\Event\WorkerMessageHandledEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageReceivedEvent;
 use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
 use Symfony\Contracts\Service\ResetInterface;
+
+use function array_pop;
+use function count;
+
+use const PHP_INT_MAX;
 
 #[CoversClass(EntityManagerBoundarySubscriber::class)]
 final class EntityManagerBoundarySubscriberTest extends TestCase
@@ -40,8 +50,10 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
         self::assertSame(['onMessageFinished', -4096], $events[WorkerMessageHandledEvent::class]);
         self::assertSame(['onMessageFinished', -4096], $events[WorkerMessageFailedEvent::class]);
         self::assertSame(['onWorkerStopped', -4096], $events[WorkerStoppedEvent::class]);
-        self::assertSame(['onConsoleCommand', 4096], $events[ConsoleEvents::COMMAND]);
-        self::assertSame(['onConsoleTerminate', -4096], $events[ConsoleEvents::TERMINATE]);
+        self::assertSame(['onConsoleCommand', PHP_INT_MAX], $events[ConsoleEvents::COMMAND]);
+        self::assertSame(['onConsoleError', PHP_INT_MAX], $events[ConsoleEvents::ERROR]);
+        self::assertSame([['onConsoleCommandEnded', PHP_INT_MAX], ['onConsoleTerminate', -4096]], $events[ConsoleEvents::TERMINATE]);
+        self::assertSame(['onWorkerStopped', -4096], $events['Symfony\\Component\\Messenger\\Event\\WorkerMessageSkipEvent']);
     }
 
     public function testWithoutABundleManagerNothingIsTouched(): void
@@ -77,16 +89,16 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
 
         $subscriber->onRequest($this->request(HttpKernelInterface::MAIN_REQUEST));
         self::assertSame(1, $this->clears);
-        $subscriber->onConsoleCommand();
-        $subscriber->onConsoleTerminate();
+        $this->commandStarts($subscriber);
+        $this->commandEnds($subscriber);
         self::assertSame(1, $this->clears, 'A command run from a controller must not clear the request.');
         // A sub-request's finish does not end the main request.
         $subscriber->onFinishRequest($this->finish(HttpKernelInterface::SUB_REQUEST));
-        $subscriber->onConsoleCommand();
-        $subscriber->onConsoleTerminate();
+        $this->commandStarts($subscriber);
+        $this->commandEnds($subscriber);
         self::assertSame(1, $this->clears);
         $subscriber->onFinishRequest($this->finish(HttpKernelInterface::MAIN_REQUEST));
-        $subscriber->onConsoleCommand();
+        $this->commandStarts($subscriber);
         self::assertSame(2, $this->clears);
     }
 
@@ -97,13 +109,13 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
     {
         $subscriber = $this->subscriber();
 
-        $subscriber->onConsoleCommand();
+        $this->commandStarts($subscriber);
         self::assertSame(1, $this->clears);
         $subscriber->onRequest($this->request(HttpKernelInterface::MAIN_REQUEST));
         $subscriber->onFinishRequest($this->finish(HttpKernelInterface::MAIN_REQUEST));
         $subscriber->onTerminate();
         self::assertSame(1, $this->clears, 'A request handled inside a command must not clear it.');
-        $subscriber->onConsoleTerminate();
+        $this->commandEnds($subscriber);
         self::assertSame(2, $this->clears);
 
         $subscriber->onMessageReceived();
@@ -120,19 +132,19 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
     {
         $subscriber = $this->subscriber();
 
-        $subscriber->onConsoleCommand();
+        $this->commandStarts($subscriber);
         self::assertSame(1, $this->clears);
-        $subscriber->onConsoleCommand();
-        $subscriber->onConsoleTerminate();
+        $this->commandStarts($subscriber);
+        $this->commandEnds($subscriber);
         self::assertSame(1, $this->clears, 'A nested command must not clear the outer command.');
-        $subscriber->onConsoleTerminate();
+        $this->commandEnds($subscriber);
         self::assertSame(2, $this->clears);
 
-        // A stray terminate never drives the depth below zero.
-        $subscriber->onConsoleTerminate();
+        // A terminate of a command that never started changes nothing (audit NM: never a blind decrement).
+        $this->commandEnds($subscriber);
+        self::assertSame(2, $this->clears);
+        $this->commandStarts($subscriber);
         self::assertSame(3, $this->clears);
-        $subscriber->onConsoleCommand();
-        self::assertSame(4, $this->clears);
     }
 
     public function testCommandsInsideAMessageDoNotClear(): void
@@ -141,8 +153,8 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
 
         $subscriber->onMessageReceived();
         self::assertSame(1, $this->clears);
-        $subscriber->onConsoleCommand();
-        $subscriber->onConsoleTerminate();
+        $this->commandStarts($subscriber);
+        $this->commandEnds($subscriber);
         self::assertSame(1, $this->clears, 'A command run from a handler must not clear the message.');
         $subscriber->onMessageFinished();
         self::assertSame(2, $this->clears);
@@ -151,7 +163,7 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
         $subscriber->onMessageReceived();
         $subscriber->onWorkerStopped();
         self::assertSame(3, $this->clears);
-        $subscriber->onConsoleCommand();
+        $this->commandStarts($subscriber);
         self::assertSame(4, $this->clears);
     }
 
@@ -207,7 +219,7 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
 
         $subscriber = new EntityManagerBoundarySubscriber([$private]);
         $subscriber->onMessageReceived();
-        $subscriber->onConsoleCommand();
+        $this->commandStarts($subscriber);
         $subscriber->onMessageFinished();
     }
 
@@ -221,6 +233,34 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
         return new FinishRequestEvent($this->createStub(HttpKernelInterface::class), new Request(), $type);
     }
 
+    /**
+     * Audit NM: a command run by a message handler whose console.terminate never ran is dropped when the message ends
+     * (handled, skipped or worker stopped), so the next outermost command still clears.
+     */
+    public function testAMessageDropsACommandThatNeverTerminated(): void
+    {
+        $subscriber = $this->subscriber();
+
+        $subscriber->onMessageReceived();
+        $this->commandStarts($subscriber);
+        $this->running = [];
+        $subscriber->onMessageFinished();
+        self::assertSame(2, $this->clears);
+        $this->commandStarts($subscriber);
+        self::assertSame(3, $this->clears, 'The next outermost command clears again.');
+        $this->commandEnds($subscriber);
+        self::assertSame(4, $this->clears);
+
+        $subscriber->onMessageReceived();
+        $this->commandStarts($subscriber);
+        $this->running = [];
+        $subscriber->onWorkerStopped();
+        $subscriber->onWorkerStopped();
+        self::assertSame(5, $this->clears);
+        $this->commandStarts($subscriber);
+        self::assertSame(6, $this->clears);
+    }
+
     private function subscriber(): EntityManagerBoundarySubscriber
     {
         $this->clears = 0;
@@ -231,5 +271,24 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
         });
 
         return new EntityManagerBoundarySubscriber([], [$manager], [], 'translations');
+    }
+
+    /** @var list<Command> */
+    private array $running = [];
+
+    private function commandStarts(EntityManagerBoundarySubscriber $subscriber): void
+    {
+        $command         = new Command('test:command-' . count($this->running));
+        $this->running[] = $command;
+        $subscriber->onConsoleCommand(new ConsoleCommandEvent($command, new ArrayInput([]), new NullOutput()));
+    }
+
+    /** Ends the innermost running command (an unknown one when none runs), as Symfony dispatches it. */
+    private function commandEnds(EntityManagerBoundarySubscriber $subscriber): void
+    {
+        $command = array_pop($this->running) ?? new Command('test:unknown');
+        $event   = new ConsoleTerminateEvent($command, new ArrayInput([]), new NullOutput(), 0);
+        $subscriber->onConsoleCommandEnded($event);
+        $subscriber->onConsoleTerminate($event);
     }
 }

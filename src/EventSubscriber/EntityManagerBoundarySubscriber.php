@@ -9,13 +9,17 @@ use Doctrine\Persistence\ManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\Doctrine\PendingWork;
 use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsEntityManager;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Event\ConsoleCommandEvent;
+use Symfony\Component\Console\Event\ConsoleErrorEvent;
+use Symfony\Component\Console\Event\ConsoleTerminateEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Contracts\Service\ResetInterface;
 
-use function max;
+use const PHP_INT_MAX;
 
 /**
  * Clears the bundle's own entity manager at every OUTERMOST unit-of-work boundary (1.18.0, REQ-RUNTIME-002 rule 4), so
@@ -37,12 +41,18 @@ use function max;
  *   the unit that runs it). Sub-requests (fragments, ESI) share their main request's unit of work. The terminate
  *   listener runs after the missing-log flush (priority -1024);
  * - Messenger: when a message is received (priority 4096) and after it is handled or failed (priority -4096);
+ *   a skipped message (`WorkerMessageSkipEvent`) or a stopped worker ends the in-flight message without clearing;
  * - console: when the OUTERMOST command starts and terminates, only outside a Messenger message and outside a main
  *   request. A command run in-process from another command, a message handler or a controller
  *   (`Application::doRun()`) does not clear the outer unit's manager.
  *
- * State: a console depth counter; a message flag set on received and unset on handled / failed / worker stopped; a
- * request flag set on the main `kernel.request` and unset on its `kernel.finish_request`.
+ * State: the running console commands ({@see ConsoleUnitStack}, 1.18.1 audit NM: recorded on `console.command` and
+ * dropped on their own `console.terminate`, both at PHP_INT_MAX, so a terminate listener that throws or stops the
+ * propagation, or a `console.error` listener that throws, can no longer leave a command "running" forever and stop
+ * every later HTTP clear); a message flag set on received and unset on handled / failed / skipped / worker stopped; a
+ * request flag set on the main `kernel.request` and unset on its `kernel.finish_request`. A main request and a
+ * Messenger message snapshot the running commands when they start and restore them when they end, which drops a
+ * command run inside them whose `console.terminate` never ran.
  *
  * The managers, resettables and the registry arrive as iterators of IGNORE_ON_UNINITIALIZED_REFERENCE references, so
  * a boundary only touches a manager the unit of work already built and never builds one itself. The Messenger events
@@ -57,16 +67,32 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
     public const MESSENGER_WORKER_MESSAGE_HANDLED  = 'Symfony\Component\Messenger\Event\WorkerMessageHandledEvent';
     public const MESSENGER_WORKER_MESSAGE_FAILED   = 'Symfony\Component\Messenger\Event\WorkerMessageFailedEvent';
     public const MESSENGER_WORKER_STOPPED          = 'Symfony\Component\Messenger\Event\WorkerStoppedEvent';
+    public const MESSENGER_WORKER_MESSAGE_SKIPPED  = 'Symfony\Component\Messenger\Event\WorkerMessageSkipEvent';
 
     /** Console event names (ConsoleEvents::COMMAND / TERMINATE). */
     public const CONSOLE_COMMAND   = 'console.command';
     public const CONSOLE_TERMINATE = 'console.terminate';
+    public const CONSOLE_ERROR     = 'console.error';
 
     /**
-     * Console commands currently running in this process (nested in-process runs count). Process-lifetime counter,
+     * Console commands currently running in this process (nested in-process runs count). Process-lifetime state,
      * bounded by the nesting depth; intentionally not reset by `kernel.reset`.
      */
-    private int $consoleDepth = 0;
+    private readonly ConsoleUnitStack $commands;
+
+    /**
+     * Running commands when the current main request started, restored when it ends.
+     *
+     * @var list<array{Command, bool}>|null
+     */
+    private ?array $requestCommands = null;
+
+    /**
+     * Running commands when the current Messenger message was received, restored when it ends.
+     *
+     * @var list<array{Command, bool}>|null
+     */
+    private ?array $messageCommands = null;
 
     /** A Messenger message is being handled (between received and handled / failed / worker stopped). */
     private bool $messageInFlight = false;
@@ -88,10 +114,11 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
         private readonly ?string $managerName = null,
         private readonly ?LoggerInterface $logger = null,
     ) {
+        $this->commands = new ConsoleUnitStack();
     }
 
     /**
-     * @return array<string, array{0: string, 1: int}>
+     * @return array<string, array{0: string, 1: int}|list<array{0: string, 1: int}>>
      */
     public static function getSubscribedEvents(): array
     {
@@ -103,8 +130,10 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
             self::MESSENGER_WORKER_MESSAGE_HANDLED  => ['onMessageFinished', -4096],
             self::MESSENGER_WORKER_MESSAGE_FAILED   => ['onMessageFinished', -4096],
             self::MESSENGER_WORKER_STOPPED          => ['onWorkerStopped', -4096],
-            self::CONSOLE_COMMAND                   => ['onConsoleCommand', 4096],
-            self::CONSOLE_TERMINATE                 => ['onConsoleTerminate', -4096],
+            self::MESSENGER_WORKER_MESSAGE_SKIPPED  => ['onWorkerStopped', -4096],
+            self::CONSOLE_COMMAND                   => ['onConsoleCommand', PHP_INT_MAX],
+            self::CONSOLE_TERMINATE                 => [['onConsoleCommandEnded', PHP_INT_MAX], ['onConsoleTerminate', -4096]],
+            self::CONSOLE_ERROR                     => ['onConsoleError', PHP_INT_MAX],
         ];
     }
 
@@ -117,9 +146,11 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
             return;
         }
 
-        $outermost = $this->consoleDepth === 0 && !$this->messageInFlight;
+        $outermost = $this->commands->depth() === 0 && !$this->messageInFlight;
         // @igor-ignore - Unit-of-work flag, set and unset at the main request boundaries.
         $this->requestInFlight = true;
+        // @igor-ignore - Console bookkeeping snapshot of the request boundary (command objects only).
+        $this->requestCommands = $this->commands->snapshot();
         if ($outermost) {
             $this->clearState();
         }
@@ -130,6 +161,9 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
         if ($event->isMainRequest()) {
             // @igor-ignore - Unit-of-work flag, set and unset at the main request boundaries.
             $this->requestInFlight = false;
+            if ($this->requestCommands !== null) {
+                $this->commands->restore($this->requestCommands);
+            }
         }
     }
 
@@ -138,7 +172,13 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
      */
     public function onTerminate(): void
     {
-        if ($this->consoleDepth === 0 && !$this->messageInFlight) {
+        if ($this->requestCommands !== null) {
+            $this->commands->restore($this->requestCommands);
+            // @igor-ignore - Console bookkeeping snapshot of the request boundary (command objects only).
+            $this->requestCommands = null;
+        }
+
+        if ($this->commands->depth() === 0 && !$this->messageInFlight) {
             $this->clearState();
         }
     }
@@ -150,6 +190,8 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
     {
         // @igor-ignore - Unit-of-work flag, set and unset at the Messenger boundaries.
         $this->messageInFlight = true;
+        // @igor-ignore - Console bookkeeping snapshot of the message boundary (command objects only).
+        $this->messageCommands = $this->commands->snapshot();
         $this->clearState();
     }
 
@@ -158,40 +200,56 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
      */
     public function onMessageFinished(): void
     {
-        // @igor-ignore - Unit-of-work flag, set and unset at the Messenger boundaries.
-        $this->messageInFlight = false;
+        $this->endMessage();
         $this->clearState();
     }
 
     /**
-     * The worker stopped (possibly after a skipped message): no message is in flight any more.
+     * A received message was skipped, or the worker stopped: no message is in flight any more.
      */
     public function onWorkerStopped(): void
     {
-        // @igor-ignore - Unit-of-work flag, set and unset at the Messenger boundaries.
-        $this->messageInFlight = false;
+        $this->endMessage();
     }
 
     /**
-     * Start of a command: clears only for the outermost command outside a message and a main request.
+     * Start of a command (PHP_INT_MAX): records it; clears only for the outermost command outside a message and a main
+     * request.
      */
-    public function onConsoleCommand(): void
+    public function onConsoleCommand(ConsoleCommandEvent $event): void
     {
-        if ($this->isOutermostUnit()) {
+        $outermost = $this->isOutermostUnit();
+        $this->commands->start($event->getCommand(), $outermost);
+        if ($outermost) {
             $this->clearState();
         }
-        // @igor-ignore - Nesting counter of the running commands (no request data).
-        ++$this->consoleDepth;
     }
 
     /**
-     * End of a command: clears only for the outermost command outside a message and a main request.
+     * End of a command (PHP_INT_MAX, before any listener that could throw or stop the propagation): drops it from the
+     * running commands; a command that was never recorded changes nothing.
      */
-    public function onConsoleTerminate(): void
+    public function onConsoleCommandEnded(ConsoleTerminateEvent $event): void
     {
-        // @igor-ignore - Nesting counter of the running commands (no request data).
-        $this->consoleDepth = max(0, $this->consoleDepth - 1);
-        if ($this->isOutermostUnit()) {
+        $this->commands->end($event->getCommand());
+    }
+
+    /**
+     * A command failed (PHP_INT_MAX): its run is over, so it is dropped from the running commands before any error
+     * listener can throw (Symfony then skips `console.terminate`). Only a recorded command counts; an error without a
+     * command (e.g. a command that was not found) changes nothing.
+     */
+    public function onConsoleError(ConsoleErrorEvent $event): void
+    {
+        $this->commands->end($event->getCommand());
+    }
+
+    /**
+     * End of a command (late): clears only when the command that ended started as the outermost unit.
+     */
+    public function onConsoleTerminate(ConsoleTerminateEvent $event): void
+    {
+        if ($this->commands->endsOutermostUnit($event->getCommand())) {
             $this->clearState();
         }
     }
@@ -226,8 +284,19 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
         }
     }
 
+    private function endMessage(): void
+    {
+        // @igor-ignore - Unit-of-work flag, set and unset at the Messenger boundaries.
+        $this->messageInFlight = false;
+        if ($this->messageCommands !== null) {
+            $this->commands->restore($this->messageCommands);
+            // @igor-ignore - Console bookkeeping snapshot of the message boundary (command objects only).
+            $this->messageCommands = null;
+        }
+    }
+
     private function isOutermostUnit(): bool
     {
-        return $this->consoleDepth === 0 && !$this->messageInFlight && !$this->requestInFlight;
+        return $this->commands->depth() === 0 && !$this->messageInFlight && !$this->requestInFlight;
     }
 }
