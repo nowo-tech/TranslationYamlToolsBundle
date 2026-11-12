@@ -21,11 +21,14 @@ return RectorConfig::configure()
     ->withSkip([
         __DIR__ . '/vendor',
         __DIR__ . '/tests/Fixtures',
+        // Literal copies of the v1.17.1 write path (equivalence tests): never rewritten.
+        __DIR__ . '/tests/Support/Legacy',
         __DIR__ . '/demo',
         // Subscribers wired explicitly in the bundle's service config (the worker-state subscriber gets an iterator of
         // IGNORE_ON_UNINITIALIZED references and subscribes optional Messenger events by name).
         EventSubscriberToAttributeRector::class => [
             __DIR__ . '/src/EventSubscriber/MissingLogUiAccessSubscriber.php',
             __DIR__ . '/src/TextOverride/EventSubscriber/TranslationOverridesClearSubscriber.php',
+            __DIR__ . '/src/EventSubscriber/EntityManagerBoundarySubscriber.php',
         ],
     ]);

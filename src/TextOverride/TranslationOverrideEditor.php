@@ -22,7 +22,13 @@ use function trim;
  *     $form->get('title')->setData($editor->currentTexts('messages', 'site.page.title'));
  *     // on submit:
  *     $editor->save('messages', 'site.page.title', $form->get('title')->getData(), flush: false);
- *     $entityManager->flush(); $overrides->invalidate(); // or $editor->flush()
+ *     $editor->flush(); // writes the staged texts and invalidates the cached map
+ *
+ * Since 1.18.0 the texts are written through the bundle's own entity manager (REQ-ARCH-001 rule 6), never through the
+ * application's: call {@see self::flush()} (or save with `flush: true`). To commit the host entity and the texts
+ * together, wrap `$entityManager->flush()` and `$editor->flush()` in `$connection->transactional()` (same connection).
+ * Relying on the application's `$entityManager->flush()` to write staged texts is deprecated (a postFlush bridge still
+ * does it in 1.x, with a deprecation).
  *
  * Text equal to the shipped catalogue text (after trimming / sanitizing) or blank removes the
  * override, so untouched locales never create rows. A text must keep exactly the placeholders of the shipped text
