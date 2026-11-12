@@ -38,6 +38,9 @@ use function count;
  * The console verdict ("did this run start as the outermost unit?") is kept per event object (`WeakMap`), so the
  * subscriber's late listeners read the value computed when the run started, whatever ran in between.
  *
+ * Every handler first drops the failing frames (restoring the state they saved) and only then writes its own flag or
+ * counter, so a restored frame never overwrites the state the handler just wrote (audit NL2-v2).
+ *
  * Process-lifetime state, bounded by the nesting depth; it holds no request data and is deliberately not reset by
  * `kernel.reset` (it describes the units still running).
  *
@@ -79,6 +82,7 @@ final class UnitOfWorkFrames
      */
     public function requestFinished(): void
     {
+        $this->dropFailingFrames();
         if ($this->requests > 0) {
             // @igor-ignore - Unit-of-work counter of the main requests in flight (no request data).
             --$this->requests;
@@ -115,6 +119,7 @@ final class UnitOfWorkFrames
      */
     public function messageFinished(): void
     {
+        $this->dropFailingFrames();
         // @igor-ignore - Unit-of-work flag, set and unset at the Messenger boundaries.
         $this->messageInFlight = false;
         // Runs started inside the message that never terminated end with it.
@@ -131,7 +136,6 @@ final class UnitOfWorkFrames
     public function workerStopped(): void
     {
         $this->messageFinished();
-        $this->dropFailingFrames();
     }
 
     /**

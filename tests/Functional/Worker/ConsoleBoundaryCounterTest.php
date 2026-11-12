@@ -10,6 +10,7 @@ use Nowo\TranslationYamlToolsBundle\EventSubscriber\EntityManagerBoundarySubscri
 use Nowo\TranslationYamlToolsBundle\TextOverride\EventSubscriber\TranslationOverridesClearSubscriber;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use RuntimeException;
 use stdClass;
 use Symfony\Component\Console\Application;
@@ -27,7 +28,10 @@ use Symfony\Component\HttpKernel\Controller\ArgumentResolver;
 use Symfony\Component\HttpKernel\Controller\ControllerResolver;
 use Symfony\Component\HttpKernel\HttpKernel;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageReceivedEvent;
+use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
+use Symfony\Component\Messenger\Worker;
 use Symfony\Contracts\Service\ResetInterface;
 use Throwable;
 
@@ -282,6 +286,30 @@ final class ConsoleBoundaryCounterTest extends TestCase
 
         self::assertSame(0, $inside, 'A command run after the nested request is still inside the outer request.');
         self::assertSame($httpGated ? 2 : 3, $this->clears, 'Outer start and terminate (plus the nested start for the memo).');
+        $this->assertNextUnitsClear();
+    }
+
+    /**
+     * Audit NL2-v2: a message handler runs an in-process command that fails with a throwing console.error listener (no
+     * terminate), the message fails, the worker stops: no message stays in flight and the next units still clear.
+     *
+     * @param Closure(self): EventSubscriberInterface $factory
+     */
+    #[DataProvider('subscribers')]
+    public function testAFailedCommandInsideAFailedMessageThenAStoppedWorker(Closure $factory): void
+    {
+        $this->boot($factory);
+        $throw = static function (): never {
+            throw new RuntimeException('error listener failed');
+        };
+        $envelope = new Envelope(new stdClass());
+
+        $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($envelope, 'async'));
+        $this->dispatcher->addListener(ConsoleEvents::ERROR, $throw);
+        $this->runCommand('app:fail');
+        $this->dispatcher->removeListener(ConsoleEvents::ERROR, $throw);
+        $this->dispatcher->dispatch(new WorkerMessageFailedEvent($envelope, 'async', new RuntimeException('handler failed')));
+        $this->dispatcher->dispatch(new WorkerStoppedEvent((new ReflectionClass(Worker::class))->newInstanceWithoutConstructor()));
         $this->assertNextUnitsClear();
     }
 
