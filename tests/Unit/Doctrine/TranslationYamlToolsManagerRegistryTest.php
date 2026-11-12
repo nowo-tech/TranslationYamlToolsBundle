@@ -165,6 +165,42 @@ final class TranslationYamlToolsManagerRegistryTest extends TestCase
         self::assertNotSame($broken, $private->live(), 'The next use gets a fresh manager.');
     }
 
+    /**
+     * Audit NX follow-up: the stale check of live() can throw; the manager is treated as stale and replaced (a clear()
+     * that throws too is logged), never rethrown.
+     */
+    public function testLiveReplacesAManagerWhoseStaleCheckThrows(): void
+    {
+        $doctrine = new SqliteManagerRegistry(['default' => ['Nowo\\TranslationYamlToolsBundle\\TextOverride\\Entity' => dirname(__DIR__, 3) . '/src/TextOverride/Entity']]);
+        $broken   = $this->brokenManager($doctrine);
+        $logger   = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::exactly(2))->method('warning');
+        $private = new TranslationYamlToolsEntityManager($doctrine, [TranslationOverride::class], $logger);
+        (new ReflectionProperty(TranslationYamlToolsEntityManager::class, 'current'))->setValue($private, $broken);
+        $private->connectionRolledBack();
+
+        $fresh = $private->live();
+
+        self::assertNotSame($broken, $fresh);
+        self::assertTrue($fresh->isOpen());
+        self::assertFalse($private->isStale());
+    }
+
+    private function brokenManager(SqliteManagerRegistry $doctrine): EntityManagerInterface
+    {
+        $source = $doctrine->getManager();
+        self::assertInstanceOf(EntityManagerInterface::class, $source);
+        $unitOfWork = $this->createStub(UnitOfWork::class);
+        $unitOfWork->method('computeChangeSets')->willThrowException(new RuntimeException('secret value'));
+        $broken = $this->createStub(EntityManagerInterface::class);
+        $broken->method('isOpen')->willReturn(true);
+        $broken->method('getConnection')->willReturn($source->getConnection());
+        $broken->method('getUnitOfWork')->willReturn($unitOfWork);
+        $broken->method('clear')->willThrowException(new RuntimeException('secret value'));
+
+        return $broken;
+    }
+
     public function testUnknownPropertyAndMissingMapping(): void
     {
         $private = new TranslationYamlToolsEntityManager(new SqliteManagerRegistry(['default' => ['App\\Entity' => __DIR__]]), [TranslationOverride::class]);
