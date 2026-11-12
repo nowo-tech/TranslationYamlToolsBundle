@@ -79,7 +79,15 @@ All notable changes to this project are documented in this file.
 - Writing texts staged with `TranslationOverrideEditor::save(..., flush: false)` (or `TranslationOverrides::set(...,
   flush: false)`) through the application's `$entityManager->flush()` is deprecated: a `postFlush` bridge still writes
   them, right after the application's commit, and triggers a deprecation. Call `$editor->flush()`; wrap both flushes
-  in `$connection->transactional()` to commit them together.
+  in `$connection->transactional()` to commit them together. A failure of that bridge flush is logged at error level
+  and never rethrown (the application's commit is done; rethrowing from `postFlush` would leave its unit of work dirty
+  and its next flush would write its rows twice). The application manager is recognised by its unit of work, so a
+  decorated manager works too.
+- `doctrine.entity_manager` naming the application's default manager keeps the 1.17 write path (bundle flushes commit
+  its pending changes; a failed one resets it) and now triggers a build-time deprecation.
+- A boundary that discards unflushed bundle changes (private or dedicated manager) logs a warning with the count.
+- The rollback middleware goes on the connection of the manager whose mapping holds the bundle entities (found in the
+  metadata driver chains), the default manager's only when none does.
 
 ### Fixed
 

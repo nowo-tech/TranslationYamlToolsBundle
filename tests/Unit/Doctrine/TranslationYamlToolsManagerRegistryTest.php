@@ -16,6 +16,7 @@ use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Tests\Support\SqliteManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 use function dirname;
 
@@ -106,6 +107,22 @@ final class TranslationYamlToolsManagerRegistryTest extends TestCase
         self::assertTrue($private->hasPendingWork());
         $live->close();
         self::assertFalse($private->hasPendingWork(), 'A closed manager has nothing it can still write.');
+    }
+
+    /** Audit ND-L2: a boundary that discards unflushed bundle work says so. */
+    public function testResetWarnsAboutDiscardedPendingWork(): void
+    {
+        $doctrine = new SqliteManagerRegistry(['default' => ['Nowo\\TranslationYamlToolsBundle\\TextOverride\\Entity' => dirname(__DIR__, 3) . '/src/TextOverride/Entity']]);
+        $logger   = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('warning')->with(self::stringContains('Discarding'), ['count' => 1, 'class' => TranslationYamlToolsEntityManager::class]);
+        $private = new TranslationYamlToolsEntityManager($doctrine, [TranslationOverride::class], $logger);
+
+        $private->reset(); // nothing built: no warning
+        $private->persist(new TranslationOverride('en', 'messages', 'a.b'));
+        self::assertSame(1, $private->pendingCount());
+        $private->reset();
+        $private->reset(); // dropped: no second warning
+        self::assertSame(0, $private->pendingCount());
     }
 
     public function testUnknownPropertyAndMissingMapping(): void

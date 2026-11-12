@@ -11,6 +11,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use LogicException;
 use Nowo\TranslationYamlToolsBundle\EventSubscriber\EntityManagerBoundarySubscriber;
+use Psr\Log\LoggerInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 use function array_keys;
@@ -62,10 +63,12 @@ final class TranslationYamlToolsEntityManager extends EntityManagerDecorator imp
      * @param ManagerRegistry $registry The application's Doctrine registry (the source manager is resolved per call)
      * @param list<class-string> $entityClasses The bundle entities of the enabled features (the first mapped one
      *                                          names the source manager)
+     * @param LoggerInterface|null $logger Warns when a boundary discards unflushed bundle work (audit ND-L2)
      */
     public function __construct(
         private readonly ManagerRegistry $registry,
         private readonly array $entityClasses,
+        private readonly ?LoggerInterface $logger = null,
     ) {
         // No wrapped manager yet: every read of $this->wrapped goes through __get() (resolved per call).
         unset($this->{'wrapped'});
@@ -128,7 +131,16 @@ final class TranslationYamlToolsEntityManager extends EntityManagerDecorator imp
      */
     public function hasPendingWork(): bool
     {
-        return $this->current instanceof EntityManagerInterface && $this->current->isOpen() && $this->hasScheduledWork($this->current);
+        return $this->pendingCount() > 0;
+    }
+
+    /**
+     * Scheduled inserts, updates and deletes of the private manager (0 when it does not exist or is closed; no manager
+     * is created).
+     */
+    public function pendingCount(): int
+    {
+        return $this->current instanceof EntityManagerInterface && $this->current->isOpen() ? PendingWork::count($this->current) : 0;
     }
 
     /**
@@ -169,6 +181,10 @@ final class TranslationYamlToolsEntityManager extends EntityManagerDecorator imp
      */
     public function reset(): void
     {
+        $pending = $this->pendingCount();
+        if ($pending > 0) {
+            $this->logger?->warning('Discarding {count} unflushed bundle change(s) of {class} at a unit-of-work boundary: stage them with "flush: false" only when you flush them in the same unit of work.', ['count' => $pending, 'class' => self::class]);
+        }
         $this->clear();
         // @igor-ignore - Boundary drop of the bundle's own manager (no state kept).
         $this->current = null;
@@ -197,12 +213,7 @@ final class TranslationYamlToolsEntityManager extends EntityManagerDecorator imp
      */
     private function hasScheduledWork(EntityManagerInterface $manager): bool
     {
-        $unitOfWork = $manager->getUnitOfWork();
-        $unitOfWork->computeChangeSets();
-
-        return $unitOfWork->getScheduledEntityInsertions() !== []
-            || $unitOfWork->getScheduledEntityUpdates() !== []
-            || $unitOfWork->getScheduledEntityDeletions() !== [];
+        return PendingWork::count($manager) > 0;
     }
 
     /**

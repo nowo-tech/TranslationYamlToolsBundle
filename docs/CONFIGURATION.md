@@ -179,6 +179,14 @@ two configured exceptions: the deprecated `doctrine.private_entity_manager: fals
 (bundle writes flush the default manager), and a manager named in `doctrine.entity_manager` is cleared at the
 outermost boundaries (so keep your own entities off it; never done when it is your default manager).
 
+If `doctrine.entity_manager` names **your default manager** (e.g. `default`), the 1.17 write path applies unchanged:
+bundle writes flush your pending changes and a failed one resets your default manager. The container build triggers a
+deprecation; remove the option (private manager) or name a dedicated manager.
+
+Zero config: the private manager is built on the manager whose mapping holds the bundle entities (the default one,
+unless you mapped the bundle namespace on another manager yourself), and the rollback middleware goes on that manager's
+connection only.
+
 ### Standard Symfony host
 
 Zero config. The bundle prepends the mapping of its entities on the default manager (attribute mapping), so

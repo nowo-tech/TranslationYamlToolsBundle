@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\EventSubscriber;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\UnitOfWork;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\EventSubscriber\EntityManagerBoundarySubscriber;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use stdClass;
 use Symfony\Component\Console\ConsoleEvents;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
@@ -153,7 +156,7 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
     }
 
     /**
-     * An open manager is always cleared, whatever is pending (it is never inspected).
+     * An open manager is always cleared, whatever is pending (without a logger it is never inspected).
      */
     public function testAnOpenManagerIsAlwaysCleared(): void
     {
@@ -178,6 +181,23 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
         (new EntityManagerBoundarySubscriber([], [$manager], [$registry], 'translations'))->clearState();
         // Without a name there is nothing the bundle may reset.
         (new EntityManagerBoundarySubscriber([], [$manager], [$registry]))->clearState();
+    }
+
+    /** Audit ND-L2: clearing a dedicated manager with unflushed work logs a warning. */
+    public function testClearingPendingWorkOfTheDedicatedManagerIsLogged(): void
+    {
+        $unitOfWork = $this->createMock(UnitOfWork::class);
+        $unitOfWork->method('getScheduledEntityInsertions')->willReturn([new stdClass(), new stdClass()]);
+        $unitOfWork->method('getScheduledEntityUpdates')->willReturn([]);
+        $unitOfWork->method('getScheduledEntityDeletions')->willReturn([new stdClass()]);
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('isOpen')->willReturn(true);
+        $manager->method('getUnitOfWork')->willReturn($unitOfWork);
+        $manager->expects(self::once())->method('clear');
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('warning')->with(self::stringContains('Discarding'), ['count' => 3, 'manager' => 'translations']);
+
+        (new EntityManagerBoundarySubscriber([], [$manager], [], 'translations', $logger))->clearState();
     }
 
     public function testThePrivateManagerIsResetAtEveryClear(): void

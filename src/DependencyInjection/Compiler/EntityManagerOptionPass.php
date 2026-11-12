@@ -18,6 +18,7 @@ use function is_array;
 use function is_string;
 use function sprintf;
 use function str_starts_with;
+use function trigger_deprecation;
 
 /**
  * Validates `nowo_translation_yaml_tools.doctrine.entity_manager` (1.17.0, audit LD).
@@ -53,6 +54,11 @@ final class EntityManagerOptionPass implements CompilerPassInterface
         }
 
         $default = $container->hasParameter('doctrine.default_entity_manager') ? $container->getParameter('doctrine.default_entity_manager') : null;
+        if ($name === $default) {
+            // Audit ND-L4: naming the host's default manager is the 1.17 write path (bundle flushes commit the host's
+            // pending changes, a failed one resets that manager), kept as is in 1.x.
+            trigger_deprecation('nowo-tech/translation-yaml-tools-bundle', '1.18', 'nowo_translation_yaml_tools.doctrine.entity_manager names the application\'s default entity manager "%s": bundle writes flush its pending changes and a failed one resets it. Remove the option (the bundle then writes through its private entity manager) or name a dedicated entity manager.', $name);
+        }
         if ($name !== $default && $container->hasDefinition(EntityManagerBoundarySubscriber::class)) {
             $container->getDefinition(EntityManagerBoundarySubscriber::class)
                 ->setArgument('$entityManagers', new IteratorArgument([

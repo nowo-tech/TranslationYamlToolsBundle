@@ -323,6 +323,30 @@ final class PrivateEntityManagerTest extends KernelTestCase
     }
 
     /**
+     * Audit ND-M1: when the bridge flush fails (a duplicate staged row), the application's flush still completes, its
+     * unit of work is cleaned up, and a second flush does not write its rows twice.
+     */
+    #[IgnoreDeprecations]
+    public function testFailingBridgeFlushNeverLeavesTheHostUnitOfWorkDirty(): void
+    {
+        $this->overrides()->set('en', 'messages', 'site.greeting', 'Hi %name%');
+        $this->overrideRepository()->persist(new TranslationOverride('en', 'messages', 'site.greeting')); // duplicate key
+
+        $note = new HostNote('form');
+        $this->host->persist($note);
+        $this->host->flush(); // the bridge flush fails inside postFlush: logged, not rethrown
+
+        $unitOfWork = $this->host->getUnitOfWork();
+        self::assertSame([], $unitOfWork->getScheduledEntityInsertions());
+        self::assertSame([], $unitOfWork->getScheduledEntityUpdates());
+        self::assertSame(1, $this->rows('host_note'));
+        $this->host->flush();
+        self::assertSame(1, $this->rows('host_note'), 'The second flush wrote nothing twice.');
+        self::assertTrue($this->host->isOpen());
+        self::assertSame(['en' => 'Hi %name%'], $this->overrideTexts());
+    }
+
+    /**
      * @template T of object
      *
      * @param class-string<T> $class

@@ -6,12 +6,18 @@ namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\DependencyInjection\Compile
 
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\EntityManagerOptionPass;
 use Nowo\TranslationYamlToolsBundle\EventSubscriber\EntityManagerBoundarySubscriber;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Reference;
+
+use function restore_error_handler;
+use function set_error_handler;
+
+use const E_USER_DEPRECATED;
 
 /**
  * Audit LD: the named entity manager must exist and map the bundle entities.
@@ -81,6 +87,7 @@ final class EntityManagerOptionPassTest extends TestCase
      * 1.18.0: the dedicated manager is handed to the boundary subscriber (cleared at the outermost boundaries) as
      * IGNORE_ON_UNINITIALIZED references; nothing when the option names the host's default manager.
      */
+    #[IgnoreDeprecations]
     public function testDedicatedManagerIsWiredIntoTheBoundarySubscriberUnlessItIsTheDefault(): void
     {
         $container = $this->container('bundle', ['default' => [], 'bundle' => [self::ENTITIES]]);
@@ -106,7 +113,21 @@ final class EntityManagerOptionPassTest extends TestCase
         $container = $this->container('default', ['default' => [self::ENTITIES]]);
         $container->setParameter('doctrine.default_entity_manager', 'default');
         $container->register(EntityManagerBoundarySubscriber::class)->setArgument('$entityManagers', new IteratorArgument([]));
-        (new EntityManagerOptionPass())->process($container);
+        $deprecations = [];
+        // Test-only handler, restored in finally.
+        // @phpstan-ignore frankenphp.worker.noSetErrorExceptionHandler
+        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        }, E_USER_DEPRECATED);
+        try {
+            (new EntityManagerOptionPass())->process($container);
+        } finally {
+            restore_error_handler();
+        }
+        self::assertCount(1, $deprecations, 'Audit ND-L4: naming the host default manager is deprecated at build time.');
+        self::assertStringContainsString('names the application\'s default entity manager "default"', $deprecations[0]);
         $managers = $container->getDefinition(EntityManagerBoundarySubscriber::class)->getArgument('$entityManagers');
         self::assertInstanceOf(IteratorArgument::class, $managers);
         self::assertSame([], $managers->getValues());

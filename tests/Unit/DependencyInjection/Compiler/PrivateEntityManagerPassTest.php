@@ -36,6 +36,29 @@ final class PrivateEntityManagerPassTest extends TestCase
         self::assertSame([['connection' => 'default']], $container->getDefinition(PrivateEntityManagerMiddleware::class)->getTag('doctrine.middleware'));
     }
 
+    /** Audit ND-L3: the connection of the manager whose driver chain maps the bundle entities, not the default's. */
+    public function testAttachesTheMiddlewareToTheConnectionOfTheManagerThatMapsTheEntities(): void
+    {
+        $container = $this->container();
+        $container->setParameter('doctrine.default_entity_manager', 'default');
+        $container->setParameter('doctrine.entity_managers', ['default' => 'doctrine.orm.default_entity_manager', 'missing' => 'x', 'texts' => 'doctrine.orm.texts_entity_manager']);
+        $container->setDefinition('doctrine.orm.default_entity_manager', new Definition('EM', [new Reference('doctrine.dbal.default_connection')]));
+        $container->setDefinition('doctrine.orm.texts_entity_manager', new Definition('EM', [new Reference('doctrine.dbal.texts_connection')]));
+        $container->register('doctrine.orm.default_metadata_driver')
+            ->addMethodCall('setDefaultDriver', [new Reference('driver')])
+            ->addMethodCall('addDriver', [new Reference('driver'), 'App\\Entity']);
+        $container->register('doctrine.orm.texts_metadata_driver')
+            ->addMethodCall('addDriver', [new Reference('driver'), 'Nowo\\TranslationYamlToolsBundle\\TextOverride\\Entity']);
+
+        (new PrivateEntityManagerPass())->process($container);
+        self::assertSame([['connection' => 'texts']], $container->getDefinition(PrivateEntityManagerMiddleware::class)->getTag('doctrine.middleware'));
+
+        // A parent namespace mapping counts too.
+        $container->getDefinition('doctrine.orm.texts_metadata_driver')->setMethodCalls([['addDriver', [new Reference('driver'), 'Nowo\\']]]);
+        (new PrivateEntityManagerPass())->process($container);
+        self::assertSame([['connection' => 'texts']], $container->getDefinition(PrivateEntityManagerMiddleware::class)->getTag('doctrine.middleware'));
+    }
+
     public function testDoesNothingWithoutThePrivateManager(): void
     {
         $container = new ContainerBuilder();

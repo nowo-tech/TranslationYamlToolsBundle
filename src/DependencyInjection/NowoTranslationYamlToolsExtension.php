@@ -341,6 +341,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
             ->setArgument('$entityManagers', new IteratorArgument([]))
             ->setArgument('$registries', new IteratorArgument([]))
             ->setArgument('$managerName', $doctrine['entity_manager'])
+            ->setArgument('$logger', new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE))
             ->addTag('kernel.event_subscriber');
         $container->setDefinition(EntityManagerBoundarySubscriber::class, $subscriber);
 
@@ -349,7 +350,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         }
 
         $container->register(TranslationYamlToolsEntityManager::class, TranslationYamlToolsEntityManager::class)
-            ->setArguments([new Reference('doctrine'), $entityClasses])
+            ->setArguments([new Reference('doctrine'), $entityClasses, new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE)])
             ->addTag('kernel.reset', ['method' => 'reset']);
         $container->register(TranslationYamlToolsManagerRegistry::class, TranslationYamlToolsManagerRegistry::class)
             ->setArguments([new Reference('doctrine'), new Reference(TranslationYamlToolsEntityManager::class)]);
@@ -367,7 +368,7 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $lazyPrivate = new IteratorArgument([new Reference(TranslationYamlToolsEntityManager::class, ContainerInterface::IGNORE_ON_UNINITIALIZED_REFERENCE)]);
         $subscriber->setArgument('$resettables', $lazyPrivate);
         $container->register(PrivateEntityManagerFlushBridge::class, PrivateEntityManagerFlushBridge::class)
-            ->setArguments([$lazyPrivate])
+            ->setArguments([$lazyPrivate, new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE)])
             ->addTag('doctrine.event_listener', ['event' => 'postFlush']);
     }
 

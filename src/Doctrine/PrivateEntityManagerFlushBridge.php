@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\Doctrine;
 
 use Doctrine\ORM\Event\PostFlushEventArgs;
+use Psr\Log\LoggerInterface;
+use Throwable;
 
 use function trigger_deprecation;
 
@@ -21,7 +23,10 @@ use function trigger_deprecation;
  *
  * It never flushes an application manager: it only reacts to the source manager's flush and only flushes the private
  * one, after the application's own commit. Flushes of the private manager itself (it shares the event manager) and of
- * any other manager are ignored. The private manager is injected as an iterator of an IGNORE_ON_UNINITIALIZED
+ * any other manager are ignored; the source manager is recognised by its unit of work, so a decorated application
+ * manager matches too. A failure of the bridge flush is logged at error level and never rethrown: the application's
+ * transaction is already committed, and an exception escaping postFlush would leave its unit of work uncleaned (its
+ * next flush would write its rows twice). The private manager is injected as an iterator of an IGNORE_ON_UNINITIALIZED
  * reference: a flush of the application before any bundle call never builds it.
  *
  * @internal
@@ -33,9 +38,11 @@ final class PrivateEntityManagerFlushBridge
 
     /**
      * @param iterable<TranslationYamlToolsEntityManager> $entityManagers the private manager, if it was built
+     * @param LoggerInterface|null $logger Logs a failed bridge flush (never rethrown, audit ND-M1)
      */
     public function __construct(
         private readonly iterable $entityManagers = [],
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -47,7 +54,9 @@ final class PrivateEntityManagerFlushBridge
 
         foreach ($this->entityManagers as $private) {
             $manager = $args->getObjectManager();
-            if ($private->owns($manager) || !$private->hasPendingWork() || $manager !== $private->source()) {
+            // Same unit of work, not the same object: the registry may hand out a decorator of the flushed manager
+            // (audit ND-L1).
+            if ($private->owns($manager) || !$private->hasPendingWork() || $manager->getUnitOfWork() !== $private->source()->getUnitOfWork()) {
                 continue;
             }
 
@@ -55,8 +64,14 @@ final class PrivateEntityManagerFlushBridge
 
             // @igor-ignore - Re-entrancy guard around one flush, always unset in finally.
             $this->flushing = true;
+            $pending        = $private->pendingCount();
             try {
                 $private->flush();
+            } catch (Throwable $exception) {
+                // The application's transaction is already committed and its unit of work is cleaned up only after
+                // postFlush: rethrowing here would make its next flush (or the user's retry) write its rows again
+                // (audit ND-M1). The staged bundle rows are lost; the closed private manager is replaced on next use.
+                $this->logger?->error('Bundle rows staged with "flush: false" could not be written after the application flush ({count} change(s)): {message}', ['count' => $pending, 'message' => $exception->getMessage(), 'exception' => $exception]);
             } finally {
                 // @igor-ignore - Re-entrancy guard around one flush.
                 $this->flushing = false;

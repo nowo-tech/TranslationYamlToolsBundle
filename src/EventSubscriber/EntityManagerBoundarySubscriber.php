@@ -6,7 +6,9 @@ namespace Nowo\TranslationYamlToolsBundle\EventSubscriber;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use Nowo\TranslationYamlToolsBundle\Doctrine\PendingWork;
 use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsEntityManager;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -77,12 +79,14 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
      * @param iterable<EntityManagerInterface> $entityManagers the dedicated manager (empty without one)
      * @param iterable<ManagerRegistry> $registries the Doctrine registry, to recreate a closed dedicated manager
      * @param string|null $managerName `doctrine.entity_manager`
+     * @param LoggerInterface|null $logger Warns when a boundary discards unflushed bundle work (audit ND-L2)
      */
     public function __construct(
         private readonly iterable $resettables = [],
         private readonly iterable $entityManagers = [],
         private readonly iterable $registries = [],
         private readonly ?string $managerName = null,
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -204,6 +208,11 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
 
         foreach ($this->entityManagers as $entityManager) {
             if ($entityManager->isOpen()) {
+                // Inspected only to log; it is cleared whatever is pending.
+                $pending = $this->logger instanceof LoggerInterface ? PendingWork::count($entityManager) : 0;
+                if ($pending > 0) {
+                    $this->logger?->warning('Discarding {count} unflushed change(s) of the {manager} entity manager at a unit-of-work boundary.', ['count' => $pending, 'manager' => $this->managerName]);
+                }
                 $entityManager->clear();
 
                 continue;
