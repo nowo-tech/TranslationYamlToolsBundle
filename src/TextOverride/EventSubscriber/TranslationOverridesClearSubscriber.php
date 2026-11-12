@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\TextOverride\EventSubscriber;
 
+use Nowo\TranslationYamlToolsBundle\EventSubscriber\UnitOfWorkFrames;
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides;
+use Symfony\Component\Console\Event\ConsoleCommandEvent;
+use Symfony\Component\Console\Event\ConsoleErrorEvent;
+use Symfony\Component\Console\Event\ConsoleTerminateEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Contracts\Service\ResetInterface;
 
-use function max;
+use const PHP_INT_MAX;
 
 /**
  * Drops the per-request override map memo ({@see TranslationOverrides::reset()}) at every unit-of-work boundary, so a
@@ -19,15 +24,18 @@ use function max;
  * correct where the services resetter does not run: a host that removes or bypasses `services_resetter` (or drives
  * `http_kernel` directly), Messenger consumers started with `--no-reset`, and long-running console commands.
  *
- * Boundaries:
- * - HTTP: the start of every main request (priority 4096, before controllers and listeners translate) and
+ * Boundaries (every unit-of-work state change at PHP_INT_MAX, through {@see UnitOfWorkFrames}, 1.18.1 audit NM):
+ * - HTTP: the start of every main request (PHP_INT_MAX, before controllers and listeners translate) and
  *   `kernel.terminate`. Sub-requests (fragments, ESI) share their main request's memo;
- * - Messenger: when a message is received (priority 4096) and after it is handled or failed (priority -4096);
- * - console: when the OUTERMOST command starts and terminates, and only while no Messenger message is in flight. A
- *   command run in-process from another command or from a message handler (`Application::doRun()`) does not clear the
- *   outer unit's memo: the nesting depth is counted on `console.command` / `console.terminate`, and the in-flight flag
- *   is set when a message is received and unset when it is handled, failed or the worker stops (same pattern as
- *   BeaconBundle 1.24.0).
+ * - Messenger: when a message is received (PHP_INT_MAX) and after it is handled or failed (priority -4096). A skipped
+ *   message (`WorkerMessageSkipEvent`, dispatched by `messenger:failed:retry` only) or a stopped worker ends the
+ *   in-flight message;
+ * - console: when the OUTERMOST run starts (PHP_INT_MAX) and terminates (priority -4096), outside a Messenger message
+ *   and a main request. A command run in-process from another command, a message handler or a controller
+ *   (`Application::doRun()`) does not clear the outer unit's memo. Each run is a frame keyed by its command and its
+ *   input, removed by its own `console.terminate`; a run whose `console.error` listener threw (no terminate follows)
+ *   is dropped at the next request, message, command or worker stop, so a throwing or propagation-stopping listener
+ *   can no longer leave the process "inside a command" for good.
  *
  * The Messenger events are subscribed by name, so symfony/messenger stays optional. The bundle wires the memo through
  * `$resettables` as an iterator of IGNORE_ON_UNINITIALIZED_REFERENCE references: a boundary only clears an instance
@@ -42,19 +50,16 @@ final class TranslationOverridesClearSubscriber implements EventSubscriberInterf
     public const MESSENGER_WORKER_MESSAGE_HANDLED  = 'Symfony\Component\Messenger\Event\WorkerMessageHandledEvent';
     public const MESSENGER_WORKER_MESSAGE_FAILED   = 'Symfony\Component\Messenger\Event\WorkerMessageFailedEvent';
     public const MESSENGER_WORKER_STOPPED          = 'Symfony\Component\Messenger\Event\WorkerStoppedEvent';
+    /** Dispatched by `messenger:failed:retry` only, when a message is skipped. */
+    public const MESSENGER_WORKER_MESSAGE_SKIPPED = 'Symfony\Component\Messenger\Event\WorkerMessageSkipEvent';
 
-    /** Console event names (ConsoleEvents::COMMAND / TERMINATE). */
+    /** Console event names (ConsoleEvents::COMMAND / ERROR / TERMINATE). */
     public const CONSOLE_COMMAND   = 'console.command';
+    public const CONSOLE_ERROR     = 'console.error';
     public const CONSOLE_TERMINATE = 'console.terminate';
 
-    /**
-     * Console commands currently running in this process (nested in-process runs count). Process-lifetime counter,
-     * bounded by the nesting depth; intentionally not reset by `kernel.reset`.
-     */
-    private int $consoleDepth = 0;
-
-    /** A Messenger message is being handled (between received and handled / failed / worker stopped). */
-    private bool $messageInFlight = false;
+    /** The units of work running in this process (process lifetime, bounded by the nesting depth). */
+    private readonly UnitOfWorkFrames $units;
 
     /**
      * @param iterable<ResetInterface> $resettables the override map memo ({@see TranslationOverrides})
@@ -62,22 +67,26 @@ final class TranslationOverridesClearSubscriber implements EventSubscriberInterf
     public function __construct(
         private readonly iterable $resettables,
     ) {
+        $this->units = new UnitOfWorkFrames();
     }
 
     /**
-     * @return array<string, array{0: string, 1: int}|string>
+     * @return array<string, array{0: string, 1: int}|list<array{0: string, 1: int}>|string>
      */
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::REQUEST                   => ['onRequest', 4096],
-            KernelEvents::TERMINATE                 => 'clearState',
-            self::MESSENGER_WORKER_MESSAGE_RECEIVED => ['onMessageReceived', 4096],
-            self::MESSENGER_WORKER_MESSAGE_HANDLED  => ['onMessageFinished', -4096],
-            self::MESSENGER_WORKER_MESSAGE_FAILED   => ['onMessageFinished', -4096],
-            self::MESSENGER_WORKER_STOPPED          => ['onWorkerStopped', -4096],
-            self::CONSOLE_COMMAND                   => ['onConsoleCommand', 4096],
-            self::CONSOLE_TERMINATE                 => ['onConsoleTerminate', -4096],
+            KernelEvents::REQUEST                   => ['onRequest', PHP_INT_MAX],
+            KernelEvents::FINISH_REQUEST            => ['onFinishRequest', PHP_INT_MAX],
+            KernelEvents::TERMINATE                 => [['onRequestBoundaryEnded', PHP_INT_MAX], ['clearState', 0]],
+            self::MESSENGER_WORKER_MESSAGE_RECEIVED => ['onMessageReceived', PHP_INT_MAX],
+            self::MESSENGER_WORKER_MESSAGE_HANDLED  => [['onMessageEnded', PHP_INT_MAX], ['clearState', -4096]],
+            self::MESSENGER_WORKER_MESSAGE_FAILED   => [['onMessageEnded', PHP_INT_MAX], ['clearState', -4096]],
+            self::MESSENGER_WORKER_MESSAGE_SKIPPED  => ['onMessageEnded', PHP_INT_MAX],
+            self::MESSENGER_WORKER_STOPPED          => ['onWorkerStopped', PHP_INT_MAX],
+            self::CONSOLE_COMMAND                   => ['onConsoleCommand', PHP_INT_MAX],
+            self::CONSOLE_ERROR                     => ['onConsoleError', PHP_INT_MAX],
+            self::CONSOLE_TERMINATE                 => [['onConsoleCommandEnded', PHP_INT_MAX], ['onConsoleTerminate', -4096]],
         ];
     }
 
@@ -87,7 +96,24 @@ final class TranslationOverridesClearSubscriber implements EventSubscriberInterf
             return;
         }
 
+        $this->units->requestStarted();
         $this->clearState();
+    }
+
+    public function onFinishRequest(FinishRequestEvent $event): void
+    {
+        if ($event->isMainRequest()) {
+            $this->units->requestFinished();
+        }
+    }
+
+    /**
+     * `kernel.terminate` (PHP_INT_MAX): a top-level request boundary resets the main-request counter, even when the
+     * request's `kernel.finish_request` never came (audit NR-b M1).
+     */
+    public function onRequestBoundaryEnded(): void
+    {
+        $this->units->requestBoundaryEnded();
     }
 
     /**
@@ -95,49 +121,58 @@ final class TranslationOverridesClearSubscriber implements EventSubscriberInterf
      */
     public function onMessageReceived(): void
     {
-        // @igor-ignore - Unit-of-work flag, set and unset at the Messenger boundaries.
-        $this->messageInFlight = true;
+        $this->units->messageReceived();
         $this->clearState();
     }
 
     /**
-     * End of a Messenger message (handled or failed).
+     * A message was handled, failed or skipped (PHP_INT_MAX): no message is in flight any more.
      */
-    public function onMessageFinished(): void
+    public function onMessageEnded(): void
     {
-        // @igor-ignore - Unit-of-work flag, set and unset at the Messenger boundaries.
-        $this->messageInFlight = false;
-        $this->clearState();
+        $this->units->messageFinished();
     }
 
     /**
-     * The worker stopped (possibly after a skipped message): no message is in flight any more.
+     * The worker stopped: no message is in flight any more.
      */
     public function onWorkerStopped(): void
     {
-        // @igor-ignore - Unit-of-work flag, set and unset at the Messenger boundaries.
-        $this->messageInFlight = false;
+        $this->units->workerStopped();
     }
 
     /**
-     * Start of a command: clears only when the outermost command starts outside a Messenger message.
+     * Start of a command run: clears only for the outermost one (outside a message and a main request).
      */
-    public function onConsoleCommand(): void
+    public function onConsoleCommand(ConsoleCommandEvent $event): void
     {
-        // @igor-ignore - Nesting counter of the running commands (no request data).
-        if (++$this->consoleDepth === 1 && !$this->messageInFlight) {
+        if ($this->units->commandStarted($event)) {
             $this->clearState();
         }
     }
 
     /**
-     * End of a command: clears only when the outermost command ends outside a Messenger message.
+     * A command run failed: its frame is marked (dropped at the next unit when no terminate follows).
      */
-    public function onConsoleTerminate(): void
+    public function onConsoleError(ConsoleErrorEvent $event): void
     {
-        // @igor-ignore - Nesting counter of the running commands (no request data).
-        $this->consoleDepth = max(0, $this->consoleDepth - 1);
-        if ($this->consoleDepth === 0 && !$this->messageInFlight) {
+        $this->units->commandFailed($event);
+    }
+
+    /**
+     * End of a command run (PHP_INT_MAX, before any listener that could throw or stop the propagation).
+     */
+    public function onConsoleCommandEnded(ConsoleTerminateEvent $event): void
+    {
+        $this->units->commandEnded($event);
+    }
+
+    /**
+     * End of a command run (late): clears only when that run started as the outermost unit.
+     */
+    public function onConsoleTerminate(ConsoleTerminateEvent $event): void
+    {
+        if ($this->units->endsOutermostUnit($event)) {
             $this->clearState();
         }
     }
