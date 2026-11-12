@@ -13,6 +13,7 @@ use LogicException;
 use Nowo\TranslationYamlToolsBundle\EventSubscriber\EntityManagerBoundarySubscriber;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\Service\ResetInterface;
+use Throwable;
 
 use function array_keys;
 use function implode;
@@ -178,18 +179,38 @@ final class TranslationYamlToolsEntityManager extends EntityManagerDecorator imp
     /**
      * Drops the private manager (an outermost unit-of-work boundary or `kernel.reset`); the next call creates a fresh
      * one. Unflushed bundle changes of the finished unit are discarded, never written later.
+     *
+     * 1.18.2 (audit NX): the manager is dropped FIRST; the pending-work inspection (which computes change sets) and the
+     * clear() run afterwards, each guarded, so a manager whose unit of work throws (a wrongly typed association, a
+     * throwing listener) is never kept and the boundary never throws.
      */
     public function reset(): void
     {
-        $pending = $this->pendingCount();
-        if ($pending > 0) {
-            $this->logger?->warning('Discarding {count} unflushed bundle change(s) of {class} at a unit-of-work boundary: stage them with "flush: false" only when you flush them in the same unit of work.', ['count' => $pending, 'class' => self::class]);
-        }
-        $this->clear();
+        $current = $this->current;
         // @igor-ignore - Boundary drop of the bundle's own manager (no state kept).
         $this->current = null;
         // @igor-ignore - Boundary drop of the bundle's own manager (no state kept).
         $this->stale = false;
+        if (!$current instanceof EntityManagerInterface) {
+            return;
+        }
+
+        try {
+            $pending = $current->isOpen() ? PendingWork::count($current) : 0;
+            if ($pending > 0) {
+                $this->logger?->warning('Discarding {count} unflushed bundle change(s) of {class} at a unit-of-work boundary: stage them with "flush: false" only when you flush them in the same unit of work.', ['count' => $pending, 'class' => self::class]);
+            }
+        } catch (Throwable $exception) {
+            $this->logger?->warning('Could not inspect the unflushed bundle changes of {class} at a unit-of-work boundary ({exception_class}); they are discarded.', ['class' => self::class, 'exception_class' => $exception::class]);
+        }
+
+        try {
+            if ($current->isOpen()) {
+                $current->clear();
+            }
+        } catch (Throwable $exception) {
+            $this->logger?->warning('Could not clear the dropped private entity manager of {class} ({exception_class}).', ['class' => self::class, 'exception_class' => $exception::class]);
+        }
     }
 
     /**

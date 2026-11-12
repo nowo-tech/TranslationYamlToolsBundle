@@ -6,8 +6,10 @@ namespace Nowo\TranslationYamlToolsBundle\Tests\Integration\PrivateEntityManager
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\Decorator\EntityManagerDecorator;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Doctrine\ORM\UnitOfWork;
 use InvalidArgumentException;
 use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsEntityManager;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
@@ -20,6 +22,7 @@ use Nowo\TranslationYamlToolsBundle\TextOverride\Repository\TranslationOverrideR
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideEditor;
 use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use ReflectionProperty;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -30,6 +33,11 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Throwable;
 
 use function restore_error_handler;
@@ -205,6 +213,59 @@ final class PrivateEntityManagerTest extends KernelTestCase
         }
         self::assertTrue($this->host->isOpen());
         self::assertSame(1, $this->rows('nowo_translation_missing_log'));
+    }
+
+    /**
+     * Audit NX: a private manager whose unit of work throws while computing change sets (a wrongly typed association, a
+     * throwing listener) and whose clear() throws is still dropped at the next boundary; the boundary never throws and
+     * the next unit gets a fresh, working manager. The host manager is untouched.
+     */
+    public function testABrokenPrivateManagerIsDroppedAtTheNextBoundary(): void
+    {
+        $note = new HostNote('pending');
+        $this->host->persist($note);
+        $this->overrides()->set('en', 'messages', 'site.greeting', 'Before %name%');
+        $live       = $this->private->live();
+        $unitOfWork = $this->createStub(UnitOfWork::class);
+        $unitOfWork->method('computeChangeSets')->willThrowException(new RuntimeException('broken unit of work'));
+        $broken = new class($live, $unitOfWork) extends EntityManagerDecorator {
+            public function __construct(EntityManagerInterface $wrapped, private readonly UnitOfWork $unitOfWork)
+            {
+                parent::__construct($wrapped);
+            }
+
+            public function getUnitOfWork(): UnitOfWork
+            {
+                return $this->unitOfWork;
+            }
+
+            public function clear(): void
+            {
+                throw new RuntimeException('broken clear');
+            }
+        };
+        (new ReflectionProperty(TranslationYamlToolsEntityManager::class, 'current'))->setValue($this->private, $broken);
+
+        $kernel     = $this->service('http_kernel', HttpKernelInterface::class);
+        $dispatcher = $this->service('event_dispatcher', EventDispatcherInterface::class);
+        $request    = Request::create('/');
+        // Only the boundary listeners (PHP_INT_MAX) run: the test kernel has no route for the router listener.
+        $stop = static function (RequestEvent $event): void {
+            $event->stopPropagation();
+        };
+        $dispatcher->addListener(KernelEvents::REQUEST, $stop, 1024);
+        try {
+            $dispatcher->dispatch(new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST), KernelEvents::REQUEST);
+        } finally {
+            $dispatcher->removeListener(KernelEvents::REQUEST, $stop);
+        }
+
+        self::assertFalse($this->private->isCreated(), 'The broken manager was dropped first.');
+        $this->overrides()->set('en', 'messages', 'site.greeting', 'After %name%');
+        self::assertNotSame($broken, $this->private->live());
+        self::assertSame(['en' => 'After %name%'], $this->overrideTexts());
+        self::assertTrue($this->host->getUnitOfWork()->isScheduledForInsert($note), 'The host manager was never touched.');
+        $dispatcher->dispatch(new FinishRequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST), KernelEvents::FINISH_REQUEST);
     }
 
     /** One connection: the host can commit its entity and the texts together, or roll both back. */

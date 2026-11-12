@@ -17,6 +17,7 @@ use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Contracts\Service\ResetInterface;
+use Throwable;
 
 use const PHP_INT_MAX;
 
@@ -228,14 +229,25 @@ final class EntityManagerBoundarySubscriber implements EventSubscriberInterface
 
         foreach ($this->entityManagers as $entityManager) {
             if ($entityManager->isOpen()) {
-                // Inspected only to log; it is cleared whatever is pending.
-                $pending = $this->logger instanceof LoggerInterface ? PendingWork::count($entityManager) : 0;
-                if ($pending > 0) {
-                    $this->logger?->warning('Discarding {count} unflushed change(s) of the {manager} entity manager at a unit-of-work boundary.', ['count' => $pending, 'manager' => $this->managerName]);
+                // Inspected only to log; it is cleared whatever is pending. 1.18.2 (audit NX): a unit of work that
+                // throws while computing its change sets never stops the clear, and a failed clear recreates the
+                // manager by name, so the boundary never throws.
+                try {
+                    $pending = $this->logger instanceof LoggerInterface ? PendingWork::count($entityManager) : 0;
+                    if ($pending > 0) {
+                        $this->logger?->warning('Discarding {count} unflushed change(s) of the {manager} entity manager at a unit-of-work boundary.', ['count' => $pending, 'manager' => $this->managerName]);
+                    }
+                } catch (Throwable $exception) {
+                    $this->logger?->warning('Could not inspect the unflushed changes of the {manager} entity manager at a unit-of-work boundary ({exception_class}); they are discarded.', ['manager' => $this->managerName, 'exception_class' => $exception::class]);
                 }
-                $entityManager->clear();
 
-                continue;
+                try {
+                    $entityManager->clear();
+
+                    continue;
+                } catch (Throwable $exception) {
+                    $this->logger?->warning('Could not clear the {manager} entity manager at a unit-of-work boundary ({exception_class}); it is recreated.', ['manager' => $this->managerName, 'exception_class' => $exception::class]);
+                }
             }
 
             if ($this->managerName !== null) {

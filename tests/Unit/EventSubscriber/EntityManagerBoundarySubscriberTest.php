@@ -13,6 +13,7 @@ use Nowo\TranslationYamlToolsBundle\Tests\Support\BoundaryDriver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 use stdClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\ConsoleEvents;
@@ -300,6 +301,37 @@ final class EntityManagerBoundarySubscriberTest extends TestCase
         $logger->expects(self::once())->method('warning')->with(self::stringContains('Discarding'), ['count' => 3, 'manager' => 'translations']);
 
         (new EntityManagerBoundarySubscriber([], [$manager], [], 'translations', $logger))->clearState();
+    }
+
+    /** Audit NX: a unit of work that throws while computing its change sets never stops the clear. */
+    public function testAThrowingChangeSetComputationStillClearsTheDedicatedManager(): void
+    {
+        $unitOfWork = $this->createMock(UnitOfWork::class);
+        $unitOfWork->method('computeChangeSets')->willThrowException(new RuntimeException('secret value'));
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('isOpen')->willReturn(true);
+        $manager->method('getUnitOfWork')->willReturn($unitOfWork);
+        $manager->expects(self::once())->method('clear');
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects(self::never())->method('resetManager');
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('warning')->with(self::stringContains('Could not inspect'), ['manager' => 'translations', 'exception_class' => RuntimeException::class]);
+
+        (new EntityManagerBoundarySubscriber([], [$manager], [$registry], 'translations', $logger))->clearState();
+    }
+
+    /** Audit NX: a clear() that throws recreates the dedicated manager by name instead of throwing at the boundary. */
+    public function testAThrowingClearRecreatesTheDedicatedManager(): void
+    {
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('isOpen')->willReturn(true);
+        $manager->method('clear')->willThrowException(new RuntimeException('secret value'));
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects(self::once())->method('resetManager')->with('translations');
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('warning')->with(self::stringContains('Could not clear'), ['manager' => 'translations', 'exception_class' => RuntimeException::class]);
+
+        (new EntityManagerBoundarySubscriber([], [$manager], [$registry], 'translations', $logger))->clearState();
     }
 
     public function testThePrivateManagerIsResetAtEveryClear(): void

@@ -7,6 +7,7 @@ namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\Doctrine;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Repository\RepositoryFactory;
+use Doctrine\ORM\UnitOfWork;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectRepository;
 use LogicException;
@@ -17,6 +18,8 @@ use Nowo\TranslationYamlToolsBundle\Tests\Support\SqliteManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use ReflectionProperty;
+use RuntimeException;
 
 use function dirname;
 
@@ -74,6 +77,11 @@ final class TranslationYamlToolsManagerRegistryTest extends TestCase
         self::assertSame($doctrine->getConnection(), $live->getConnection());
         self::assertSame($live, $private->live());
         self::assertSame($live->getConfiguration(), $private->getConfiguration(), 'Decorated calls go to the live manager.');
+        $override = new TranslationOverride('en', 'messages', 'a.b');
+        $private->persist($override);
+        $private->clear();
+        self::assertFalse($live->contains($override), 'clear() detaches the rows of the existing manager.');
+        self::assertSame($live, $private->live(), 'clear() keeps the manager.');
 
         $private->connectionRolledBack();
         self::assertTrue($private->isStale());
@@ -123,6 +131,38 @@ final class TranslationYamlToolsManagerRegistryTest extends TestCase
         $private->reset();
         $private->reset(); // dropped: no second warning
         self::assertSame(0, $private->pendingCount());
+    }
+
+    /**
+     * Audit NX: the manager is dropped BEFORE its pending work is inspected; a unit of work that throws while computing
+     * change sets, or a clear() that throws, only logs a generic warning (exception class, never its message).
+     */
+    public function testResetDropsABrokenManagerFirstAndNeverThrows(): void
+    {
+        $doctrine   = new SqliteManagerRegistry(['default' => ['Nowo\\TranslationYamlToolsBundle\\TextOverride\\Entity' => dirname(__DIR__, 3) . '/src/TextOverride/Entity']]);
+        $unitOfWork = $this->createStub(UnitOfWork::class);
+        $unitOfWork->method('computeChangeSets')->willThrowException(new RuntimeException('secret value'));
+        $broken = $this->createStub(EntityManagerInterface::class);
+        $broken->method('isOpen')->willReturn(true);
+        $broken->method('getUnitOfWork')->willReturn($unitOfWork);
+        $broken->method('clear')->willThrowException(new RuntimeException('secret value'));
+        $warnings = [];
+        $logger   = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::exactly(2))->method('warning')->willReturnCallback(static function (string $message, array $context) use (&$warnings): void {
+            $warnings[] = [$message, $context];
+        });
+        $private = new TranslationYamlToolsEntityManager($doctrine, [TranslationOverride::class], $logger);
+        (new ReflectionProperty(TranslationYamlToolsEntityManager::class, 'current'))->setValue($private, $broken);
+
+        $private->reset();
+
+        self::assertFalse($private->isCreated(), 'The broken manager was dropped.');
+        self::assertStringContainsString('Could not inspect', $warnings[0][0]);
+        self::assertStringContainsString('Could not clear', $warnings[1][0]);
+        foreach ($warnings as [, $context]) {
+            self::assertSame(['class' => TranslationYamlToolsEntityManager::class, 'exception_class' => RuntimeException::class], $context);
+        }
+        self::assertNotSame($broken, $private->live(), 'The next use gets a fresh manager.');
     }
 
     public function testUnknownPropertyAndMissingMapping(): void

@@ -60,6 +60,20 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Target version: **1.18.2** (patch, no configuration change). See [UPGRADING](UPGRADING.md#to-1182).
+
+### Fixed
+
+- **A broken private entity manager could make every request fail until the worker restarted (audit NX,
+  REQ-RUNTIME-002).** `TranslationYamlToolsEntityManager::reset()` counted the unflushed bundle work (which computes
+  the unit of work's change sets) BEFORE dropping the private manager. When that computation threw (a wrongly typed
+  association, a throwing listener), the broken manager was kept and the boundary subscriber, which runs at
+  `PHP_INT_MAX` on every main request, threw again on every request. The manager is now dropped first; the
+  pending-work inspection and the `clear()` run afterwards, each in its own `try`/`catch` that logs a generic warning
+  (exception class only, never its message or row values). The dedicated-manager path of
+  `EntityManagerBoundarySubscriber` is guarded the same way: a failed inspection never stops the `clear()`, and a
+  failed `clear()` recreates the manager by name instead of throwing.
+
 ## [1.18.1] - 2026-11-12
 
 ### Fixed
