@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Package | `nowo-tech/translation-yaml-tools-bundle` (`symfony-bundle`) |
-| Audited revision | `v1.4.5` (working tree → release); text overrides re-audited for `v1.17.1` (REQ-RUNTIME-002) |
-| Audit date | 2026-09-25; overrides 2026-11-12 |
+| Audited revision | `v1.18.0` (first audit `v1.4.5`; text overrides re-audited for `v1.17.1`, private entity manager for `v1.18.0`, REQ-RUNTIME-002) |
+| Audit date | 2026-09-25; overrides and private manager 2026-11-12 |
 | Method | Manual review of every PHP file under `src/` (translator decorator, missing-log recorder, repository, Messenger handler, listeners, Web UI controller, subscriber, Twig extension, machine translators, CLI commands and services, DI extension, compiler passes, `Resources/config/*.yaml`) |
 | **Verdict** | ✅ **Viable under scenario B** — the request buffer is emptied on every flush, persistence errors in `kernel.terminate` are logged instead of ending the worker loop, Web UI re-hydrates rows / recovers a closed EntityManager, and DBAL clears detach managed log entities without `kernel.reset` |
 | Remediation (2026-11-12, 1.17.1) | W-04 resolved: the override map memo is dropped at the request, Messenger and console boundaries by `TranslationOverridesClearSubscriber`, without relying on `kernel.reset`. Worker test: `tests/Functional/Worker/WorkerBoundariesTest.php` |
