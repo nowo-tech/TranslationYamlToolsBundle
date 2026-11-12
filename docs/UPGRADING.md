@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.18.0](#to-1180)
 - [To 1.17.1](#to-1171)
 - [To 1.17.0](#to-1170)
 - [To 1.16.0](#to-1160)
@@ -66,6 +67,57 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.18.0
+
+From **1.17.x**:
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
+
+No configuration change, no migration: the tables and the connection do not change.
+
+**What changes (REQ-ARCH-001 rule 6).** With `doctrine.entity_manager` unset (the default), the bundle now reads and
+writes its rows (text overrides, missing-log status changes) through its own private entity manager, built on the
+connection, mapping, event manager and SQL filters of your default manager. A bundle write no longer flushes the
+changes your application left pending on its manager, and a failed bundle write no longer closes your manager.
+
+Check your code for these cases:
+
+- **Form bridge with `flush: false`.** If you stage texts with `TranslationOverrideEditor::save(..., flush: false)` (or
+  `TranslationOverrides::set(..., flush: false)`) and let your own `$entityManager->flush()` write them, switch to:
+
+  ```php
+  $editor->save('messages', 'site.intro', $texts, flush: false);
+  $connection->transactional(function () use ($entityManager, $editor): void {
+      $entityManager->flush(); // your entities
+      $editor->flush();        // the texts (+ cache invalidation)
+  });
+  ```
+
+  Until 2.0 a `postFlush` bridge still writes the staged texts right after your manager's flush (after its commit,
+  not in the same transaction) and triggers a deprecation.
+- **Bundle entities loaded through your own manager.** `TranslationOverride` and `MissingTranslationLog` rows are
+  managed by the bundle's manager, not by `EntityManagerInterface`: change them through `TranslationOverrides`,
+  `TranslationOverrideEditor` or the bundle repositories (`TranslationOverrideRepository::flush()`,
+  `MissingTranslationLogRepository::flush()`), not with your manager's `persist()` / `flush()`.
+- **Doctrine listeners.** The private manager shares your event manager, so your `onFlush` / `postFlush` listeners see
+  the bundle's flushes as before, with `$args->getObjectManager()` being the private manager.
+- **Worker mode.** The bundle's manager is dropped at every outermost boundary (main request start / terminate,
+  Messenger message, outermost console command). Your own managers are still yours to clear when you bypass the
+  services resetter (see [FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md)).
+
+**Opt-out (deprecated, removed in 2.0):**
+
+```yaml
+nowo_translation_yaml_tools:
+    doctrine:
+        private_entity_manager: false   # pre-1.18: write through the default manager
+```
+
+With `doctrine.entity_manager: <name>` (1.17.0) nothing changes for writes; that manager is now also cleared at the
+boundaries, unless it is your default manager.
 
 ## To 1.17.1
 

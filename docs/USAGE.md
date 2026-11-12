@@ -2,6 +2,9 @@
 
 ## Table of contents
 
+- [Standard Symfony host and DDD / hexagonal host](#standard-symfony-host-and-ddd--hexagonal-host)
+  - [Standard Symfony host](#standard-symfony-host)
+  - [DDD / hexagonal host](#ddd--hexagonal-host)
 - [Commands overview](#commands-overview)
 - [Interactive selection](#interactive-selection)
 - [Examples](#examples)
@@ -22,6 +25,43 @@
 - [Bundle translations: locales and overrides](#bundle-translations-locales-and-overrides)
 - [Overriding templates (REQ-TWIG-001)](#overriding-templates-req-twig-001)
 - [Symfony 8 demo](#symfony-8-demo)
+
+## Standard Symfony host and DDD / hexagonal host
+
+The YAML commands and the `Testing` trait use no database. The two database features (missing-translation log,
+text overrides) store bundle-owned entities and never touch your entity managers (REQ-ARCH-001; full setup in
+[Configuration — Entity manager](CONFIGURATION.md#entity-manager-standard-and-ddd-hosts)).
+
+### Standard Symfony host
+
+Nothing to configure: the entities are mapped on your default manager (same connection, same migrations), and the
+bundle writes them through its own private entity manager. Use the bundle services; your `EntityManagerInterface`
+flushes only your entities:
+
+```php
+$editor->save('messages', 'site.intro', ['en' => 'Hello', 'es' => 'Hola']); // writes the texts, nothing of yours
+$entityManager->flush();                                                    // writes your entities, nothing of the bundle
+```
+
+### DDD / hexagonal host
+
+Name a dedicated manager in `nowo_translation_yaml_tools.doctrine.entity_manager`; your domain manager never maps the
+bundle entities. Reference texts by translation key (a string in your domain model) and talk to the bundle through
+its ports: `TranslationOverrideProviderInterface` (read), `TranslationOverrideEditor` (write), and the SPI interfaces
+(`MachineTranslatorInterface`, `MissingTranslationRecorderInterface`, `MissingLogUiAccessCheckerInterface`). No
+bundle base class, trait or Doctrine type reaches your domain.
+
+```php
+final class RenamePageTitle // application service of the host
+{
+    public function __construct(private TranslationOverrideEditor $texts) {}
+
+    public function __invoke(Page $page, array $titles): void
+    {
+        $this->texts->save('messages', $page->titleKey(), $titles, updatedBy: $page->editorId());
+    }
+}
+```
 
 ## Commands overview
 
@@ -280,11 +320,16 @@ use Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrideEditor;
 // prefill: override, else shipped text, per locale
 $form->get('intro')->setData($editor->currentTexts('messages', 'site.specialty.intro'));
 
-// on submit (same transaction as your entity)
+// on submit (same transaction as your entity: one connection)
 $editor->save('messages', 'site.specialty.intro', (array) $form->get('intro')->getData(), flush: false, updatedBy: $user?->getUserIdentifier());
-$entityManager->flush();
-$editor->flush(); // flushes + invalidates the cached map
+$connection->transactional(static function () use ($entityManager, $editor): void {
+    $entityManager->flush(); // your entities
+    $editor->flush();        // the texts (bundle entity manager) + invalidates the cached map
+});
 ```
+
+Since 1.18.0 your `$entityManager->flush()` alone no longer writes the staged texts (they live on the bundle's own
+entity manager); a deprecated bridge still writes them after your flush until 2.0. Call `$editor->flush()`.
 
 Other helpers: `locales()`, `defaultLocale()`, `shippedTexts()`, `overriddenLocales()`, `reset()`. Low-level reads/writes: `TranslationOverrides::get()/all()/set()/invalidate()`; read-only consumers can type-hint `TranslationOverrideProviderInterface`.
 

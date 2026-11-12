@@ -20,6 +20,7 @@
   - [W-02 — Exception during buffer persistence escapes the worker loop (Low)](#w-02--exception-during-buffer-persistence-escapes-the-worker-loop-low)
   - [W-03 — Notes (Info)](#w-03--notes-info)
   - [W-04 — Text override map memo cleared only by kernel.reset (Low)](#w-04--text-override-map-memo-cleared-only-by-kernelreset-low)
+  - [W-05 — Bundle writes went through the application's entity manager (Medium)](#w-05--bundle-writes-went-through-the-applications-entity-manager-medium)
 - [Worker test](#worker-test)
 - [Usage recommendations in worker mode](#usage-recommendations-in-worker-mode)
 - [Re-audit triggers](#re-audit-triggers)
@@ -72,6 +73,10 @@ Most of the bundle (YAML tree/sort/flatten/audit/fill-missing commands, `Service
 | `TextOverride\TranslationOverrides` | yes | `$map` (override map memo) | ✅ reset | ✅ since 1.17.1, dropped at every boundary (W-04) |
 | `TextOverride\EventSubscriber\TranslationOverridesClearSubscriber` | yes | `$consoleDepth`, `$messageInFlight` (no request data) | ✅ | ✅ |
 | `TextOverride\Repository\TranslationOverrideRepository`, `TranslationOverrideEditor`, Web UI controller | yes | none; manager resolved per call, closed manager reset by name | ✅ | ✅ |
+| `Doctrine\TranslationYamlToolsEntityManager` (1.18.0, private manager, zero config) | yes | `$current` (the bundle's own unit of work), `$stale` | ✅ reset | ✅ dropped at every outermost boundary (W-05); replaced when closed, on another connection, or stale after a rollback without pending work |
+| `Doctrine\TranslationYamlToolsManagerRegistry`, `PrivateEntityManagerMiddleware` / `Driver` / `Connection` | yes | none (`readonly`); the connection wrapper only reports rollbacks | ✅ | ✅ |
+| `Doctrine\PrivateEntityManagerFlushBridge` (deprecated bridge) | yes | `$flushing` re-entrancy guard, unset in `finally` | ✅ | ✅ |
+| `EventSubscriber\EntityManagerBoundarySubscriber` (1.18.0) | yes | `$consoleDepth`, `$messageInFlight`, `$requestInFlight` (no request data) | ✅ | ✅ |
 | 7 console commands (+ abstract base), 7 `Service\*` classes, 7 `MachineTranslation\*` classes | yes | none, except `ThrottledMachineTranslator::$lastCallAt` | ✅ N/A (CLI) | ✅ N/A (CLI) |
 
 The entity (`Entity\MissingTranslationLog`), buffer message/event and `MissingTranslationRecordContext` are created per call and never stored in a service.
@@ -109,6 +114,23 @@ The entity (`Entity\MissingTranslationLog`), buffer message/event and `MissingTr
 - **Worker impact (1.6.0–1.17.0):** under **B** the memo was dropped only by `reset()` (`kernel.reset`) or by `invalidate()` after a write through the same instance. A worker kept the map it loaded first and never saw overrides saved, changed or removed by another worker or process (the shared cache entry was dropped, but the in-memory memo was not), until it saved an override itself. No cross-user data: the map is the same for every user. Under **A** (stock `Kernel::handle()`) there was no effect.
 - **Status:** Resolved in 1.17.1 — `TextOverride\EventSubscriber\TranslationOverridesClearSubscriber` (registered by the bundle when overrides are enabled) calls `reset()` at the start of every main request (priority 4096) and at `kernel.terminate`; on `WorkerMessageReceivedEvent` (4096) and `WorkerMessageHandledEvent` / `WorkerMessageFailedEvent` (-4096); and on `console.command` (4096) / `console.terminate` (-4096) for the outermost command only, outside a Messenger message. A command run in-process from another command or from a message handler (`Application::doRun()`) keeps the outer unit's memo (console depth counter plus an in-flight flag, unset on handled, failed and `WorkerStoppedEvent`; same pattern as BeaconBundle 1.24.0). The memo arrives as an `IGNORE_ON_UNINITIALIZED_REFERENCE` reference, so a boundary never builds it. The Messenger events are subscribed by name (symfony/messenger stays optional).
 
+### W-05 — Bundle writes went through the application's entity manager (Medium)
+
+- **Where (≤ 1.17.x):** `TranslationOverrideRepository::flush()` and `MissingTranslationLogRepository::flush()` on the
+  manager returned by `getManagerForClass()`, i.e. the application's default manager when `doctrine.entity_manager`
+  is unset. Bundle rows stayed managed by it until `kernel.reset`, and a bundle flush committed whatever the
+  application had left pending (REQ-ARCH-001 rule 6).
+- **Status:** Resolved in 1.18.0 — zero config writes through `Doctrine\TranslationYamlToolsEntityManager`, a private
+  manager on the same connection, configuration, event manager and SQL filters. `EventSubscriber\EntityManagerBoundarySubscriber`
+  drops it (or clears the dedicated `doctrine.entity_manager`, recreating it by name when closed; never the host's
+  default manager) at the main `kernel.request` (4096) / `kernel.terminate` (-4096, after the missing-log flush at
+  -1024), on `WorkerMessageReceivedEvent` (4096) / `WorkerMessageHandledEvent` / `WorkerMessageFailedEvent` (-4096), and
+  on the outermost `console.command` / `console.terminate`. Not inside a nested command, a command run from a request
+  or a message, or a request handled from a command or a message (console depth counter, message flag unset on
+  `WorkerStoppedEvent` too, request flag set on the main request and unset on its `kernel.finish_request`). The
+  managers arrive as `IGNORE_ON_UNINITIALIZED_REFERENCE` references, so a boundary never builds one. The private
+  manager is also tagged `kernel.reset`.
+
 No High findings: no user, token or request data is kept in any service beyond the request that produced it.
 
 ## Worker test
@@ -121,12 +143,21 @@ No High findings: no user, token or request data is kept in any service beyond t
 - tenants A (English) and B (Spanish) alternate; before every unit, another worker edits both overrides in the database and drops the shared cache entry. Each unit must render its own locale's latest text. Memory margin: 1 MiB after a 50-unit warm-up;
 - nested `doRun()` from a command and from a message handler keeps the outer unit's memo; the outermost boundary still drops it.
 
-Without the subscriber, all five tests fail (the units keep rendering revision 0). `tests/Functional/Worker/WorkerEntityManagerRecoveryTest.php` covers the closed-manager recovery (20 requests). Static checks: `composer igor` (CI) and the PHPStan FrankenPHP worker ruleset (`phpstan.neon.dist`) pass.
+Without the subscriber, all five tests fail (the units keep rendering revision 0).
+
+`tests/Functional/Worker/WorkerPrivateEntityManagerTest.php` (1.18.0, kernel `tests/Kernel/PrivateEntityManagerTestKernel.php`,
+zero config): 400 iterations / 800 requests through `http_kernel`, no services resetter, locales `en` and `es` in
+alternation. Each iteration stages a host entity on the application's manager (never flushed by the host), saves the
+greeting of one locale and reads the other one's. Asserts: each response holds only its locale's latest text; the host
+insert is still pending and no host row exists (the bundle never flushed the host's identity map); the private
+manager is dropped at `kernel.terminate`; the missing-log hits arrive (one per request and locale). Memory margin:
+1 MiB after a 50-iteration warm-up. `tests/Integration/PrivateEntityManager/` covers rollback / savepoint staleness,
+a failed bundle flush, SQL filters and nested commands. `tests/Functional/Worker/WorkerEntityManagerRecoveryTest.php` covers the closed-manager recovery (20 requests). Static checks: `composer igor` (CI) and the PHPStan FrankenPHP worker ruleset (`phpstan.neon.dist`) pass.
 
 ## Usage recommendations in worker mode
 
 - Keeping `services_resetter` / `kernel.reset` active is still recommended for framework services, but the bundle no longer depends on it.
-- **Host rule (REQ-RUNTIME-002 rule 7):** a host that disables or bypasses the services resetter must also clear its own entity managers at every boundary (main request start or end, Messenger message, console command); otherwise its identity map serves stale rows across requests. The bundle's own repositories resolve the manager per call, reset a closed one by name and read the override map with array hydration.
+- **Host rule (REQ-RUNTIME-002 rule 7):** a host that disables or bypasses the services resetter must also clear its own entity managers at every boundary (main request start or end, Messenger message, console command); otherwise its identity map serves stale rows across requests. The bundle's own repositories resolve the manager per call, reset a closed one by name and read the override map with array hydration. Since 1.18.0 the bundle writes through its own (private or dedicated) manager and clears it at the boundaries itself; it never clears yours.
 - In production, prefer `missing_translation_log.async_persist: true` with an async transport so no DB write happens in `kernel.terminate` of the HTTP worker.
 - Set `record_request_context: false` if request paths must not be stored (privacy); this does not affect worker safety.
 - Do not use the machine-translation services (`MachineTranslatorInterface`, `ThrottledMachineTranslator`) from HTTP controllers; they are designed for CLI runs.
@@ -134,4 +165,4 @@ Without the subscriber, all five tests fail (the units keep rendering revision 0
 
 ## Re-audit triggers
 
-Re-run this audit when a change adds: new properties to `RecordingTranslatorDecorator` or the recorder; a catalogue or "already recorded" cache that spans requests; a flush point other than `kernel.terminate`; new HTTP-facing services that use the machine translators; ORM writes in `persistBuffer()`; or any use of `$_SERVER` / `$_ENV` at runtime.
+Re-run this audit when a change adds: new properties to `RecordingTranslatorDecorator` or the recorder; a catalogue or "already recorded" cache that spans requests; a flush point other than `kernel.terminate`; new HTTP-facing services that use the machine translators; ORM writes in `persistBuffer()`; a write path that does not go through the bundle repositories (and so through the private or dedicated manager); or any use of `$_SERVER` / `$_ENV` at runtime.
