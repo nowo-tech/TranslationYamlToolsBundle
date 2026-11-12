@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.18.2](#to-1182)
 - [To 1.18.1](#to-1181)
 - [To 1.18.0](#to-1180)
 - [To 1.17.1](#to-1171)
@@ -68,6 +69,18 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.18.2
+
+From **1.18.1**:
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
+
+Patch release, no configuration change, no migration. A unit-of-work boundary now drops the bundle's private entity
+manager before it inspects the unflushed work, so a manager whose unit of work throws is never kept (audit NX). The
+boundary logs a warning instead of throwing. Nothing to do in host code.
 
 ## To 1.18.1
 
