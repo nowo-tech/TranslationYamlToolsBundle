@@ -63,6 +63,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Tests
+
+- CI: the coverage run is now `composer test-coverage-100` (new script over the existing `scripts/check-coverage.php`), so a pull request that drops coverage below **100%** fails the build; before, nothing in CI checked a threshold. The suite is already at 100%.
+
 ## [1.18.4] - 2026-11-13
 
 ### Fixed
