@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.18.4](#to-1184)
 - [To 1.18.3](#to-1183)
 - [To 1.18.2](#to-1182)
 - [To 1.18.1](#to-1181)
@@ -70,6 +71,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.18.4
+
+From **1.18.3**:
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
 
 ## To 1.18.3
 
