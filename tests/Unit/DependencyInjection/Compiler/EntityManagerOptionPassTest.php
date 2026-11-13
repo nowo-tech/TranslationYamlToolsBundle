@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\DependencyInjection\Compiler;
 
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\EntityManagerOptionPass;
+use Nowo\TranslationYamlToolsBundle\Doctrine\ExcludedEntityNamespaceDriver;
 use Nowo\TranslationYamlToolsBundle\EventSubscriber\EntityManagerBoundarySubscriber;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
@@ -12,8 +13,10 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 
+use function array_map;
 use function restore_error_handler;
 use function set_error_handler;
 
@@ -68,7 +71,40 @@ final class EntityManagerOptionPassTest extends TestCase
         (new EntityManagerOptionPass())->process($container);
 
         self::assertCount(1, $container->getDefinition('doctrine.orm.bundle_metadata_driver')->getMethodCalls());
-        self::assertCount(1, $container->getDefinition('doctrine.orm.default_metadata_driver')->getMethodCalls());
+        // App\Entity plus a driver that maps nothing for each bundle entity namespace.
+        self::assertCount(3, $container->getDefinition('doctrine.orm.default_metadata_driver')->getMethodCalls());
+    }
+
+    /**
+     * DoctrineBundle 3.4 `auto_discover_entities` gives a manager's chain a default driver that claims every entity
+     * class: every other manager gets a driver that maps nothing for each bundle entity namespace, first in its chain
+     * (before the host's drivers and the default driver); the configured manager keeps its own. Idempotent.
+     */
+    public function testOtherManagersGetAnExcludedDriverFirstForEachBundleNamespace(): void
+    {
+        $textOverrides = 'Nowo\\TranslationYamlToolsBundle\\TextOverride\\Entity';
+        $container     = $this->container('bundle', ['default' => ['App\\Entity', self::ENTITIES], 'bundle' => [self::ENTITIES, $textOverrides], 'reports' => []]);
+        $container->getDefinition('doctrine.orm.default_metadata_driver')->addMethodCall('setDefaultDriver', [new Reference('auto_discover')]);
+
+        for ($run = 0; $run < 2; ++$run) {
+            (new EntityManagerOptionPass())->process($container);
+
+            $calls = static fn (string $manager): array => array_map(
+                static fn (array $call): array => [$call[0], $call[1][1] ?? null, $call[1][0] instanceof Definition ? $call[1][0]->getClass() : (string) $call[1][0]],
+                $container->getDefinition('doctrine.orm.' . $manager . '_metadata_driver')->getMethodCalls(),
+            );
+            self::assertSame([
+                ['addDriver', self::ENTITIES, ExcludedEntityNamespaceDriver::class],
+                ['addDriver', $textOverrides, ExcludedEntityNamespaceDriver::class],
+                ['addDriver', 'App\\Entity', 'driver'],
+                ['setDefaultDriver', null, 'auto_discover'],
+            ], $calls('default'), 'run ' . $run);
+            self::assertSame([
+                ['addDriver', self::ENTITIES, ExcludedEntityNamespaceDriver::class],
+                ['addDriver', $textOverrides, ExcludedEntityNamespaceDriver::class],
+            ], $calls('reports'), 'run ' . $run);
+            self::assertSame([['addDriver', self::ENTITIES, 'driver'], ['addDriver', $textOverrides, 'driver']], $calls('bundle'), 'run ' . $run);
+        }
     }
 
     public function testOtherDriverCallsAreKept(): void
@@ -81,6 +117,7 @@ final class EntityManagerOptionPassTest extends TestCase
         (new EntityManagerOptionPass())->process($container);
 
         self::assertCount(2, $container->getDefinition('doctrine.orm.bundle_metadata_driver')->getMethodCalls());
+        self::assertCount(2, $container->getDefinition('doctrine.orm.default_metadata_driver')->getMethodCalls(), 'the excluded drivers');
     }
 
     /**

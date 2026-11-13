@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler;
 
+use Nowo\TranslationYamlToolsBundle\Doctrine\ExcludedEntityNamespaceDriver;
 use Nowo\TranslationYamlToolsBundle\EventSubscriber\EntityManagerBoundarySubscriber;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 
 use function array_keys;
+use function array_merge;
 use function implode;
 use function is_array;
 use function is_string;
@@ -26,8 +29,11 @@ use function trigger_deprecation;
  * The build fails when the configured entity manager does not exist or does not map the bundle entities.
  *
  * DoctrineBundle's `auto_mapping` (the Flex default on the default manager) maps every bundle's `Entity` directory;
- * the bundle namespace is removed from the mapping driver chain of every other manager, so the entities live on the
- * configured manager only and getManagerForClass() returns it.
+ * the bundle namespaces are removed from the mapping driver chain of every other manager, and an
+ * {@see ExcludedEntityNamespaceDriver} is registered for each of them first in those chains instead, so a default
+ * driver of the chain cannot claim the entities either (DoctrineBundle 3.4 `auto_discover_entities`). The entities live
+ * on the configured manager only and getManagerForClass() returns it. Only the public `addDriver()` of the documented
+ * `doctrine.orm.<manager>_metadata_driver` chain is used.
  *
  * Since 1.18.0 (REQ-RUNTIME-002 rule 4) it also hands that manager to {@see EntityManagerBoundarySubscriber}, which
  * clears it at the outermost boundaries, unless it is the host's default manager (the host clears its own managers,
@@ -86,6 +92,14 @@ final class EntityManagerOptionPass implements CompilerPassInterface
 
                 $maps    = $maps || ($manager === $name && $this->isBundleNamespace($namespace, true));
                 $calls[] = $call;
+            }
+            if ($manager !== $name) {
+                // First in the chain: a chain asks its namespace drivers in order, then its default driver.
+                $excluded = [];
+                foreach (self::ENTITY_NAMESPACES as $bundleNamespace) {
+                    $excluded[] = ['addDriver', [new Definition(ExcludedEntityNamespaceDriver::class), $bundleNamespace]];
+                }
+                $calls = array_merge($excluded, $calls);
             }
             $chain->setMethodCalls($calls);
 
