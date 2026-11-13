@@ -7,18 +7,29 @@ namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\TextOverride\EventSubscribe
 use Nowo\TranslationYamlToolsBundle\Tests\Support\BoundaryDriver;
 use Nowo\TranslationYamlToolsBundle\TextOverride\EventSubscriber\TranslationOverridesClearSubscriber;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
+use stdClass;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\ConsoleEvents;
+use Symfony\Component\Console\Event\ConsoleCommandEvent;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageHandledEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageReceivedEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageSkipEvent;
+use Symfony\Component\Messenger\Event\WorkerRunningEvent;
+use Symfony\Component\Messenger\Event\WorkerStartedEvent;
 use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
+use Symfony\Component\Messenger\Worker;
 use Symfony\Contracts\Service\ResetInterface;
 
 use const PHP_INT_MAX;
+use const PHP_INT_MIN;
 
 final class TranslationOverridesClearSubscriberTest extends TestCase
 {
@@ -31,7 +42,9 @@ final class TranslationOverridesClearSubscriberTest extends TestCase
         self::assertSame(['onRequest', PHP_INT_MAX], $events[KernelEvents::REQUEST]);
         self::assertSame(['onFinishRequest', PHP_INT_MAX], $events[KernelEvents::FINISH_REQUEST]);
         self::assertSame([['onRequestBoundaryEnded', PHP_INT_MAX], ['clearState', 0]], $events[KernelEvents::TERMINATE]);
-        self::assertSame(['onMessageReceived', PHP_INT_MAX], $events[WorkerMessageReceivedEvent::class]);
+        self::assertSame([['onMessageReceived', PHP_INT_MAX], ['onMessageReceivedDecided', PHP_INT_MIN]], $events[WorkerMessageReceivedEvent::class]);
+        self::assertSame(['onWorkerStarted', PHP_INT_MAX], $events[WorkerStartedEvent::class]);
+        self::assertSame(['onWorkerRunning', PHP_INT_MAX], $events[WorkerRunningEvent::class]);
         self::assertSame([['onMessageEnded', PHP_INT_MAX], ['clearState', -4096]], $events[WorkerMessageHandledEvent::class]);
         self::assertSame([['onMessageEnded', PHP_INT_MAX], ['clearState', -4096]], $events[WorkerMessageFailedEvent::class]);
         self::assertSame(['onMessageEnded', PHP_INT_MAX], $events[WorkerMessageSkipEvent::class]);
@@ -136,5 +149,25 @@ final class TranslationOverridesClearSubscriberTest extends TestCase
         $dispatcher->addSubscriber(new TranslationOverridesClearSubscriber([$counter]));
 
         return new BoundaryDriver($dispatcher, $this->createStub(HttpKernelInterface::class));
+    }
+
+    /**
+     * Audit NX: the worker events keep each worker's own message state; a skipped message ends.
+     */
+    public function testWorkerEventsTrackTheMessageOfEachWorker(): void
+    {
+        $memo = $this->createMock(ResetInterface::class);
+        $memo->expects(self::exactly(2))->method('reset');
+        $subscriber = new TranslationOverridesClearSubscriber([$memo]);
+        $worker     = (new ReflectionClass(Worker::class))->newInstanceWithoutConstructor();
+        $received   = new WorkerMessageReceivedEvent(new Envelope(new stdClass()), 'async');
+
+        $subscriber->onWorkerStarted(new WorkerStartedEvent($worker));
+        $subscriber->onMessageReceived($received);
+        $received->shouldHandle(false);
+        $subscriber->onMessageReceivedDecided($received);
+        $subscriber->onWorkerRunning(new WorkerRunningEvent($worker, true));
+        $subscriber->onWorkerStopped(new WorkerStoppedEvent($worker));
+        $subscriber->onConsoleCommand(new ConsoleCommandEvent(new Command('app:after'), new ArrayInput([]), new NullOutput()));
     }
 }

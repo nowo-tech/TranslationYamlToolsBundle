@@ -81,6 +81,8 @@ Most of the bundle (YAML tree/sort/flatten/audit/fill-missing commands, `Service
 | `EventSubscriber\EntityManagerBoundarySubscriber` (1.18.0) | yes | unit-of-work frames, message flag and main-request counter (`UnitOfWorkFrames`, 1.18.1; no request data) | ✅ | ✅ |
 | 7 console commands (+ abstract base), 7 `Service\*` classes, 7 `MachineTranslation\*` classes | yes | none, except `ThrottledMachineTranslator::$lastCallAt` | ✅ N/A (CLI) | ✅ N/A (CLI) |
 
+Note (audit OB2): with a custom asynchronous Messenger `MessageExecutionStrategyInterface` the tracker loses its nested-worker protection (a worker run inside a handler may clear the outer message's unit); the boundary clears still happen.
+
 The entity (`Entity\MissingTranslationLog`), buffer message/event and `MissingTranslationRecordContext` are created per call and never stored in a service.
 
 ## Findings

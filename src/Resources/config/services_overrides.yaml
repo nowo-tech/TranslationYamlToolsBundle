@@ -31,6 +31,7 @@ services:
         arguments:
             $resettables: !iterator
                 - '@!Nowo\TranslationYamlToolsBundle\TextOverride\TranslationOverrides'
+            $requestStack: '@?request_stack'
         tags:
             - { name: kernel.event_subscriber }
 
