@@ -4,20 +4,24 @@ declare(strict_types=1);
 
 namespace App\Form;
 
-use Symfony\Component\Form\AbstractType;
+use Nowo\FormKitBundle\Attribute\FormKitConfig;
+use Nowo\FormKitBundle\Form\FormKitAbstractType;
+use Override;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Demo login form (REQ-TWIG-005 rule 8): the field names form_login reads — `_username`, `_password` and the
- * `_csrf_token` checked with token id `authenticate` (enable_csrf: true).
+ * Demo login form (REQ-TWIG-005 rule 8, REQ-DEMO-015 FormKit profile `demo`): the field names form_login reads —
+ * `_username`, `_password` and the `_csrf_token` checked with token id `authenticate` (enable_csrf: true).
  *
- * @extends AbstractType<array<string, mixed>>
+ * @extends FormKitAbstractType<array<string, mixed>>
  */
-final class LoginFormType extends AbstractType
+#[FormKitConfig('demo')]
+final class LoginFormType extends FormKitAbstractType
 {
+    #[Override]
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -32,6 +36,7 @@ final class LoginFormType extends AbstractType
             ]);
     }
 
+    #[Override]
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
@@ -43,6 +48,7 @@ final class LoginFormType extends AbstractType
         $resolver->setAllowedTypes('last_username', 'string');
     }
 
+    #[Override]
     public function getBlockPrefix(): string
     {
         return '';

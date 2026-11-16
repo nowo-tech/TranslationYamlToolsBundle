@@ -3,25 +3,27 @@
 {% block title %}Login — Translation YAML Tools demo{% endblock %}
 
 {% block body %}
-    <main style="max-width: 28rem; margin: 2rem auto; font-family: system-ui, sans-serif;">
-        <h1>Demo login</h1>
-        <p>Required for the <strong>missing-log Web UI</strong> (<code>ROLE_ADMIN</code>).</p>
-        <p style="color: #555;">Credentials: <code>admin</code> / <code>admin</code> (local demos only).</p>
+    <div class="nowo-ui-page-header"><h1 class="nowo-ui-page-header__title">Demo login</h1></div>
+    <section class="nowo-ui-card">
+        <div class="nowo-ui-card__body">
+            <p>Required for the <strong>missing-log Web UI</strong> (<code class="nowo-ui-code">ROLE_ADMIN</code>).</p>
+            <p class="nowo-ui-muted">Credentials: <code class="nowo-ui-code">admin</code> / <code class="nowo-ui-code">admin</code> (local demos only).</p>
 
-        {% if error %}
-            <p style="color: #b00020;" role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
-        {% endif %}
+            {% if error %}
+                <div class="nowo-ui-flash nowo-ui-flash--error" role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            {% endif %}
 
-        {# REQ-TWIG-005 rule 8: LoginFormType maps _username / _password / _csrf_token (authenticate). #}
-        {{ form_start(form) }}
-            {% for child in form %}
-                {% if not child.rendered %}
-                    {{ form_row(child) }}
-                {% endif %}
-            {% endfor %}
-            <button type="submit">Sign in</button>
-        {{ form_end(form) }}
+            {# REQ-TWIG-005 rule 8: LoginFormType maps _username / _password / _csrf_token (authenticate). #}
+            {{ form_start(form) }}
+                {% for child in form %}
+                    {% if not child.rendered %}
+                        {{ form_row(child) }}
+                    {% endif %}
+                {% endfor %}
+                <button type="submit" class="nowo-ui-btn nowo-ui-btn--primary">Sign in</button>
+            {{ form_end(form) }}
 
-        <p style="margin-top: 1.5rem;"><a href="{{ path('demo_home') }}">← Back to home</a></p>
-    </main>
+            <p><a class="nowo-ui-link" href="{{ path('demo_home') }}">← Back to home</a></p>
+        </div>
+    </section>
 {% endblock %}

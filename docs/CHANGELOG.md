@@ -63,6 +63,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Demo
+
+- The demo is built on UiKit and FormKit (REQ-DEMO-014 / REQ-DEMO-015): the Bootstrap and Bootstrap Icons CDN links and the hand-written page styles are gone, every demo page extends one UiKit admin shell with its default theme (also the layout of the missing-log UI and the text-overrides desk), and the login form is a FormKit type themed by the `demo` profile on UiKit's form theme. No bundle runtime change.
+
 ### Docs
 
 - Spec Kit inventory refreshed to 113/113 production units with new FRs (private entity manager, boundary subscribers, key command, UI page factories); `docs/FRANKENPHP-WORKER-AUDIT.md` gains the 1.18.3 and 1.18.4 remediation rows.

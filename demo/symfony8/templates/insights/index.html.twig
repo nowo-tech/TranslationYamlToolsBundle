@@ -1,178 +1,136 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Translation YAML Tools — demo</title>
-    <style>
-        :root { color-scheme: light; }
-        body {
-            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            margin: 0;
-            line-height: 1.55;
-            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-            color: #0f172a;
-        }
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 2rem 1rem 3rem;
-        }
-        h1 { margin: 0 0 .4rem; font-size: 1.9rem; }
-        h2 { margin: 0 0 .8rem; font-size: 1.25rem; }
-        h3 { margin: 1rem 0 .5rem; font-size: 1.05rem; }
-        p.lead { margin: 0 0 1rem; color: #334155; }
-        section {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1rem 1.1rem;
-            margin: 0 0 1rem;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
-        }
-        table { border-collapse: collapse; width: 100%; margin: .8rem 0; overflow: hidden; border-radius: 8px; }
-        th, td { border: 1px solid #e2e8f0; padding: 0.48rem 0.65rem; text-align: left; vertical-align: top; }
-        th { background: #f8fafc; }
-        tr:nth-child(even) td { background: #fcfdff; }
-        code { background: #e2e8f0; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.88em; }
-        pre { background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: .9rem; overflow: auto; }
-        pre code { background: transparent; color: inherit; padding: 0; }
-        .missing { color: #b91c1c; font-weight: 600; }
-        .ok { color: #15803d; font-weight: 600; }
-        ul.compact { margin: 0.2rem 0; padding-left: 1.2rem; }
-        .demo-menu { margin: 0 0 1rem; display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; }
-        .demo-menu-title { margin-right: .25rem; color: #334155; }
-        .demo-menu-link {
-            text-decoration: none;
-            color: #0f172a;
-            border: 1px solid #cbd5e1;
-            background: #fff;
-            border-radius: 999px;
-            padding: .28rem .7rem;
-            font-size: .9rem;
-        }
-        .demo-menu-link:hover { background: #f1f5f9; }
-        .demo-menu-link.is-active { background: #2563eb; border-color: #2563eb; color: #fff; }
-    </style>
-</head>
-<body>
-<main class="container">
-<h1>Translation YAML Tools — demo ({{ demo_label }})</h1>
-{% include 'insights/_demo_menu.html.twig' %}
-<p class="lead">This page validates <strong>default locale</strong>, <strong>enabled locales</strong>, <strong>YAML locations</strong> (including an extra <code>translations_extra/</code> path), and <strong>missing files / keys</strong> per domain versus the default locale.</p>
+{#- REQ-DEMO-014: UiKit page in the demo shell (base.html.twig); no foreign CSS. -#}
+{% extends 'base.html.twig' %}
 
-<section>
-    <h2>Symfony / Translator</h2>
+{% block title %}Translation YAML Tools — insights{% endblock %}
+
+{% block body %}
+{% include 'insights/_demo_menu.html.twig' %}
+<div class="nowo-ui-page-header"><h1 class="nowo-ui-page-header__title">Translation YAML Tools — demo ({{ demo_label }})</h1></div>
+<p>This page validates <strong>default locale</strong>, <strong>enabled locales</strong>, <strong>YAML locations</strong> (including an extra <code class="nowo-ui-code">translations_extra/</code> path), and <strong>missing files / keys</strong> per domain versus the default locale.</p>
+
+<section class="nowo-ui-card">
+    <div class="nowo-ui-card__header"><h2 class="nowo-ui-card__title">Symfony / Translator</h2></div>
+    <div class="nowo-ui-card__body">
     <ul>
-        <li><strong>translator.default_locale</strong>: <code>{{ report.defaultLocale }}</code></li>
-        <li><strong>kernel.enabled_locales</strong>: {% for loc in report.enabledLocales %}<code>{{ loc }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</li>
-        <li><strong>translator.fallback_locales</strong>: {% if report.fallbackLocales|length %}{% for loc in report.fallbackLocales %}<code>{{ loc }}</code>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}<em>(none)</em>{% endif %}</li>
-        <li><strong>Bundle <code>TranslationDefaultLocaleResolver</code></strong> (respects <code>nowo_translation_yaml_tools.default_locale</code> when set): <code>{{ report.bundleResolvedDefaultLocale }}</code></li>
+        <li><strong>translator.default_locale</strong>: <code class="nowo-ui-code">{{ report.defaultLocale }}</code></li>
+        <li><strong>kernel.enabled_locales</strong>: {% for loc in report.enabledLocales %}<code class="nowo-ui-code">{{ loc }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</li>
+        <li><strong>translator.fallback_locales</strong>: {% if report.fallbackLocales|length %}{% for loc in report.fallbackLocales %}<code class="nowo-ui-code">{{ loc }}</code>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}<em>(none)</em>{% endif %}</li>
+        <li><strong>Bundle <code class="nowo-ui-code">TranslationDefaultLocaleResolver</code></strong> (respects <code class="nowo-ui-code">nowo_translation_yaml_tools.default_locale</code> when set): <code class="nowo-ui-code">{{ report.bundleResolvedDefaultLocale }}</code></li>
     </ul>
+    </div>
 </section>
 
-<section>
-    <h2>Resolved translation directories</h2>
-    <p>Same resolution as the bundle commands (<code>translator.default_path</code> + <code>framework.translator.paths</code> from YAML).</p>
+<section class="nowo-ui-card">
+    <div class="nowo-ui-card__header"><h2 class="nowo-ui-card__title">Resolved translation directories</h2></div>
+    <div class="nowo-ui-card__body">
+    <p>Same resolution as the bundle commands (<code class="nowo-ui-code">translator.default_path</code> + <code class="nowo-ui-code">framework.translator.paths</code> from YAML).</p>
     <ul>
         {% for dir in report.directories %}
-            <li><code>{{ dir }}</code></li>
+            <li><code class="nowo-ui-code">{{ dir }}</code></li>
         {% endfor %}
     </ul>
     <p><em>Hints:</em></p>
-    <ul class="compact">
+    <ul>
         {% for line in report.directorySourcesHelp %}
             <li>{{ line }}</li>
         {% endfor %}
     </ul>
+    </div>
 </section>
 
-<section>
-    <h2>Domains &amp; YAML files</h2>
+<section class="nowo-ui-card">
+    <div class="nowo-ui-card__header"><h2 class="nowo-ui-card__title">Domains &amp; YAML files</h2></div>
+    <div class="nowo-ui-card__body">
     {% for domain in report.domains %}
-        <h3>Domain <code>{{ domain.name }}</code></h3>
-        <table>
+        <h3 class="nowo-ui-card__title">Domain <code class="nowo-ui-code">{{ domain.name }}</code></h3>
+        <div class="nowo-ui-table-wrap"><table class="nowo-ui-table nowo-ui-table--striped">
             <thead>
             <tr>
-                <th>Locale</th>
-                <th>YAML file</th>
-                <th>Enabled locale missing file?</th>
+                <th class="nowo-ui-table__head-cell">Locale</th>
+                <th class="nowo-ui-table__head-cell">YAML file</th>
+                <th class="nowo-ui-table__head-cell">Enabled locale missing file?</th>
             </tr>
             </thead>
             <tbody>
             {% for loc, path in domain.files %}
                 <tr>
-                    <td><code>{{ loc }}</code></td>
-                    <td>{% if path %}<code>{{ path }}</code>{% else %}—{% endif %}</td>
+                    <td><code class="nowo-ui-code">{{ loc }}</code></td>
+                    <td>{% if path %}<code class="nowo-ui-code">{{ path }}</code>{% else %}—{% endif %}</td>
                     <td>—</td>
                 </tr>
             {% endfor %}
             {% for loc in domain.missingFilesForEnabledLocales %}
                 <tr>
-                    <td><code>{{ loc }}</code></td>
-                    <td class="missing">—</td>
-                    <td class="missing">Yes (expected in this demo for some locales)</td>
+                    <td><code class="nowo-ui-code">{{ loc }}</code></td>
+                    <td><span class="nowo-ui-badge nowo-ui-badge--error">—</span></td>
+                    <td><span class="nowo-ui-badge nowo-ui-badge--error">Yes (expected in this demo for some locales)</span></td>
                 </tr>
             {% endfor %}
             </tbody>
-        </table>
+        </table></div>
 
         {% if domain.missingKeysVsDefault|length %}
-            <p><strong>Keys present in default locale (<code>{{ report.defaultLocale }}</code>) but missing in other files:</strong></p>
-            <table>
+            <p><strong>Keys present in default locale (<code class="nowo-ui-code">{{ report.defaultLocale }}</code>) but missing in other files:</strong></p>
+            <div class="nowo-ui-table-wrap"><table class="nowo-ui-table nowo-ui-table--striped">
                 <thead>
-                <tr><th>Locale</th><th>Missing keys</th></tr>
+                <tr><th class="nowo-ui-table__head-cell">Locale</th><th class="nowo-ui-table__head-cell">Missing keys</th></tr>
                 </thead>
                 <tbody>
                 {% for loc, keys in domain.missingKeysVsDefault %}
                     <tr>
-                        <td><code>{{ loc }}</code></td>
-                        <td><ul class="compact">{% for k in keys %}<li><code>{{ k }}</code></li>{% endfor %}</ul></td>
+                        <td><code class="nowo-ui-code">{{ loc }}</code></td>
+                        <td><ul>{% for k in keys %}<li><code class="nowo-ui-code">{{ k }}</code></li>{% endfor %}</ul></td>
                     </tr>
                 {% endfor %}
                 </tbody>
-            </table>
+            </table></div>
         {% else %}
-            <p class="ok">No key gaps vs default for loaded locale files in this domain.</p>
+            <p><span class="nowo-ui-badge nowo-ui-badge--success">OK</span> No key gaps vs default for loaded locale files in this domain.</p>
         {% endif %}
     {% endfor %}
+    </div>
 </section>
 
 {% if app.environment == 'dev' %}
-<section>
-    <h2>Missing translation log (dev)</h2>
-    <p>Runtime missing keys are recorded in SQLite (<code>demo_translation_missing_log</code>) with <strong>async_persist</strong> + <strong>event_dispatcher</strong> (no Messenger). After loading this page, open the UI or run <code>nowo:translation-yaml:missing-log-list</code>.</p>
-    <p><strong>Probes</strong> (ids intentionally absent from YAML — inspect the Web UI or SQLite: <code>call_site</code> is the backtrace <strong>file:line</strong> only; <code>request_route</code>, <code>request_method</code>, and <code>request_path</code> hold the HTTP context when <code>record_request_context</code> is on, which it is by default in this demo):</p>
-    <ul class="compact">
-        <li><strong>Twig <code>|trans</code> (this template):</strong> <code>{{ 'nowo_demo.missing_log_probe'|trans({}, 'messages') }}</code> — often <code>call_site</code> is under <code>var/cache/.../twig/*.php</code>, not this <code>.twig</code> line.</li>
-        <li><strong>Twig <code>|trans</code> (second key):</strong> <code>{{ 'nowo_demo.missing_from_twig_filter'|trans({}, 'messages') }}</code></li>
-        <li><strong>Twig <code>|trans</code> with parameters:</strong> <code>{{ 'nowo_demo.missing_from_twig_with_params'|trans({'%count%': 3}, 'messages') }}</code></li>
-        <li><strong>Twig <code>|trans</code> in custom domain:</strong> <code>{{ 'nowo_demo.missing_from_twig_custom_domain'|trans({}, 'demo_runtime') }}</code></li>
-        <li><strong>Twig <code>|trans</code> with forced locale <code>fr</code>:</strong> <code>{{ 'nowo_demo.missing_from_twig_forced_locale'|trans({}, 'messages', 'fr') }}</code></li>
-        <li><strong>Twig <code>{% verbatim %}{% trans %}{% endverbatim %}</code> tag:</strong> {% trans from 'messages' %}nowo_demo.missing_from_twig_tag{% endtrans %}</li>
-        <li><strong>PHP controller</strong> (same request, before render): <code>nowo_demo.missing_from_controller</code> — <code>call_site</code> should point at <code>TranslationInsightsController.php</code>; the request columns should match this page's route and path.</li>
-        <li><strong>PHP controller</strong> with params: <code>nowo_demo.missing_from_controller_with_params</code> (domain <code>messages</code>)</li>
-        <li><strong>PHP controller</strong> custom domain: <code>nowo_demo.missing_in_custom_domain</code> (domain <code>demo_runtime</code>)</li>
-        <li><strong>PHP controller</strong> forced locale: <code>nowo_demo.missing_forced_locale</code> (locale <code>fr</code>)</li>
+<section class="nowo-ui-card">
+    <div class="nowo-ui-card__header"><h2 class="nowo-ui-card__title">Missing translation log (dev)</h2></div>
+    <div class="nowo-ui-card__body">
+    <p>Runtime missing keys are recorded in SQLite (<code class="nowo-ui-code">demo_translation_missing_log</code>) with <strong>async_persist</strong> + <strong>event_dispatcher</strong> (no Messenger). After loading this page, open the UI or run <code class="nowo-ui-code">nowo:translation-yaml:missing-log-list</code>.</p>
+    <p><strong>Probes</strong> (ids intentionally absent from YAML — inspect the Web UI or SQLite: <code class="nowo-ui-code">call_site</code> is the backtrace <strong>file:line</strong> only; <code class="nowo-ui-code">request_route</code>, <code class="nowo-ui-code">request_method</code>, and <code class="nowo-ui-code">request_path</code> hold the HTTP context when <code class="nowo-ui-code">record_request_context</code> is on, which it is by default in this demo):</p>
+    <ul>
+        <li><strong>Twig <code class="nowo-ui-code">|trans</code> (this template):</strong> <code class="nowo-ui-code">{{ 'nowo_demo.missing_log_probe'|trans({}, 'messages') }}</code> — often <code class="nowo-ui-code">call_site</code> is under <code class="nowo-ui-code">var/cache/.../twig/*.php</code>, not this <code class="nowo-ui-code">.twig</code> line.</li>
+        <li><strong>Twig <code class="nowo-ui-code">|trans</code> (second key):</strong> <code class="nowo-ui-code">{{ 'nowo_demo.missing_from_twig_filter'|trans({}, 'messages') }}</code></li>
+        <li><strong>Twig <code class="nowo-ui-code">|trans</code> with parameters:</strong> <code class="nowo-ui-code">{{ 'nowo_demo.missing_from_twig_with_params'|trans({'%count%': 3}, 'messages') }}</code></li>
+        <li><strong>Twig <code class="nowo-ui-code">|trans</code> in custom domain:</strong> <code class="nowo-ui-code">{{ 'nowo_demo.missing_from_twig_custom_domain'|trans({}, 'demo_runtime') }}</code></li>
+        <li><strong>Twig <code class="nowo-ui-code">|trans</code> with forced locale <code class="nowo-ui-code">fr</code>:</strong> <code class="nowo-ui-code">{{ 'nowo_demo.missing_from_twig_forced_locale'|trans({}, 'messages', 'fr') }}</code></li>
+        <li><strong>Twig <code class="nowo-ui-code">{% verbatim %}{% trans %}{% endverbatim %}</code> tag:</strong> {% trans from 'messages' %}nowo_demo.missing_from_twig_tag{% endtrans %}</li>
+        <li><strong>PHP controller</strong> (same request, before render): <code class="nowo-ui-code">nowo_demo.missing_from_controller</code> — <code class="nowo-ui-code">call_site</code> should point at <code class="nowo-ui-code">TranslationInsightsController.php</code>; the request columns should match this page's route and path.</li>
+        <li><strong>PHP controller</strong> with params: <code class="nowo-ui-code">nowo_demo.missing_from_controller_with_params</code> (domain <code class="nowo-ui-code">messages</code>)</li>
+        <li><strong>PHP controller</strong> custom domain: <code class="nowo-ui-code">nowo_demo.missing_in_custom_domain</code> (domain <code class="nowo-ui-code">demo_runtime</code>)</li>
+        <li><strong>PHP controller</strong> forced locale: <code class="nowo-ui-code">nowo_demo.missing_forced_locale</code> (locale <code class="nowo-ui-code">fr</code>)</li>
     </ul>
     <p>See <a href="https://github.com/nowo-tech/TranslationYamlToolsBundle/blob/main/docs/USAGE.md#missing-translation-log-coverage-and-call_site">docs/USAGE.md — coverage and call_site</a> for what the log can and cannot capture.</p>
-    <p><a href="{{ path('nowo_translation_yaml_tools_missing_log_index') }}">Missing-log Web UI</a> (<code>/_demo/translation-yaml-tools/missing-log</code>)</p>
+    <p><a href="{{ path('nowo_translation_yaml_tools_missing_log_index') }}">Missing-log Web UI</a> (<code class="nowo-ui-code">/_demo/translation-yaml-tools/missing-log</code>)</p>
+    </div>
 </section>
 {% endif %}
 
-<section>
-    <h2>Inline translations (Twig)</h2>
+<section class="nowo-ui-card">
+    <div class="nowo-ui-card__header"><h2 class="nowo-ui-card__title">Inline translations (Twig)</h2></div>
+    <div class="nowo-ui-card__body">
     <p>{{ 'demo.inline_banner'|trans({'%product%': 'Translation YAML Tools'}) }}</p>
-    <p><em>{% trans %}Hello, demo visitor{% endtrans %}</em> — second line uses the <code>{% verbatim %}{% trans %}{% endverbatim %}</code> tag (message id = English source string; Spanish lives in <code>messages.es.yaml</code>).</p>
+    <p><em>{% trans %}Hello, demo visitor{% endtrans %}</em> — second line uses the <code class="nowo-ui-code">{% verbatim %}{% trans %}{% endverbatim %}</code> tag (message id = English source string; Spanish lives in <code class="nowo-ui-code">messages.es.yaml</code>).</p>
+    </div>
 </section>
 
-<section>
-    <h2>CLI (inside the container)</h2>
-    <p>From the demo directory, <code>make translation-yaml-demos</code> runs the bundle commands in dry-run mode. <code>make translation-yaml-inline-preview</code> briefly rewrites <code>messages.en.yaml</code> with <code>--inline</code> (flow YAML) and restores it.</p>
-    <pre><code>php bin/console nowo:translation-yaml:tree --dry-run --domain=messages --locale=en
+<section class="nowo-ui-card">
+    <div class="nowo-ui-card__header"><h2 class="nowo-ui-card__title">CLI (inside the container)</h2></div>
+    <div class="nowo-ui-card__body">
+    <p>From the demo directory, <code class="nowo-ui-code">make translation-yaml-demos</code> runs the bundle commands in dry-run mode. <code class="nowo-ui-code">make translation-yaml-inline-preview</code> briefly rewrites <code class="nowo-ui-code">messages.en.yaml</code> with <code class="nowo-ui-code">--inline</code> (flow YAML) and restores it.</p>
+    <pre class="nowo-ui-code-block"><code>php bin/console nowo:translation-yaml:tree --dry-run --domain=messages --locale=en
 php bin/console nowo:translation-yaml:sort --dry-run --domain=messages --locale=en
 php bin/console nowo:translation-yaml:sort --inline --domain=messages --locale=en
 php bin/console nowo:translation-yaml:fill-missing --dry-run --domain=messages --target-locale=es</code></pre>
+    </div>
 </section>
- </main>
-</body>
-</html>
+{% endblock %}
