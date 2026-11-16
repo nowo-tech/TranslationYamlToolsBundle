@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/translation-yaml-tools-bundle`  
-**Last audited**: 2026-10-20 (text overrides 002 and strict parity 003 folded into the baseline; audit: `git ls-files src | wc -l` → 85)
+**Last audited**: 2026-11-16 (text overrides 002 and strict parity 003 folded into the baseline; audit: `git ls-files src | wc -l` → 113)
 
 Paths are relative to `src/`. Every tracked file under `src/` is a production unit (no build outputs, no co-located tests).
 
@@ -16,6 +16,11 @@ Paths are relative to `src/`. Every tracked file under `src/` is a production un
 | `DependencyInjection/Configuration.php` | Config tree | FR-CFG-001 |
 | `DependencyInjection/NowoTranslationYamlToolsExtension.php` | DI extension | FR-CFG-002 |
 | `NowoTranslationYamlToolsBundle.php` | Bundle entry | FR-BUNDLE-001 |
+| `DependencyInjection/Compiler/DebugOnlyRequirement.php` | Debug-only guard for the Web UI | FR-DI-003 |
+| `DependencyInjection/Compiler/EntityManagerOptionPass.php` | `entity_manager` option wiring (host or dedicated manager) | FR-EM-001 |
+| `DependencyInjection/Compiler/FormCsrfRequirement.php` | Form CSRF requirement of the Web UI | FR-DI-003 |
+| `DependencyInjection/Compiler/PrivateEntityManagerPass.php` | Registers the bundle-owned private entity manager (1.18) | FR-EM-001 |
+| `DependencyInjection/Compiler/UiKitRequirement.php` | UiKit requirement of the Web UI | FR-DI-003 |
 
 ## YAML services & parity
 
@@ -30,6 +35,7 @@ Paths are relative to `src/`. Every tracked file under `src/` is a production un
 | `Service/TranslationYamlFileHandler.php` | YAML I/O | FR-YAML-004 |
 | `Service/YamlArraySorter.php` | Key sorting | FR-YAML-006 |
 | `Testing/TranslationParityAssertions.php` | PHPUnit parity trait | FR-PARITY-002 |
+| `Service/YamlCatalogueTextEditor.php` | Text edits of a YAML catalogue keeping its layout | FR-YAML-008 |
 
 ## Console commands
 
@@ -44,6 +50,7 @@ Paths are relative to `src/`. Every tracked file under `src/` is a production un
 | `Command/TranslationYamlFlattenCommand.php` | Flatten command | FR-CLI-002 |
 | `Command/TranslationYamlSortCommand.php` | Sort command | FR-CLI-002 |
 | `Command/TranslationYamlTreeCommand.php` | Tree command | FR-CLI-002 |
+| `Command/TranslationYamlKeyCommand.php` | `nowo:translation-yaml:key` single-key command | FR-CLI-004 |
 
 ## Machine translation
 
@@ -81,6 +88,7 @@ Paths are relative to `src/`. Every tracked file under `src/` is a production un
 | `Translation/RecordingTranslatorDecorator.php` | Translator decorator | FR-MLOG-002 |
 | `Translation/TranslationCallSiteResolver.php` | Call site resolver | FR-MLOG-003 |
 | `Twig/MissingTranslationLogExtension.php` | Twig helpers | FR-MLOG-009 |
+| `Form/MissingTranslationLogActionType.php` | Log row action form | FR-MLOG-007 |
 
 ## Text overrides (PHP)
 
@@ -99,6 +107,11 @@ Paths are relative to `src/`. Every tracked file under `src/` is a production un
 | `TextOverride/TranslationOverrideLocales.php` | Editor locales | FR-OVR-003 |
 | `TextOverride/TranslationOverrideProviderInterface.php` | Override read contract | FR-OVR-002 |
 | `TextOverride/TranslationOverrides.php` | Override read/write + cache | FR-OVR-002 |
+| `TextOverride/EventSubscriber/TranslationOverridesClearSubscriber.php` | Drops the override memo at request / Messenger / console boundaries | FR-WORKER-002 |
+| `TextOverride/TranslationOverridePlaceholders.php` | Placeholder preservation for override texts | FR-OVR-003 |
+| `Form/TranslationOverrideFilterType.php` | Override desk filter form | FR-OVR-005 |
+| `Form/TranslationOverrideResetType.php` | Override reset form | FR-OVR-005 |
+| `Form/TranslationOverrideTextsType.php` | Override edit form | FR-OVR-005 |
 
 ## Symfony config
 
@@ -118,13 +131,10 @@ Paths are relative to `src/`. Every tracked file under `src/` is a production un
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
-| `Resources/views/missing_translation_log/_status_filters.html.twig` | Status filters | FR-MLOG-008 |
-| `Resources/views/missing_translation_log/_table.html.twig` | Log table partial | FR-MLOG-008 |
-| `Resources/views/missing_translation_log/base.html.twig` | Base template | FR-MLOG-008 |
 | `Resources/views/missing_translation_log/index.html.twig` | Index page | FR-MLOG-008 |
-| `Resources/views/missing_translation_log/layout.html.twig` | Default layout | FR-MLOG-008 |
 | `Resources/views/missing_translation_log/layout_integrate_breadcrumb_kit.html.twig` | Breadcrumb layout | FR-MLOG-008 |
 | `Resources/views/missing_translation_log/layout_integrate_dashboard_menu.html.twig` | Dashboard layout | FR-MLOG-008 |
+| `Resources/views/missing_translation_log/_legacy_layout.html.twig` | Legacy layout fallback | FR-MLOG-008 |
 
 ## Twig views — text overrides
 
@@ -132,7 +142,7 @@ Paths are relative to `src/`. Every tracked file under `src/` is a production un
 | --- | --- | --- |
 | `Resources/views/text_override/edit.html.twig` | Override edit page | FR-OVR-005 |
 | `Resources/views/text_override/index.html.twig` | Override desk list | FR-OVR-005 |
-| `Resources/views/text_override/layout.html.twig` | Override desk layout | FR-OVR-005 |
+| `Resources/views/text_override/_legacy_layout.html.twig` | Legacy layout fallback | FR-OVR-005 |
 
 ## Translations
 
@@ -146,18 +156,43 @@ Paths are relative to `src/`. Every tracked file under `src/` is a production un
 | `Resources/translations/NowoTranslationYamlToolsBundle.de.yaml` | UI strings (de) | FR-I18N-001 |
 | `Resources/translations/NowoTranslationYamlToolsBundle.nl.yaml` | UI strings (nl) | FR-I18N-001 |
 
+## Web UI pages
+
+| Source file | Spec section | Requirement IDs |
+| --- | --- | --- |
+| `Ui/MissingTranslationLogPageFactory.php` | Builds the missing-log page model | FR-UI-001 |
+| `Ui/TranslationOverridePageFactory.php` | Builds the override desk page model | FR-UI-001 |
+| `Ui/WebUiPages.php` | Web UI page registry | FR-UI-001 |
+
+## Private entity manager (1.18)
+
+| Source file | Spec section | Requirement IDs |
+| --- | --- | --- |
+| `Doctrine/ExcludedEntityNamespaceDriver.php` | Keeps bundle entities out of the host mapping | FR-EM-001 |
+| `Doctrine/PendingWork.php` | Pending work of the private unit of work | FR-EM-002 |
+| `Doctrine/PrivateEntityManagerConnection.php` | Connection wrapper of the private manager | FR-EM-001 |
+| `Doctrine/PrivateEntityManagerDriver.php` | DBAL driver of the private manager | FR-EM-001 |
+| `Doctrine/PrivateEntityManagerFlushBridge.php` | Bridges staged rows to the private manager after the host flush (deprecated path) | FR-EM-002 |
+| `Doctrine/PrivateEntityManagerMiddleware.php` | DBAL middleware sharing the host connection | FR-EM-001 |
+| `Doctrine/TranslationYamlToolsEntityManager.php` | The bundle-owned entity manager, dropped at every boundary | FR-EM-001, FR-WORKER-002 |
+| `Doctrine/TranslationYamlToolsManagerRegistry.php` | Manager registry resolving the private or dedicated manager | FR-EM-001 |
+| `EventSubscriber/EntityManagerBoundarySubscriber.php` | Clears the bundle manager at request / Messenger / console boundaries | FR-WORKER-002 |
+| `EventSubscriber/UnitOfWorkFrames.php` | Unit-of-work frame tracker (workers, requests, console runs) | FR-WORKER-002 |
+
 ## Coverage summary
 
 | Category | Files | Mapped |
 | --- | ---: | ---: |
-| Bundle & DI | 6 | 6 |
-| YAML services & parity | 9 | 9 |
-| Console commands | 9 | 9 |
+| Bundle & DI | 11 | 11 |
+| YAML services & parity | 10 | 10 |
+| Console commands | 10 | 10 |
 | Machine translation | 8 | 8 |
-| Missing-translation log (PHP) | 19 | 19 |
-| Text overrides (PHP) | 13 | 13 |
+| Missing-translation log (PHP) | 20 | 20 |
+| Text overrides (PHP) | 18 | 18 |
 | Symfony config | 9 | 9 |
-| Twig views — missing-translation log | 7 | 7 |
+| Twig views — missing-translation log | 4 | 4 |
 | Twig views — text overrides | 3 | 3 |
-| Translations | 2 | 2 |
-| **Total production sources** | **85** | **85** |
+| Translations | 7 | 7 |
+| Web UI pages | 3 | 3 |
+| Private entity manager (1.18) | 10 | 10 |
+| **Total production sources** | **113** | **113** |

@@ -68,6 +68,7 @@ As a maintainer, I record runtime missing translation keys in Doctrine and revie
 - **FR-CFG-002**: Extension loads base services and conditional imports (`services_missing_translation*.yaml`).
 - **FR-DI-001**: `services.yaml` wires catalog, auditor, file handler, sorter, resolvers, commands.
 - **FR-DI-002**: Conditional YAML MUST register missing-log recorder, messenger handler, web controller, and routes only when features enabled.
+- **FR-DI-003**: Requirement compiler passes (`DebugOnlyRequirement`, `FormCsrfRequirement`, `UiKitRequirement`) fail the container build when a Web UI is enabled without its prerequisites.
 - **FR-TWIG-001**: `TwigPathsPass` prepends app override path then adds bundle views when Web UI enabled.
 
 ### YAML services
@@ -79,12 +80,18 @@ As a maintainer, I record runtime missing translation keys in Doctrine and revie
 - **FR-YAML-005**: `DotKeyTreeAnalyzer` validates and transforms flat↔nested key structures.
 - **FR-YAML-006**: `YamlArraySorter` recursively sorts associative keys.
 - **FR-YAML-007**: `TranslationYamlAuditor` produces audit reports (tree-safe, sorted, missing keys).
+- **FR-YAML-008**: `YamlCatalogueTextEditor` edits catalogue text in place, keeping the file layout.
+
+- **FR-EM-001**: Since 1.18.0 the bundle writes through its own private (zero config) or dedicated (`entity_manager`) entity manager (`PrivateEntityManagerPass`, `EntityManagerOptionPass`, `Doctrine\TranslationYamlToolsEntityManager`, registry, driver, middleware, connection, `ExcludedEntityNamespaceDriver`); the host manager is never flushed.
+- **FR-EM-002**: Rows staged for the host flush are bridged to the private manager (`PrivateEntityManagerFlushBridge`, deprecated path, guarded `postFlush()`); `PendingWork` describes the unit of work.
+- **FR-WORKER-002**: `EntityManagerBoundarySubscriber` and `TranslationOverridesClearSubscriber` clear the private manager and the override memo at request, Messenger and console boundaries, tracked by `UnitOfWorkFrames` (worker and request stacks, 1.18.4).
 
 ### Console commands
 
 - **FR-CLI-001**: `AbstractTranslationYamlCommand` shared options (domain, locale, paths).
 - **FR-CLI-002**: `nowo:translation-yaml:tree`, `flatten`, `sort`, `fill-missing`, `audit` commands.
 - **FR-CLI-003**: Missing-log commands — `list`, `mark-added`, `validate`.
+- **FR-CLI-004**: `TranslationYamlKeyCommand` (`nowo:translation-yaml:key`) works on a single translation key.
 
 ### Machine translation
 
@@ -109,6 +116,7 @@ As a maintainer, I record runtime missing translation keys in Doctrine and revie
 - **FR-MLOG-010**: `DoctrineMissingTranslationRecorder` implements `ResetInterface`; `flushBuffer` on `kernel.terminate` at priority `-1024` empties the buffer before persist and never rethrows (logs via optional `LoggerInterface`).
 - **FR-WORKER-001**: HTTP runtime of the missing-log feature MUST be safe under FrankenPHP worker mode when the kernel is not reset between requests (scenario B in `docs/FRANKENPHP-WORKER-AUDIT.md`).
 - **FR-SEC-001**: Missing-log Web UI access goes through `MissingLogUiAccessCheckerInterface` (default `ConfigurableMissingLogUiAccessChecker`, `web_ui.security.*`, REQ-UI-002); `MissingLogWebUiSecurityPass` fails the build when the Web UI is enabled without SecurityBundle.
+- **FR-UI-001**: `Ui\WebUiPages`, `MissingTranslationLogPageFactory` and `TranslationOverridePageFactory` build the page models of both Web UIs on the UiKit page contract.
 
 ### Operator text overrides (feature [`002-text-overrides`](../002-text-overrides/spec.md))
 
@@ -129,7 +137,7 @@ As a maintainer, I record runtime missing translation keys in Doctrine and revie
 
 ## Success Criteria
 
-- **SC-001**: 85/85 production files mapped in [`code-inventory.md`](code-inventory.md).
+- **SC-001**: 113/113 production files mapped in [`code-inventory.md`](code-inventory.md).
 - **SC-002**: Config keys documented in `CONFIGURATION.md` match `Configuration.php`.
 - **SC-003**: PHPUnit passes for tree analyzer, sorter, and recorder.
 - **SC-004**: Demo Symfony 8 enables missing log + Web UI without manual wiring errors.
