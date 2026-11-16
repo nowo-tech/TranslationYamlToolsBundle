@@ -63,6 +63,14 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Docs
+
+- Spec Kit inventory refreshed to 113/113 production units with new FRs (private entity manager, boundary subscribers, key command, UI page factories); `docs/FRANKENPHP-WORKER-AUDIT.md` gains the 1.18.3 and 1.18.4 remediation rows.
+
+### CI
+
+- Dependabot: npm entry for `demo/symfony8/e2e`.
+
 ### Tests
 
 - CI: the coverage run is now `composer test-coverage-100` (new script over the existing `scripts/check-coverage.php`), so a pull request that drops coverage below **100%** fails the build; before, nothing in CI checked a threshold. The suite is already at 100%.

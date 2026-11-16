@@ -43,3 +43,23 @@ updates:
       - "github-actions"
     commit-message:
       prefix: "chore(ci):"
+
+  - package-ecosystem: "npm"
+    directory: "/demo/symfony8/e2e"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "HecFranco"
+    labels:
+      - "dependencies"
+      - "javascript"
+    groups:
+      e2e:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps):"
