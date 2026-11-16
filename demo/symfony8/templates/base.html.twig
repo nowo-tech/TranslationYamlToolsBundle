@@ -1,23 +1,28 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {% block stylesheets %}
-        {% endblock %}
+{#- REQ-DEMO-014: the demo shell is UiKit's admin layout with UiKit's default theme (nowo-ui.css from the bundle's own
+    asset package, no CSS framework, no CDN). The missing-translation log and the text-overrides desk (UiKit list /
+    form scaffolds) render in it too (nowo_ui_kit.layouts.admin). -#}
+{% extends '@NowoUiKit/layout/admin.html.twig' %}
 
-        {% block javascripts %}
-        {% endblock %}
+{% block nowo_ui_document_title %}{% block title %}Translation YAML Tools demo{% endblock %}{% endblock %}
 
-        {% set frankenphpHotReload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
-        {% if frankenphpHotReload %}
-        <meta name="frankenphp-hot-reload:url" content="{{ frankenphpHotReload }}">
-        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
-        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
-        {% endif %}
-    </head>
-    <body>
-        {% block body %}{% endblock %}
-    </body>
-</html>
+{% block nowo_ui_navigation %}
+    {% set _route = app.request.attributes.get('_route') %}
+    <header class="nowo-ui-header" data-testid="demo-masthead">
+        <a class="nowo-ui-brand" href="{{ path('demo_home') }}">Translation YAML Tools demo</a>
+        <nav class="nowo-ui-menu" aria-label="Translation YAML Tools">
+            <a class="nowo-ui-link" href="{{ path('demo_home') }}"{% if _route == 'demo_home' or _route == 'demo_missing_log_probes' %} aria-current="page"{% endif %}>Insights</a>
+            <a class="nowo-ui-link" href="{{ path('nowo_translation_yaml_tools_missing_log_index') }}"{% if _route starts with 'nowo_translation_yaml_tools_missing_log' %} aria-current="page"{% endif %}>Missing-log UI</a>
+            <a class="nowo-ui-link" href="{{ path('nowo_translation_yaml_tools_overrides_index') }}"{% if _route starts with 'nowo_translation_yaml_tools_overrides' %} aria-current="page"{% endif %}>Site texts</a>
+        </nav>
+        <div class="nowo-ui-header__end">
+            {% if is_granted('ROLE_ADMIN') %}
+                <a class="nowo-ui-link" href="{{ path('app_logout') }}">Logout</a>
+            {% elseif _route != 'app_login' %}
+                <a class="nowo-ui-link" href="{{ path('app_login') }}">Login</a>
+            {% endif %}
+            {{ include('@NowoUiKitBundle/partials/_theme_toggle.html.twig', { compact: true }, false) }}
+        </div>
+    </header>
+{% endblock %}
+
+{% block nowo_ui_content %}{% block body %}{% endblock %}{% endblock %}
