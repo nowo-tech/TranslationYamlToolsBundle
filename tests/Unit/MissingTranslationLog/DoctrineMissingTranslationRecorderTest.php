@@ -276,8 +276,8 @@ final class DoctrineMissingTranslationRecorderTest extends TestCase
 
         self::assertArrayHasKey(KernelEvents::TERMINATE, $listeners);
         foreach ($listeners as $priority) {
-            self::assertSame(DoctrineMissingTranslationRecorder::TERMINATE_PRIORITY, $priority);
             self::assertLessThan(0, $priority);
+            self::assertSame(DoctrineMissingTranslationRecorder::TERMINATE_PRIORITY, $priority);
         }
     }
 
