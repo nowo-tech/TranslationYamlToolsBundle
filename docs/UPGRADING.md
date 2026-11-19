@@ -104,7 +104,8 @@ composer update nowo-tech/translation-yaml-tools-bundle --with-dependencies
   resets that manager at once (transaction-doctrine `forEntityManager()`), instead of at its next use.
 - **Missing log on PostgreSQL (fix).** The upsert of a key already in the log failed on PostgreSQL since 1.2.1
   (ambiguous column; and with a mixed-case naming strategy the quoted column names did not exist): repeated sightings
-  were never counted and the rest of that buffer was dropped. Nothing to migrate; counts are right from this version.
+  were never counted and the rest of that buffer was dropped. On PostgreSQL with DBAL 3 (id from a sequence, no column
+  default) even a new key failed. Nothing to migrate; counts are right from this version.
 - **Missing-log ids.** A buffer is written in (locale, domain, message) order, so new rows get their ids in that order
   rather than in the order the keys were met.
 - **DBAL 3.** transaction-doctrine 1.7 returns the driver's result from `Connection::commit()` again on DBAL 3 (1.6.x

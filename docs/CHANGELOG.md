@@ -93,6 +93,8 @@ All notable changes to this project are documented in this file.
 - Missing log on PostgreSQL: the upsert of a key already logged failed (ambiguous column since 1.2.1; with a mixed-case
   naming strategy the quoted column names did not exist either), so repeated sightings were never counted and the rest
   of the buffer was dropped. The upsert now uses the ORM's quote strategy and qualifies the existing row's columns.
+- Missing log on PostgreSQL with DBAL 3: the id comes from a sequence with no column default, so the raw upsert of a
+  new key failed with a NOT NULL violation; it now takes the sequence's next value.
 
 ### Demo
 

@@ -116,7 +116,7 @@ final class ConcurrencyRaceTest extends WebTestCase
             $overrides->set('en', 'messages', 'site.greeting', 'Hi A %name%', false);
             if (++$runs === 1) {
                 // The other worker's first save of the same message commits between our read and our insert.
-                $other->insert(self::TABLE, ['locale' => 'en', 'domain' => 'messages', 'message_key' => 'site.greeting', 'value' => 'Hi B %name%', 'created_at' => '2026-01-01 00:00:00', 'updated_at' => '2026-01-01 00:00:00']);
+                $other->insert(self::TABLE, ['id' => 100000, 'locale' => 'en', 'domain' => 'messages', 'message_key' => 'site.greeting', 'value' => 'Hi B %name%', 'created_at' => '2026-01-01 00:00:00', 'updated_at' => '2026-01-01 00:00:00']);
             }
         });
 
@@ -178,7 +178,9 @@ final class ConcurrencyRaceTest extends WebTestCase
 
         // The other worker's buffer created the same key and has not committed yet: ours waits, replays, then fails.
         $other->beginTransaction();
+        // An explicit id: PostgreSQL on DBAL 3 maps it with a sequence and no column default.
         $other->insert(self::LOG_TABLE, [
+            'id'                         => 100000,
             $this->column('messageId')   => 'race.key',
             $this->column('domain')      => 'messages',
             $this->column('locale')      => 'en',

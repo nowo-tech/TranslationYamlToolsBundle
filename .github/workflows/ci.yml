@@ -195,13 +195,12 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.2'
           tools: composer:v2
 
+      # From the lock (the other packages as the bundle's own CI runs them), then only transaction-* lowered.
       - name: Install dependencies
-        run: |
-          composer config platform.php 8.4.1
-          composer update --prefer-dist --no-progress --no-interaction
+        run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Downgrade nowo-tech/transaction-* to the lowest allowed versions
         run: |

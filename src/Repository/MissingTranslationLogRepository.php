@@ -208,6 +208,16 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
             'requestPath'     => $quotes->getColumnName('requestPath', $meta, $platform),
         ];
 
+        // 1.19: an id taken from a sequence (PostgreSQL on DBAL 3 maps it with no column default) must be inserted
+        // explicitly: the raw upsert failed with a NOT NULL violation there.
+        $sequenceId = null;
+        if ($meta->isIdGeneratorSequence()) {
+            $sequenceId = [
+                $quotes->getColumnName($meta->getSingleIdentifierFieldName(), $meta, $platform),
+                '(' . $platform->getSequenceNextValSQL($quotes->getSequenceName($meta->sequenceGeneratorDefinition ?? [], $meta, $platform)) . ')',
+            ];
+        }
+
         $rows = [];
         foreach ($buffer as $row) {
             $rows[] = [
@@ -230,9 +240,9 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         // an attempt is rolled back whole, so a replay never counts a hit twice.
         foreach (array_chunk($rows, self::PERSIST_CHUNK) as $chunk) {
             // @igor-ignore - The closure runs synchronously inside the unit; nothing is kept on the repository.
-            TranslationYamlToolsWriteUnit::runReplayingTransients($em, $this->managerRegistry, function () use ($connection, $platform, $tableName, $columns, $chunk): void {
+            TranslationYamlToolsWriteUnit::runReplayingTransients($em, $this->managerRegistry, function () use ($connection, $platform, $tableName, $columns, $chunk, $sequenceId): void {
                 foreach ($chunk as $row) {
-                    $this->upsertBufferRow($connection, $platform, $tableName, $columns, $row);
+                    $this->upsertBufferRow($connection, $platform, $tableName, $columns, $row, $sequenceId);
                 }
             }, false);
         }
@@ -265,6 +275,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
      *     requestPath: ?string,
      *     seenAt: string
      * } $row
+     * @param array{0: string, 1: string}|null $sequenceId id column and next-value SQL when the id comes from a sequence
      */
     private function upsertBufferRow(
         Connection $connection,
@@ -272,6 +283,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         string $tableName,
         array $columns,
         array $row,
+        ?array $sequenceId = null,
     ): void {
         if ($platform instanceof AbstractMySQLPlatform) {
             $this->upsertBufferRowMySql($connection, $tableName, $columns, $row);
@@ -280,7 +292,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         }
 
         if ($platform instanceof SQLitePlatform || $platform instanceof PostgreSQLPlatform) {
-            $this->upsertBufferRowOnConflict($connection, $tableName, $columns, $row);
+            $this->upsertBufferRowOnConflict($connection, $tableName, $columns, $row, $sequenceId);
 
             return;
         }
@@ -344,12 +356,14 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
      *
      * @param array<string, string> $columns
      * @param array{messageId: string, domain: string, locale: string, hits: int, callSite: ?string, requestRoute: ?string, requestMethod: ?string, requestPath: ?string, seenAt: string} $row
+     * @param array{0: string, 1: string}|null $sequenceId id column and next-value SQL when the id comes from a sequence
      */
     private function upsertBufferRowOnConflict(
         Connection $connection,
         string $tableName,
         array $columns,
         array $row,
+        ?array $sequenceId = null,
     ): void {
 
         $qTable           = $tableName;
@@ -367,15 +381,18 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $qRequestMethod   = $columns['requestMethod'];
         $qRequestPath     = $columns['requestPath'];
 
+        $idColumn = $sequenceId === null ? '' : $sequenceId[0] . ', ';
+        $idValue  = $sequenceId === null ? '' : $sequenceId[1] . ', ';
+
         // excluded / EXCLUDED is the proposed insert row (SQLite + PostgreSQL). 1.19: the existing row's columns are
         // qualified with the table name; PostgreSQL refused the bare names as ambiguous, so it never logged a key.
         $sql = <<<SQL
             INSERT INTO {$qTable} (
-                {$qMessageId}, {$qDomain}, {$qLocale}, {$qStatus}, {$qHitCount},
+                {$idColumn}{$qMessageId}, {$qDomain}, {$qLocale}, {$qStatus}, {$qHitCount},
                 {$qFirstSeenAt}, {$qLastSeenAt}, {$qStatusChangedAt}, {$qNotes},
                 {$qCallSite}, {$qRequestRoute}, {$qRequestMethod}, {$qRequestPath}
             ) VALUES (
-                :messageId, :domain, :locale, :status, :hits,
+                {$idValue}:messageId, :domain, :locale, :status, :hits,
                 :seenAt, :seenAt, NULL, NULL,
                 :callSite, :requestRoute, :requestMethod, :requestPath
             )

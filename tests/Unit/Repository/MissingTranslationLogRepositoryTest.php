@@ -10,6 +10,7 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\UnitOfWork;
@@ -48,11 +49,18 @@ final class MissingTranslationLogRepositoryTest extends TestCase
      *
      * @return array{0: MissingTranslationLogRepository, 1: Connection&MockObject}
      */
-    private function createRepositoryWithPlatform(AbstractPlatform $platform): array
+    private function createRepositoryWithPlatform(AbstractPlatform $platform, bool $sequenceId = false): array
     {
         $sqliteRepo = MissingTranslationLogTestEntityManagerFactory::createRepository();
         $realEm     = (new ReflectionMethod(MissingTranslationLogRepository::class, 'getEntityManager'))->invoke($sqliteRepo);
         $meta       = $realEm->getClassMetadata(MissingTranslationLog::class);
+        if ($sequenceId) {
+            // PostgreSQL on DBAL 3: the id comes from a sequence, with no column default.
+            self::assertInstanceOf(ClassMetadata::class, $meta);
+            $meta = clone $meta;
+            $meta->setIdGeneratorType(ClassMetadata::GENERATOR_TYPE_SEQUENCE);
+            $meta->setSequenceGeneratorDefinition(['sequenceName' => 'tyt_log_seq', 'allocationSize' => '1', 'initialValue' => '1']);
+        }
 
         $connection = $this->createMock(Connection::class);
         $connection->method('getDatabasePlatform')->willReturn($platform);
@@ -410,6 +418,18 @@ final class MissingTranslationLogRepositoryTest extends TestCase
                 'requestPath'   => '/path',
             ],
         ]);
+    }
+
+    public function testPersistBufferOnPostgreSqlTakesASequenceIdAndQualifiesTheExistingRow(): void
+    {
+        [$repo, $connection] = $this->createRepositoryWithPlatform(new PostgreSQLPlatform(), true);
+        $connection->expects(self::once())->method('executeStatement')->with(self::callback(static function (string $sql): bool {
+            return str_contains($sql, "(SELECT NEXTVAL('tyt_log_seq')), :messageId")
+                && str_contains($sql, 'nowo_translation_missing_log.hitCount + excluded.hitCount')
+                && !str_contains($sql, '"');
+        }))->willReturn(1);
+
+        $repo->persistBuffer(['a' => ['hits' => 1, 'messageId' => 'k1', 'domain' => 'messages', 'locale' => 'en']]);
     }
 
     public function testPersistBufferFallbackUpdatesExistingRow(): void
