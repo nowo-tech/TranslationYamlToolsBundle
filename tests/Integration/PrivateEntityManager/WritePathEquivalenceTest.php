@@ -158,12 +158,29 @@ final class WritePathEquivalenceTest extends TestCase
         $bundle = $bundleManager->getConnection();
 
         return [
-            'reads'            => $reads,
-            'overrides'        => $this->rows($bundle, 'SELECT * FROM nowo_translation_override ORDER BY id'),
-            'missing_log'      => $this->rows($bundle, 'SELECT * FROM nowo_translation_missing_log ORDER BY id'),
+            'reads'     => $reads,
+            'overrides' => $this->rows($bundle, 'SELECT * FROM nowo_translation_override ORDER BY id'),
+            // 1.19 (REQ-RUNTIME-003 rule 4): a buffer is written in key order, so the generated ids differ from 1.17.1;
+            // the rows are compared by key, without the id.
+            'missing_log'      => $this->withoutIds($this->rows($bundle, 'SELECT * FROM nowo_translation_missing_log ORDER BY locale, domain, message_id')),
             'host_rows'        => (int) $host->getConnection()->fetchOne('SELECT COUNT(*) FROM host_note'),
             'host_bundle_rows' => $hostBundleRows,
         ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function withoutIds(array $rows): array
+    {
+        foreach ($rows as $index => $row) {
+            unset($row['id']);
+            $rows[$index] = $row;
+        }
+
+        return $rows;
     }
 
     /**

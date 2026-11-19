@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Tests\Unit\TextOverride;
 
+use Doctrine\DBAL\Driver\AbstractException as DriverException;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Html\StripTagsTranslationOverrideHtmlSanitizer;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Html\SymfonyTranslationOverrideHtmlSanitizer;
@@ -72,7 +74,9 @@ final class TranslationOverridesTest extends TestCase
             static fn (TranslationOverride $row): bool => $row->getLocale() === 'en' && $row->getValue() === 'Hi' && $row->getMessageKey() === 'site.a' && $row->getDomain() === 'messages' && $row->getUpdatedBy() === 'ana',
         ));
         $repository->expects(self::once())->method('delete')->with($existing);
-        $repository->expects(self::exactly(4))->method('flush');
+        // 1.19: a set() with flush is one write unit (staging + flush inside transactional()).
+        $repository->expects(self::exactly(4))->method('transactional')->willReturnCallback(static fn (callable $work): mixed => $work());
+        $repository->expects(self::never())->method('flush');
         $repository->method('findOne')->willReturnCallback(
             static fn (string $locale, string $domain, string $key): ?TranslationOverride => $key === 'site.b' ? $existing : null,
         );
@@ -89,6 +93,69 @@ final class TranslationOverridesTest extends TestCase
         $overrides->set('es', 'messages', 'site.b', '   ');
         $overrides->set('fr', 'messages', 'site.c', null, false); // nothing to remove, no flush
         self::assertNull($existing->getId());
+    }
+
+    public function testFlushWritesThroughTheRepositoryAndDropsTheCache(): void
+    {
+        $repository = $this->createMock(TranslationOverrideRepository::class);
+        $repository->expects(self::once())->method('flush');
+        $cache = new ArrayAdapter();
+        $cache->get(TranslationOverrides::CACHE_KEY, static fn (): array => ['stale' => []]);
+
+        (new TranslationOverrides($repository, $cache, new SymfonyTranslationOverrideHtmlSanitizer()))->flush();
+
+        self::assertFalse($cache->hasItem(TranslationOverrides::CACHE_KEY));
+    }
+
+    public function testWriteRunsTheStageAgainAfterAUniqueViolation(): void
+    {
+        $repository = $this->createMock(TranslationOverrideRepository::class);
+        $calls      = 0;
+        $repository->expects(self::exactly(2))->method('transactional')->willReturnCallback(static function (callable $work) use (&$calls): mixed {
+            if (++$calls === 1) {
+                throw new RuntimeException('flush failed', 0, self::uniqueViolation());
+            }
+
+            return $work();
+        });
+        $staged = 0;
+        $cache  = new ArrayAdapter();
+        $cache->get(TranslationOverrides::CACHE_KEY, static fn (): array => ['stale' => []]);
+
+        (new TranslationOverrides($repository, $cache, new SymfonyTranslationOverrideHtmlSanitizer()))->write(static function () use (&$staged): void {
+            ++$staged;
+        });
+
+        self::assertSame(1, $staged, 'The second run (the winner\'s row now exists) stages again.');
+        self::assertFalse($cache->hasItem(TranslationOverrides::CACHE_KEY));
+    }
+
+    public function testWriteRethrowsAnyOtherFailureAndASecondUniqueViolation(): void
+    {
+        $other      = new RuntimeException('deadlock');
+        $repository = $this->createMock(TranslationOverrideRepository::class);
+        $repository->expects(self::once())->method('transactional')->willThrowException($other);
+        $overrides = new TranslationOverrides($repository, new ArrayAdapter(), new SymfonyTranslationOverrideHtmlSanitizer());
+        try {
+            $overrides->write(static function (): void {
+            });
+            self::fail('Expected the failure.');
+        } catch (RuntimeException $caught) {
+            self::assertSame($other, $caught);
+        }
+
+        $unique     = self::uniqueViolation();
+        $repository = $this->createMock(TranslationOverrideRepository::class);
+        $repository->expects(self::exactly(2))->method('transactional')->willThrowException($unique);
+        $this->expectExceptionObject($unique);
+        (new TranslationOverrides($repository, new ArrayAdapter(), new SymfonyTranslationOverrideHtmlSanitizer()))->write(static function (): void {
+        });
+    }
+
+    private static function uniqueViolation(): UniqueConstraintViolationException
+    {
+        return new UniqueConstraintViolationException(new class('duplicate') extends DriverException {
+        }, null);
     }
 
     public function testMarkupIsSanitizedOnSave(): void

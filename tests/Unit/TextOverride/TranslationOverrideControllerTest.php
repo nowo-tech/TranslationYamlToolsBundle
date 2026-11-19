@@ -97,6 +97,7 @@ final class TranslationOverrideControllerTest extends TestCase
 
         $repository = $this->createMock(TranslationOverrideRepository::class);
         $repository->method('findOne')->willReturn(null);
+        $repository->method('transactional')->willReturnCallback(static fn (callable $work): mixed => $work());
         $repository->expects(self::once())->method('persist')->with(self::callback(
             static fn ($row): bool => $row->getUpdatedBy() === 'ana@example.com' && $row->getValue() === 'Edited',
         ));

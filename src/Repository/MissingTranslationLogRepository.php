@@ -14,20 +14,24 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\QuoteStrategy;
 use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use LogicException;
+use Nowo\TransactionContract\TransientStorageFailure;
+use Nowo\TranslationYamlToolsBundle\Concurrency\TranslationYamlToolsWriteUnit;
 use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use SortDirection;
-use Throwable;
 
+use function array_chunk;
 use function array_keys;
 use function max;
 use function sprintf;
 use function strlen;
+use function usort;
 
 /**
  * @extends ServiceEntityRepository<MissingTranslationLog>
@@ -45,6 +49,9 @@ use function strlen;
  */
 class MissingTranslationLogRepository extends ServiceEntityRepository
 {
+    /** Buffer rows per transaction of {@see self::persistBuffer()} (REQ-RUNTIME-003 rule 9: small transactions). */
+    public const PERSIST_CHUNK = 200;
+
     private readonly ManagerRegistry $managerRegistry;
 
     public function __construct(ManagerRegistry $registry)
@@ -111,10 +118,9 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $em         = $this->entityManager();
         $connection = $em->getConnection();
         $meta       = $em->getClassMetadata(MissingTranslationLog::class);
-        $tableName  = $meta->getTableName();
-        $qTableName = $connection->quoteSingleIdentifier($tableName);
+        $qTableName = $this->quoteStrategy($em)->getTableName($meta, $connection->getDatabasePlatform());
 
-        $deleted = (int) $connection->executeStatement("DELETE FROM {$qTableName}");
+        $deleted = (int) TranslationYamlToolsWriteUnit::run($em, $this->managerRegistry, static fn (): int|string => $connection->executeStatement("DELETE FROM {$qTableName}"), false);
         $this->detachManagedMissingLogs($em);
 
         return $deleted;
@@ -125,38 +131,31 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $em         = $this->entityManager();
         $connection = $em->getConnection();
         $meta       = $em->getClassMetadata(MissingTranslationLog::class);
-        $tableName  = $meta->getTableName();
-        $cStatus    = $meta->getColumnName('status');
-        $qTableName = $connection->quoteSingleIdentifier($tableName);
-        $qStatus    = $connection->quoteSingleIdentifier($cStatus);
+        $platform   = $connection->getDatabasePlatform();
+        $qTableName = $this->quoteStrategy($em)->getTableName($meta, $platform);
+        $qStatus    = $this->quoteStrategy($em)->getColumnName('status', $meta, $platform);
 
-        $deleted = (int) $connection->executeStatement(
+        $deleted = (int) TranslationYamlToolsWriteUnit::run($em, $this->managerRegistry, static fn (): int|string => $connection->executeStatement(
             "DELETE FROM {$qTableName} WHERE {$qStatus} = :status",
             ['status' => $status->value],
             ['status' => ParameterType::STRING],
-        );
+        ), false);
         $this->detachManagedMissingLogs($em);
 
         return $deleted;
     }
 
     /**
-     * Flushes the manager; when the flush fails and closes it, the manager is reset before rethrowing
-     * so the next request of a long-running worker can use the ORM again.
+     * Writes the pending changes of the bundle's manager (a status change) as one write unit (1.19, REQ-RUNTIME-003
+     * rules 1–3, {@see TranslationYamlToolsWriteUnit}): one transaction (a savepoint inside yours), the nesting level
+     * repaired after a failure; a closed manager is replaced so the next request of a long-running worker can use the
+     * ORM again, an open application manager is never cleared or reset.
+     *
+     * @throws TransientStorageFailure when the storage failed transiently (the DBAL error as previous)
      */
     public function flush(): void
     {
-        $em = $this->entityManager();
-
-        try {
-            $em->flush();
-        } catch (Throwable $e) {
-            if (!$em->isOpen()) {
-                $this->resetClosedManager($em);
-            }
-
-            throw $e;
-        }
+        TranslationYamlToolsWriteUnit::run($this->entityManager(), $this->managerRegistry, static fn (): null => null);
     }
 
     /**
@@ -168,7 +167,14 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
     }
 
     /**
+     * Adds a buffer of missing keys to the log: one atomic upsert per key (hit count `+ n`, never read-modify-write),
+     * in a fixed key order, {@see self::PERSIST_CHUNK} keys per transaction (1.19). A deadlock or lock wait timeout
+     * replays the chunk in place (up to {@see TranslationYamlToolsWriteUnit::REPLAY_ATTEMPTS} attempts) unless you
+     * opened the transaction around the call; then it is rethrown.
+     *
      * @param array<string, array{hits: int, messageId: string, domain: string, locale: string, callSite?: ?string, requestRoute?: ?string, requestMethod?: ?string, requestPath?: ?string}> $buffer keyed by stable hash
+     *
+     * @throws TransientStorageFailure when a chunk still met a lock conflict after its replays
      */
     public function persistBuffer(array $buffer): void
     {
@@ -181,42 +187,54 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         $platform   = $connection->getDatabasePlatform();
         $now        = new DateTimeImmutable();
         $meta       = $em->getClassMetadata(MissingTranslationLog::class);
-        $tableName  = $meta->getTableName();
+        // 1.19: the ORM's quote strategy names the table and columns as the schema created them (quoted only where the
+        // mapping says so). Quoting every name broke PostgreSQL with a mixed-case naming strategy ("hitCount").
+        $quotes    = $this->quoteStrategy($em);
+        $tableName = $quotes->getTableName($meta, $platform);
 
         $columns = [
-            'messageId'       => $meta->getColumnName('messageId'),
-            'domain'          => $meta->getColumnName('domain'),
-            'locale'          => $meta->getColumnName('locale'),
-            'status'          => $meta->getColumnName('status'),
-            'hitCount'        => $meta->getColumnName('hitCount'),
-            'firstSeenAt'     => $meta->getColumnName('firstSeenAt'),
-            'lastSeenAt'      => $meta->getColumnName('lastSeenAt'),
-            'statusChangedAt' => $meta->getColumnName('statusChangedAt'),
-            'notes'           => $meta->getColumnName('notes'),
-            'callSite'        => $meta->getColumnName('callSite'),
-            'requestRoute'    => $meta->getColumnName('requestRoute'),
-            'requestMethod'   => $meta->getColumnName('requestMethod'),
-            'requestPath'     => $meta->getColumnName('requestPath'),
+            'messageId'       => $quotes->getColumnName('messageId', $meta, $platform),
+            'domain'          => $quotes->getColumnName('domain', $meta, $platform),
+            'locale'          => $quotes->getColumnName('locale', $meta, $platform),
+            'status'          => $quotes->getColumnName('status', $meta, $platform),
+            'hitCount'        => $quotes->getColumnName('hitCount', $meta, $platform),
+            'firstSeenAt'     => $quotes->getColumnName('firstSeenAt', $meta, $platform),
+            'lastSeenAt'      => $quotes->getColumnName('lastSeenAt', $meta, $platform),
+            'statusChangedAt' => $quotes->getColumnName('statusChangedAt', $meta, $platform),
+            'notes'           => $quotes->getColumnName('notes', $meta, $platform),
+            'callSite'        => $quotes->getColumnName('callSite', $meta, $platform),
+            'requestRoute'    => $quotes->getColumnName('requestRoute', $meta, $platform),
+            'requestMethod'   => $quotes->getColumnName('requestMethod', $meta, $platform),
+            'requestPath'     => $quotes->getColumnName('requestPath', $meta, $platform),
         ];
 
+        $rows = [];
         foreach ($buffer as $row) {
-            $this->upsertBufferRow(
-                $connection,
-                $platform,
-                $tableName,
-                $columns,
-                [
-                    'messageId'     => $this->normalizeMessageId($row['messageId']),
-                    'domain'        => $this->normalizeDomain($row['domain']),
-                    'locale'        => $this->normalizeLocale($row['locale']),
-                    'hits'          => $row['hits'],
-                    'callSite'      => $this->normalizeCallSite($row['callSite'] ?? null),
-                    'requestRoute'  => $this->normalizeRequestRoute($row['requestRoute'] ?? null),
-                    'requestMethod' => $this->normalizeRequestMethod($row['requestMethod'] ?? null),
-                    'requestPath'   => $this->normalizeRequestPath($row['requestPath'] ?? null),
-                    'seenAt'        => $now->format('Y-m-d H:i:s'),
-                ],
-            );
+            $rows[] = [
+                'messageId'     => $this->normalizeMessageId($row['messageId']),
+                'domain'        => $this->normalizeDomain($row['domain']),
+                'locale'        => $this->normalizeLocale($row['locale']),
+                'hits'          => $row['hits'],
+                'callSite'      => $this->normalizeCallSite($row['callSite'] ?? null),
+                'requestRoute'  => $this->normalizeRequestRoute($row['requestRoute'] ?? null),
+                'requestMethod' => $this->normalizeRequestMethod($row['requestMethod'] ?? null),
+                'requestPath'   => $this->normalizeRequestPath($row['requestPath'] ?? null),
+                'seenAt'        => $now->format('Y-m-d H:i:s'),
+            ];
+        }
+        // 1.19 (REQ-RUNTIME-003 rule 4): rows in a fixed order, so two buffers upserting the same keys lock them in the
+        // same order (no deadlock between them).
+        usort($rows, static fn (array $a, array $b): int => [$a['locale'], $a['domain'], $a['messageId']] <=> [$b['locale'], $b['domain'], $b['messageId']]);
+
+        // One small transaction per chunk (rules 1 and 9), replayed in place after a deadlock or lock wait timeout:
+        // an attempt is rolled back whole, so a replay never counts a hit twice.
+        foreach (array_chunk($rows, self::PERSIST_CHUNK) as $chunk) {
+            // @igor-ignore - The closure runs synchronously inside the unit; nothing is kept on the repository.
+            TranslationYamlToolsWriteUnit::runReplayingTransients($em, $this->managerRegistry, function () use ($connection, $platform, $tableName, $columns, $chunk): void {
+                foreach ($chunk as $row) {
+                    $this->upsertBufferRow($connection, $platform, $tableName, $columns, $row);
+                }
+            }, false);
         }
     }
 
@@ -283,22 +301,21 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         array $columns,
         array $row,
     ): void {
-        $q = static fn (string $name): string => $connection->quoteSingleIdentifier($name);
 
-        $qTable           = $q($tableName);
-        $qMessageId       = $q($columns['messageId']);
-        $qDomain          = $q($columns['domain']);
-        $qLocale          = $q($columns['locale']);
-        $qStatus          = $q($columns['status']);
-        $qHitCount        = $q($columns['hitCount']);
-        $qFirstSeenAt     = $q($columns['firstSeenAt']);
-        $qLastSeenAt      = $q($columns['lastSeenAt']);
-        $qStatusChangedAt = $q($columns['statusChangedAt']);
-        $qNotes           = $q($columns['notes']);
-        $qCallSite        = $q($columns['callSite']);
-        $qRequestRoute    = $q($columns['requestRoute']);
-        $qRequestMethod   = $q($columns['requestMethod']);
-        $qRequestPath     = $q($columns['requestPath']);
+        $qTable           = $tableName;
+        $qMessageId       = $columns['messageId'];
+        $qDomain          = $columns['domain'];
+        $qLocale          = $columns['locale'];
+        $qStatus          = $columns['status'];
+        $qHitCount        = $columns['hitCount'];
+        $qFirstSeenAt     = $columns['firstSeenAt'];
+        $qLastSeenAt      = $columns['lastSeenAt'];
+        $qStatusChangedAt = $columns['statusChangedAt'];
+        $qNotes           = $columns['notes'];
+        $qCallSite        = $columns['callSite'];
+        $qRequestRoute    = $columns['requestRoute'];
+        $qRequestMethod   = $columns['requestMethod'];
+        $qRequestPath     = $columns['requestPath'];
 
         $sql = <<<SQL
             INSERT INTO {$qTable} (
@@ -334,24 +351,24 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         array $columns,
         array $row,
     ): void {
-        $q = static fn (string $name): string => $connection->quoteSingleIdentifier($name);
 
-        $qTable           = $q($tableName);
-        $qMessageId       = $q($columns['messageId']);
-        $qDomain          = $q($columns['domain']);
-        $qLocale          = $q($columns['locale']);
-        $qStatus          = $q($columns['status']);
-        $qHitCount        = $q($columns['hitCount']);
-        $qFirstSeenAt     = $q($columns['firstSeenAt']);
-        $qLastSeenAt      = $q($columns['lastSeenAt']);
-        $qStatusChangedAt = $q($columns['statusChangedAt']);
-        $qNotes           = $q($columns['notes']);
-        $qCallSite        = $q($columns['callSite']);
-        $qRequestRoute    = $q($columns['requestRoute']);
-        $qRequestMethod   = $q($columns['requestMethod']);
-        $qRequestPath     = $q($columns['requestPath']);
+        $qTable           = $tableName;
+        $qMessageId       = $columns['messageId'];
+        $qDomain          = $columns['domain'];
+        $qLocale          = $columns['locale'];
+        $qStatus          = $columns['status'];
+        $qHitCount        = $columns['hitCount'];
+        $qFirstSeenAt     = $columns['firstSeenAt'];
+        $qLastSeenAt      = $columns['lastSeenAt'];
+        $qStatusChangedAt = $columns['statusChangedAt'];
+        $qNotes           = $columns['notes'];
+        $qCallSite        = $columns['callSite'];
+        $qRequestRoute    = $columns['requestRoute'];
+        $qRequestMethod   = $columns['requestMethod'];
+        $qRequestPath     = $columns['requestPath'];
 
-        // excluded / EXCLUDED is the proposed insert row (SQLite + PostgreSQL).
+        // excluded / EXCLUDED is the proposed insert row (SQLite + PostgreSQL). 1.19: the existing row's columns are
+        // qualified with the table name; PostgreSQL refused the bare names as ambiguous, so it never logged a key.
         $sql = <<<SQL
             INSERT INTO {$qTable} (
                 {$qMessageId}, {$qDomain}, {$qLocale}, {$qStatus}, {$qHitCount},
@@ -363,12 +380,12 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
                 :callSite, :requestRoute, :requestMethod, :requestPath
             )
             ON CONFLICT ({$qMessageId}, {$qDomain}, {$qLocale}) DO UPDATE SET
-                {$qHitCount} = {$qHitCount} + excluded.{$qHitCount},
+                {$qHitCount} = {$qTable}.{$qHitCount} + excluded.{$qHitCount},
                 {$qLastSeenAt} = excluded.{$qLastSeenAt},
-                {$qCallSite} = COALESCE(excluded.{$qCallSite}, {$qCallSite}),
-                {$qRequestRoute} = COALESCE(excluded.{$qRequestRoute}, {$qRequestRoute}),
-                {$qRequestMethod} = COALESCE(excluded.{$qRequestMethod}, {$qRequestMethod}),
-                {$qRequestPath} = COALESCE(excluded.{$qRequestPath}, {$qRequestPath})
+                {$qCallSite} = COALESCE(excluded.{$qCallSite}, {$qTable}.{$qCallSite}),
+                {$qRequestRoute} = COALESCE(excluded.{$qRequestRoute}, {$qTable}.{$qRequestRoute}),
+                {$qRequestMethod} = COALESCE(excluded.{$qRequestMethod}, {$qTable}.{$qRequestMethod}),
+                {$qRequestPath} = COALESCE(excluded.{$qRequestPath}, {$qTable}.{$qRequestPath})
             SQL;
 
         $connection->executeStatement($sql, $this->upsertParams($row), $this->upsertTypes($row));
@@ -437,18 +454,17 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         array $columns,
         array $row,
     ): int {
-        $q = static fn (string $name): string => $connection->quoteSingleIdentifier($name);
 
-        $qTable         = $q($tableName);
-        $qHitCount      = $q($columns['hitCount']);
-        $qLastSeenAt    = $q($columns['lastSeenAt']);
-        $qCallSite      = $q($columns['callSite']);
-        $qRequestRoute  = $q($columns['requestRoute']);
-        $qRequestMethod = $q($columns['requestMethod']);
-        $qRequestPath   = $q($columns['requestPath']);
-        $qMessageId     = $q($columns['messageId']);
-        $qDomain        = $q($columns['domain']);
-        $qLocale        = $q($columns['locale']);
+        $qTable         = $tableName;
+        $qHitCount      = $columns['hitCount'];
+        $qLastSeenAt    = $columns['lastSeenAt'];
+        $qCallSite      = $columns['callSite'];
+        $qRequestRoute  = $columns['requestRoute'];
+        $qRequestMethod = $columns['requestMethod'];
+        $qRequestPath   = $columns['requestPath'];
+        $qMessageId     = $columns['messageId'];
+        $qDomain        = $columns['domain'];
+        $qLocale        = $columns['locale'];
 
         $sql    = "UPDATE {$qTable} SET {$qHitCount} = {$qHitCount} + :hits, {$qLastSeenAt} = :lastSeenAt";
         $params = [
@@ -547,6 +563,11 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
         }
 
         return $em;
+    }
+
+    private function quoteStrategy(EntityManagerInterface $em): QuoteStrategy
+    {
+        return $em->getConfiguration()->getQuoteStrategy();
     }
 
     private function resetClosedManager(ObjectManager $closed): void

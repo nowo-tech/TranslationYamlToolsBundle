@@ -71,3 +71,6 @@ missing_log:
         marked_added: 'Zeile Nr. %id% als hinzugefügt markiert.'
         cleared_all: '{0}Keine Protokollzeilen zu leeren.|{1}1 Protokollzeile gelöscht.|]1,Inf[%count% Protokollzeilen gelöscht.'
         cleared_status: '{0}Keine Zeilen mit dem Status „%status%“ zu leeren.|{1}1 Zeile mit dem Status „%status%“ gelöscht.|]1,Inf[%count% Zeilen mit dem Status „%status%“ gelöscht.'
+conflict:
+    retry: 'Dieselben Daten wurden gleichzeitig geändert. Bitte erneut versuchen.'
+    committed: 'Ein Teil der Anfrage wurde vor dem Konflikt gespeichert. Bitte neu laden, bevor du es erneut versuchst.'

@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/translation-yaml-tools-bundle`  
-**Last audited**: 2026-11-16 (text overrides 002 and strict parity 003 folded into the baseline; audit: `git ls-files src | wc -l` → 113)
+**Last audited**: 2026-11-16 (text overrides 002 and strict parity 003 folded into the baseline; audit: `git ls-files src | wc -l` → 113; 1.19 concurrency units → 115)
 
 Paths are relative to `src/`. Every tracked file under `src/` is a production unit (no build outputs, no co-located tests).
 
@@ -179,6 +179,13 @@ Paths are relative to `src/`. Every tracked file under `src/` is a production un
 | `EventSubscriber/EntityManagerBoundarySubscriber.php` | Clears the bundle manager at request / Messenger / console boundaries | FR-WORKER-002 |
 | `EventSubscriber/UnitOfWorkFrames.php` | Unit-of-work frame tracker (workers, requests, console runs) | FR-WORKER-002 |
 
+## Concurrency (1.19, REQ-RUNTIME-003)
+
+| Source file | Spec section | Requirement IDs |
+| --- | --- | --- |
+| `Concurrency/TranslationYamlToolsWriteUnit.php` | One write unit per bundle write (transaction-doctrine runner per manager kind, in-place replays) | FR-CONC-001 |
+| `EventListener/TranslationYamlToolsConflictListener.php` | 409 / 503 + `X-Conflict-Code` on the Web UI routes | FR-CONC-002 |
+
 ## Coverage summary
 
 | Category | Files | Mapped |
@@ -195,4 +202,5 @@ Paths are relative to `src/`. Every tracked file under `src/` is a production un
 | Translations | 7 | 7 |
 | Web UI pages | 3 | 3 |
 | Private entity manager (1.18) | 10 | 10 |
-| **Total production sources** | **113** | **113** |
+| Concurrency (1.19) | 2 | 2 |
+| **Total production sources** | **115** | **115** |

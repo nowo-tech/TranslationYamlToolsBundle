@@ -23,7 +23,12 @@ use function count;
  * (before the worker resets services, which would otherwise drop the buffer).
  *
  * The buffer is emptied before every flush and persistence errors are logged, never rethrown: an exception
- * escaping {@code kernel.terminate} would end the FrankenPHP worker loop.
+ * escaping {@code kernel.terminate} would end the FrankenPHP worker loop. Since 1.19 (REQ-RUNTIME-003 rule 8) a
+ * deadlock or lock wait timeout is first replayed in place by
+ * {@see MissingTranslationLogRepository::persistBuffer()} (each chunk is one transaction, rolled back whole); only a
+ * failure that outlives the replays is logged and dropped here, after the response was sent, so nothing can roll back
+ * or answer any more. The rows are diagnostics; the Messenger handler of `async_persist` rethrows instead (Messenger
+ * retries the message).
  */
 final class DoctrineMissingTranslationRecorder implements MissingTranslationRecorderInterface, ResetInterface
 {

@@ -23,6 +23,8 @@ services:
             - '../../Security/'
             - '../../TextOverride/'
             - '../../Testing/'
+            - '../../Concurrency/'
+            - '../../EventListener/'
 
     Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper:
         arguments:

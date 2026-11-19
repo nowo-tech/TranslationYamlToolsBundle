@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\Tests\Support;
 
+use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Events;
 use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 use Doctrine\ORM\ORMSetup;
 use Doctrine\Persistence\AbstractManagerRegistry;
@@ -38,8 +40,9 @@ final class SqliteManagerRegistry extends AbstractManagerRegistry
 
     /**
      * @param array<string, array<string, string>> $mappings manager name => [namespace => directory]
+     * @param list<object> $metadataListeners loadClassMetadata listeners of every manager (table names, unique keys)
      */
-    public function __construct(private readonly array $mappings, string $default = 'default')
+    public function __construct(private readonly array $mappings, string $default = 'default', private readonly array $metadataListeners = [])
     {
         $names = array_keys($mappings);
 
@@ -89,6 +92,11 @@ final class SqliteManagerRegistry extends AbstractManagerRegistry
         }
         $config->setMetadataDriverImpl($chain);
 
-        return new EntityManager($this->connection($name), $config);
+        $events = new EventManager();
+        foreach ($this->metadataListeners as $listener) {
+            $events->addEventListener(Events::loadClassMetadata, $listener);
+        }
+
+        return new EntityManager($this->connection($name), $config, $events);
     }
 }

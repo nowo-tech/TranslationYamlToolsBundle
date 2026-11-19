@@ -71,3 +71,6 @@ missing_log:
         marked_added: 'Rij #%id% gemarkeerd als toegevoegd.'
         cleared_all: '{0}Geen logboekrijen om leeg te maken.|{1}1 logboekrij verwijderd.|]1,Inf[%count% logboekrijen verwijderd.'
         cleared_status: '{0}Geen rijen met status "%status%" om leeg te maken.|{1}1 rij met status "%status%" verwijderd.|]1,Inf[%count% rijen met status "%status%" verwijderd.'
+conflict:
+    retry: 'Dezelfde gegevens werden tegelijk gewijzigd. Probeer het opnieuw.'
+    committed: 'Een deel van het verzoek is vóór het conflict opgeslagen. Laad opnieuw voordat je het nogmaals probeert.'

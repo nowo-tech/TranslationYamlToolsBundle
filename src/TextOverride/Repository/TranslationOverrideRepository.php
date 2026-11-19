@@ -8,6 +8,8 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use LogicException;
+use Nowo\TransactionContract\TransientStorageFailure;
+use Nowo\TranslationYamlToolsBundle\Concurrency\TranslationYamlToolsWriteUnit;
 use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
 
@@ -78,9 +80,33 @@ class TranslationOverrideRepository extends ServiceEntityRepository
         $this->entityManager()->remove($override);
     }
 
+    /**
+     * Writes the pending override rows as one write unit (1.19, REQ-RUNTIME-003 rule 1: {@see self::transactional()}).
+     *
+     * @throws TransientStorageFailure when the storage failed transiently (deadlock, lock wait timeout, serialization)
+     */
     public function flush(): void
     {
-        $this->entityManager()->flush();
+        $this->transactional(static fn (): null => null);
+    }
+
+    /**
+     * Runs `$work` (reads, {@see self::persist()}, {@see self::delete()}, entity changes) and the flush of the manager
+     * that maps the overrides as one write unit (1.19, REQ-RUNTIME-003 rules 1–3, {@see TranslationYamlToolsWriteUnit}):
+     * one transaction (a savepoint inside yours), the nesting level repaired after a failure, the bundle's own manager
+     * cleaned up after a storage failure, the application's manager never cleared or reset while open.
+     *
+     * @template T
+     *
+     * @param callable(): T $work
+     *
+     * @throws TransientStorageFailure when the storage failed transiently (the DBAL error as previous)
+     *
+     * @return T
+     */
+    public function transactional(callable $work): mixed
+    {
+        return TranslationYamlToolsWriteUnit::run($this->entityManager(), $this->managerRegistry, $work);
     }
 
     private function entityManager(): EntityManagerInterface

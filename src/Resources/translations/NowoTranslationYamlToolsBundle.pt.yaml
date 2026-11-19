@@ -71,3 +71,6 @@ missing_log:
         marked_added: 'Linha n.º %id% marcada como adicionada.'
         cleared_all: '{0}Não há linhas do registo para limpar.|{1}Foi eliminada 1 linha do registo.|]1,Inf[Foram eliminadas %count% linhas do registo.'
         cleared_status: '{0}Não há linhas com o estado «%status%» para limpar.|{1}Foi eliminada 1 linha com o estado «%status%».|]1,Inf[Foram eliminadas %count% linhas com o estado «%status%».'
+conflict:
+    retry: 'Os mesmos dados estavam a ser alterados ao mesmo tempo. Tente novamente.'
+    committed: 'Parte do pedido foi guardada antes do conflito. Recarregue antes de tentar novamente.'

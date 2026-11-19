@@ -82,6 +82,7 @@ FrankenPHP worker mode: Supported in production Caddyfile; development uses `Cad
 
 - [Installation](docs/INSTALLATION.md)
 - [Configuration](docs/CONFIGURATION.md)
+- [Concurrency (REQ-RUNTIME-003)](docs/CONCURRENCY.md)
 - [Usage](docs/USAGE.md)
 - [Templates (UiKit page contract)](docs/TEMPLATES.md)
 - [Contributing](docs/CONTRIBUTING.md)
