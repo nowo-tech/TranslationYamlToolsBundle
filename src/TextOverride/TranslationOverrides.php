@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\TextOverride;
 
+use Nowo\TransactionContract\TransientStorageFailure;
+use Nowo\TranslationYamlToolsBundle\Concurrency\TranslationYamlToolsWriteUnit;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Html\TranslationOverrideHtmlSanitizerInterface;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Repository\TranslationOverrideRepository;
@@ -74,27 +76,57 @@ class TranslationOverrides implements TranslationOverrideProviderInterface, Rese
 
     /**
      * Saves (non-blank $text) or removes (blank / null) one override. Markup is sanitized first.
+     *
+     * With `$flush` true (the default) the change is one write unit ({@see self::write()}); with false it is only
+     * staged on the bundle's manager: write it with {@see self::flush()}.
+     *
+     * @throws TransientStorageFailure when the write met a lock conflict (`$flush` true)
      */
     public function set(string $locale, string $domain, string $key, ?string $text, bool $flush = true, ?string $updatedBy = null): void
     {
-        $text = $this->clean($text);
-        $row  = $this->repository->findOne($locale, $domain, $key);
+        if (!$flush) {
+            $this->stage($locale, $domain, $key, $text, $updatedBy);
 
-        if ($text === '') {
-            if ($row instanceof TranslationOverride) {
-                // @igor-ignore - Doctrine unit-of-work call, not service state.
-                $this->repository->delete($row);
+            return;
+        }
+
+        $this->write(function () use ($locale, $domain, $key, $text, $updatedBy): void {
+            $this->stage($locale, $domain, $key, $text, $updatedBy);
+        });
+    }
+
+    /**
+     * Runs `$stage` (calls of {@see self::set()} with `$flush` false) and the flush as one write unit (1.19,
+     * REQ-RUNTIME-003 rules 1 and 4): one transaction, then the cached map is dropped.
+     *
+     * The first save of a message by two requests at once is the expected "only one" race of the unique key
+     * (locale, domain, key): the loser's insert fails with a unique violation, and the unit runs `$stage` once more,
+     * which now finds the winner's row and updates it (the last save wins, as for two saves of an existing row). Any
+     * other failure, and a second unique violation, is rethrown; a unique violation is never a lock conflict.
+     *
+     * The second run happens only when the bundle's own manager (private or dedicated) had no pending change before
+     * the unit. With rows staged earlier with `flush: false`, or on the application's default manager (deprecated
+     * modes), the unique violation is rethrown instead: the failed unit discarded that earlier work, and running again
+     * would report success without it.
+     *
+     * @param callable(): void $stage reads the rows again on every run (never reuse an entity loaded outside)
+     *
+     * @throws TransientStorageFailure when the write met a lock conflict (deadlock, lock wait timeout, serialization)
+     */
+    public function write(callable $stage): void
+    {
+        // Audit UQ-1: a failed unit clears or replaces the manager, so a second run would silently drop anything staged
+        // before it (rows staged with "flush: false", or your own pending entities on the default manager).
+        $replayable = $this->repository->isCleanBundleManager();
+        try {
+            $this->repository->transactional($stage);
+        } catch (Throwable $failure) {
+            if (!$replayable || !TranslationYamlToolsWriteUnit::isUniqueViolation($failure)) {
+                throw $failure;
             }
-        } elseif (!$row instanceof TranslationOverride) {
-            // @igor-ignore - Doctrine unit-of-work call, not service state.
-            $this->repository->persist((new TranslationOverride($locale, $domain, $key))->setValue($text, $updatedBy));
-        } elseif ($row->getValue() !== $text) {
-            $row->setValue($text, $updatedBy);
+            $this->repository->transactional($stage);
         }
-
-        if ($flush) {
-            $this->flush();
-        }
+        $this->invalidate();
     }
 
     /**
@@ -110,6 +142,12 @@ class TranslationOverrides implements TranslationOverrideProviderInterface, Rese
         return $text;
     }
 
+    /**
+     * Writes the staged overrides as one write unit (1.19: {@see TranslationOverrideRepository::flush()}) and drops the
+     * cached map.
+     *
+     * @throws TransientStorageFailure when the write met a lock conflict
+     */
     public function flush(): void
     {
         $this->repository->flush();
@@ -129,6 +167,27 @@ class TranslationOverrides implements TranslationOverrideProviderInterface, Rese
     public function reset(): void
     {
         $this->map = null;
+    }
+
+    /**
+     * Stages one change on the bundle's manager (no flush): the row is read again from the manager every time.
+     */
+    private function stage(string $locale, string $domain, string $key, ?string $text, ?string $updatedBy): void
+    {
+        $text = $this->clean($text);
+        $row  = $this->repository->findOne($locale, $domain, $key);
+
+        if ($text === '') {
+            if ($row instanceof TranslationOverride) {
+                // @igor-ignore - Doctrine unit-of-work call, not service state.
+                $this->repository->delete($row);
+            }
+        } elseif (!$row instanceof TranslationOverride) {
+            // @igor-ignore - Doctrine unit-of-work call, not service state.
+            $this->repository->persist((new TranslationOverride($locale, $domain, $key))->setValue($text, $updatedBy));
+        } elseif ($row->getValue() !== $text) {
+            $row->setValue($text, $updatedBy);
+        }
     }
 
     /**

@@ -71,3 +71,6 @@ missing_log:
         marked_added: 'Fila n.º %id% marcada como añadida.'
         cleared_all: '{0}No hay filas que vaciar en el registro.|{1}Se ha eliminado 1 fila del registro.|]1,Inf[Se han eliminado %count% filas del registro.'
         cleared_status: '{0}No hay filas con el estado «%status%» que vaciar.|{1}Se ha eliminado 1 fila con el estado «%status%».|]1,Inf[Se han eliminado %count% filas con el estado «%status%».'
+conflict:
+    retry: 'Los mismos datos se estaban modificando a la vez. Inténtalo de nuevo.'
+    committed: 'Parte de la petición se guardó antes del conflicto. Recarga antes de volver a intentarlo.'

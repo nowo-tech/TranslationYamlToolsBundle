@@ -83,6 +83,8 @@ final class EntityManagerModesExtensionTest extends TestCase
         self::assertFalse($container->hasDefinition(TranslationYamlToolsEntityManager::class));
         self::assertSame('translations', $container->getDefinition(EntityManagerBoundarySubscriber::class)->getArgument('$managerName'));
         self::assertSame('doctrine', (string) $container->getDefinition(MissingTranslationLogRepository::class)->getArgument('$registry'));
+        // 1.19 (audit UQ-4): the repositories know the configured manager name instead of scanning the registry.
+        self::assertSame('translations', $container->getDefinition(MissingTranslationLogRepository::class)->getArgument('$managerName'));
     }
 
     /**

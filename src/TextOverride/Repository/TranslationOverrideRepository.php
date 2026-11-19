@@ -8,6 +8,8 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use LogicException;
+use Nowo\TransactionContract\TransientStorageFailure;
+use Nowo\TranslationYamlToolsBundle\Concurrency\TranslationYamlToolsWriteUnit;
 use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\TextOverride\Entity\TranslationOverride;
 
@@ -24,7 +26,11 @@ class TranslationOverrideRepository extends ServiceEntityRepository
 {
     private readonly ManagerRegistry $managerRegistry;
 
-    public function __construct(ManagerRegistry $registry)
+    /**
+     * @param string|null $managerName `doctrine.entity_manager` (1.19: tells a dedicated manager from the default one
+     *                                 without building every manager of the registry)
+     */
+    public function __construct(ManagerRegistry $registry, private readonly ?string $managerName = null)
     {
         $this->managerRegistry = $registry;
         parent::__construct($registry, TranslationOverride::class);
@@ -78,9 +84,43 @@ class TranslationOverrideRepository extends ServiceEntityRepository
         $this->entityManager()->remove($override);
     }
 
+    /**
+     * Writes the pending override rows as one write unit (1.19, REQ-RUNTIME-003 rule 1: {@see self::transactional()}).
+     *
+     * @throws TransientStorageFailure when the storage failed transiently (deadlock, lock wait timeout, serialization)
+     */
     public function flush(): void
     {
-        $this->entityManager()->flush();
+        $this->transactional(static fn (): null => null);
+    }
+
+    /**
+     * Runs `$work` (reads, {@see self::persist()}, {@see self::delete()}, entity changes) and the flush of the manager
+     * that maps the overrides as one write unit (1.19, REQ-RUNTIME-003 rules 1–3, {@see TranslationYamlToolsWriteUnit}):
+     * one transaction (a savepoint inside yours), the nesting level repaired after a failure, the bundle's own manager
+     * cleaned up after a storage failure, the application's manager never cleared or reset while open.
+     *
+     * @template T
+     *
+     * @param callable(): T $work
+     *
+     * @throws TransientStorageFailure when the storage failed transiently (the DBAL error as previous)
+     *
+     * @return T
+     */
+    public function transactional(callable $work): mixed
+    {
+        return TranslationYamlToolsWriteUnit::run($this->entityManager(), $this->managerRegistry, $work, true, $this->managerName);
+    }
+
+    /**
+     * Whether the overrides live on the bundle's own manager (private or dedicated) and it has no pending change
+     * (1.19, audit UQ-1): only then may {@see TranslationOverrides::write()} run a unit again after the first-save
+     * race, since the failed unit cleared or replaced that manager.
+     */
+    public function isCleanBundleManager(): bool
+    {
+        return TranslationYamlToolsWriteUnit::isCleanBundleManager($this->entityManager(), $this->managerRegistry, $this->managerName);
     }
 
     private function entityManager(): EntityManagerInterface

@@ -63,6 +63,43 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Concurrency (REQ-RUNTIME-003):** every database write of the overrides desk and the missing-translation log runs in
+  one write unit (transaction-doctrine runner: one transaction or savepoint, nesting level repaired after a failure,
+  the bundle's own manager cleaned up, yours never cleared or reset while open). New `docs/CONCURRENCY.md` with the
+  write-path table, codes, host options and residual risks.
+- `conflict_response.status` (409 | 503) and `conflict_response.retry_after`: a lock conflict on the Web UI routes
+  answers 409 with `X-Conflict-Code: CONFLICT_001` and `Retry-After`, or `CONFLICT_002` without `Retry-After` when part
+  of the request was committed (`TranslationYamlToolsConflictListener`). Unique violations and lost connections are not
+  mapped.
+- `TranslationOverrides::write()` and `TranslationOverrideRepository::transactional()`.
+- CI: "Databases on …" job (MySQL 8.4, MariaDB 11.4, PostgreSQL 16; DBAL 4 and DBAL 3) running two-connection race
+  tests, and the "Dependency floor (nowo-tech/transaction-* lowest, demo lock)" job.
+
+### Changed
+
+- Requires `nowo-tech/transaction-contract` ^1.0 and `nowo-tech/transaction-doctrine` ^1.7 (and so `doctrine/dbal`).
+- A deadlock, lock wait timeout or serialization failure of a bundle write is rethrown as
+  `Nowo\TransactionContract\TransientStorageFailure` (the DBAL exception as previous). See UPGRADING.
+- Saving or restoring a message writes every locale in one transaction; two first saves of the same message no longer
+  fail with a unique violation (the loser's unit runs again and updates the winner's row). The second run happens only
+  when the bundle's own manager had no pending change before the unit; otherwise (rows staged with `flush: false`, or
+  the default manager in the deprecated modes) the unique violation is rethrown, never a silent loss.
+- The repositories take the configured `doctrine.entity_manager` name instead of building every manager of the
+  registry on each write.
+- The missing-log buffer is written in a fixed key order, 200 keys per transaction, and replayed in place after a
+  deadlock or lock wait timeout; the Messenger handler rethrows a failure that outlives the replays.
+
+### Fixed
+
+- Lock conflicts on the overrides desk and the missing-log pages answered 500.
+- Missing log on PostgreSQL (>= 1.2.1 < 1.19.0): it never recorded anything. The `ON CONFLICT … DO UPDATE` statement
+  failed at parse time with "column reference is ambiguous", so even a new key failed; the failure was logged and the
+  buffer dropped (the Messenger handler threw). With a mixed-case naming strategy the quoted column names did not exist
+  either, and on DBAL 3 the sequence id was missing. The upsert now uses the ORM's quote strategy, qualifies the
+  existing row's columns and takes the sequence's next value. No security impact (diagnostic data only).
+
 ### Demo
 
 - The demo is built on UiKit and FormKit (REQ-DEMO-014 / REQ-DEMO-015): the Bootstrap and Bootstrap Icons CDN links and the hand-written page styles are gone, every demo page extends one UiKit admin shell with its default theme (also the layout of the missing-log UI and the text-overrides desk), and the login form is a FormKit type themed by the `demo` profile on UiKit's form theme. No bundle runtime change.

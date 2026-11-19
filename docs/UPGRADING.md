@@ -72,6 +72,51 @@
 
 ## Unreleased
 
+Concurrency (REQ-RUNTIME-003), see [CONCURRENCY.md](CONCURRENCY.md). No configuration change is required.
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle --with-dependencies
+```
+
+- **New runtime dependencies:** `nowo-tech/transaction-contract` ^1.0 and `nowo-tech/transaction-doctrine` ^1.7. The
+  latter requires `doctrine/dbal` (^3.8.2 || ^4.0), so a host that uses only the YAML console tools now installs DBAL
+  too. Nothing is registered unless `missing_translation_log` or `overrides` is enabled.
+- **Lock conflicts on the Web UI answer 409, not 500.** A deadlock, lock wait timeout or serialization failure on the
+  overrides desk or the missing-log pages now answers 409 with `X-Conflict-Code: CONFLICT_001` and `Retry-After`
+  (`CONFLICT_002` without `Retry-After` when part of the request was committed), rendered by your error page. Set
+  `conflict_response.status: 503` to keep a Service Unavailable answer. Unique violations and lost connections are
+  still real errors.
+- **Exception type of a lock conflict (BC note).** `TranslationOverrides::set()` / `write()` / `flush()`,
+  `TranslationOverrideEditor::save()` / `reset()` / `flush()`, `TranslationOverrideRepository::flush()` and
+  `MissingTranslationLogRepository::flush()` / `persistBuffer()` / `clearAll()` / `clearByStatus()` run in a write
+  unit. A deadlock, lock wait timeout or serialization failure now reaches you as
+  `Nowo\TransactionContract\TransientStorageFailure` with the DBAL exception as previous, instead of the bare DBAL
+  exception. Catch `TransientStorageFailure` (or walk `getPrevious()`). Other exceptions are unchanged.
+- **Inside your transaction.** Called inside a transaction you opened, a bundle write is a savepoint; after a failure
+  the nesting level is rolled back to where you were, and the missing-log buffer is not replayed in place (the failure
+  is rethrown to you).
+- **New public API (additive):** `TranslationOverrides::write(callable $stage)`,
+  `TranslationOverrideRepository::transactional(callable $work)` and `isCleanBundleManager()`, an optional
+  `?string $managerName` second constructor argument on both repositories, the `conflict_response` options, the
+  `MissingTranslationLogRepository::PERSIST_CHUNK` constant and the `conflict.retry` / `conflict.committed` translation
+  keys. `TranslationOverrides::set()` with `flush: true` now stages and writes in one unit (it used to stage, then
+  flush).
+- **Dedicated entity manager.** With `doctrine.entity_manager` naming a dedicated manager, a failed bundle write now
+  resets that manager at once (transaction-doctrine `forEntityManager()`), instead of at its next use.
+- **Missing log on PostgreSQL (fix, >= 1.2.1 < 1.19.0).** The missing log never recorded anything on PostgreSQL: the
+  upsert failed at parse time ("column reference is ambiguous"), even for a new key, and the buffer was dropped. Nothing
+  to migrate; the log fills from this version.
+- **First-save race with staged rows.** `TranslationOverrides::write()` (and `save()` / `reset()` / `set()` with
+  `flush: true`) runs its unit again after the first-save race only when the bundle's own manager had nothing pending.
+  If you staged rows with `flush: false` first, or use the deprecated default-manager modes, the unique violation is
+  rethrown (those staged rows were not written); retry the whole form.
+- **Missing-log ids.** A buffer is written in (locale, domain, message) order, so new rows get their ids in that order
+  rather than in the order the keys were met.
+- **DBAL 3.** transaction-doctrine 1.7 returns the driver's result from `Connection::commit()` again on DBAL 3 (1.6.x
+  returned `null`); the bundle does not install commit tracking on your connections.
+- **Worker mode.** A closed entity manager of yours is not replaced by the bundle; only transaction-doctrine's
+  `WorkerConnectionHygiene` (or your own) replaces it between requests.
+
 ## To 1.18.4
 
 From **1.18.3**:

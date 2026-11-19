@@ -43,7 +43,9 @@ final class TranslationOverrideEditorTest extends TestCase
         $repository->expects(self::once())->method('persist')->willReturnCallback(static function (TranslationOverride $row) use (&$persisted): void {
             $persisted[] = $row->getLocale() . '=' . $row->getValue() . '@' . $row->getUpdatedBy();
         });
-        $repository->expects(self::once())->method('flush');
+        // 1.19: every locale of the message in one write unit.
+        $repository->expects(self::once())->method('transactional')->willReturnCallback(static fn (callable $work): mixed => $work());
+        $repository->expects(self::never())->method('flush');
 
         $this->editor($repository)->save('messages', 'site.hello', [
             'en' => ' Hello ',        // shipped text → no row
@@ -79,7 +81,8 @@ final class TranslationOverrideEditorTest extends TestCase
         $repository = $this->createMock(TranslationOverrideRepository::class);
         $repository->method('findOne')->willReturnCallback(static fn (string $locale): ?TranslationOverride => $locale === 'es' ? $row : null);
         $repository->expects(self::exactly(2))->method('delete')->with($row);
-        $repository->expects(self::exactly(2))->method('flush');
+        $repository->expects(self::once())->method('transactional')->willReturnCallback(static fn (callable $work): mixed => $work());
+        $repository->expects(self::once())->method('flush');
 
         $editor = $this->editor($repository);
         $editor->reset('messages', 'site.hello');

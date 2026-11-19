@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 
+use Nowo\TransactionDoctrine\Symfony\Conflict\ConflictResponsePolicy;
 use Nowo\TranslationYamlToolsBundle\Ui\WebUiPages;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -45,6 +46,23 @@ final class Configuration implements ConfigurationInterface
                             ->info('Since 1.18.0 (REQ-ARCH-001 rule 6): with entity_manager null, the bundle writes through a private entity manager built on the connection, configuration, events and SQL filters of the manager that maps the bundle entities, so a bundle write never flushes or resets an application manager. Same tables, same connection. false restores the pre-1.18 behaviour (writes through the default manager): deprecated, removed in 2.0. Ignored when entity_manager is set.')
                             ->defaultTrue()
                             ->setDeprecated('nowo-tech/translation-yaml-tools-bundle', '1.18', 'The "%node%" option at path "%path%" is deprecated: the private entity manager becomes the only zero-config mode in 2.0. Remove the option, or set doctrine.entity_manager to a dedicated manager.')
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('conflict_response')
+                    ->info('REQ-RUNTIME-003 rule 6 (1.19): the answer of the bundle\'s own Web UI routes (text-overrides desk, missing-log pages) to a lock conflict, deadlock, lock wait timeout or serialization failure: an HttpException rendered by your error page with X-Conflict-Code CONFLICT_001 (with Retry-After) or CONFLICT_002 (part of the request committed, no Retry-After). Unique violations and lost connections are never conflicts.')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->enumNode('status')
+                            ->info('409 (platform default) or 503 (hosts that keep a Service Unavailable answer).')
+                            ->values([ConflictResponsePolicy::STATUS_CONFLICT, ConflictResponsePolicy::STATUS_SERVICE_UNAVAILABLE])
+                            ->defaultValue(ConflictResponsePolicy::STATUS_CONFLICT)
+                        ->end()
+                        ->integerNode('retry_after')
+                            ->info('Retry-After seconds of a CONFLICT_001 answer.')
+                            ->defaultValue(ConflictResponsePolicy::DEFAULT_RETRY_AFTER)
+                            ->min(0)
+                            ->max(3600)
                         ->end()
                     ->end()
                 ->end()

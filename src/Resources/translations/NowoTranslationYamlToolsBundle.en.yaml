@@ -71,3 +71,6 @@ missing_log:
         marked_added: 'Row #%id% marked as added.'
         cleared_all: '{0}No missing-log row to clear.|{1}Cleared 1 missing-log row.|]1,Inf[Cleared %count% missing-log rows.'
         cleared_status: '{0}No row with status "%status%" to clear.|{1}Cleared 1 row with status "%status%".|]1,Inf[Cleared %count% rows with status "%status%".'
+conflict:
+    retry: 'The same data was being changed at the same time. Try again.'
+    committed: 'Part of the request was saved before a conflict. Reload before trying again.'

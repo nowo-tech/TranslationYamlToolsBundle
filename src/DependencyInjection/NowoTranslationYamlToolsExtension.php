@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\DependencyInjection;
 
 use InvalidArgumentException;
+use Nowo\TransactionDoctrine\Symfony\Conflict\ConflictResponsePolicy;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\EntityManagerOptionPass;
 use Nowo\TranslationYamlToolsBundle\DependencyInjection\Compiler\PrivateEntityManagerPass;
 use Nowo\TranslationYamlToolsBundle\Doctrine\PrivateEntityManagerFlushBridge;
@@ -12,6 +13,7 @@ use Nowo\TranslationYamlToolsBundle\Doctrine\PrivateEntityManagerMiddleware;
 use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsEntityManager;
 use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsManagerRegistry;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
+use Nowo\TranslationYamlToolsBundle\EventListener\TranslationYamlToolsConflictListener;
 use Nowo\TranslationYamlToolsBundle\EventSubscriber\EntityManagerBoundarySubscriber;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\LibreTranslateBaseUrlGuard;
 use Nowo\TranslationYamlToolsBundle\MachineTranslation\MachineTranslationLocaleMapper;
@@ -303,6 +305,12 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
             }
         }
 
+        if (($missingLogEnabled && $webUiEnabled) || $container->getParameter('nowo_translation_yaml_tools.overrides.web_ui.enabled') === true) {
+            /** @var array{status: int, retry_after: int} $conflictResponse */
+            $conflictResponse = $config['conflict_response'];
+            $this->registerConflictListener($container, $conflictResponse);
+        }
+
         $entityClasses = [];
         if ($missingLogEnabled) {
             $entityClasses[] = MissingTranslationLog::class;
@@ -345,6 +353,11 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
             ->setArgument('$requestStack', new Reference('request_stack', ContainerInterface::NULL_ON_INVALID_REFERENCE))
             ->addTag('kernel.event_subscriber');
         $container->setDefinition(EntityManagerBoundarySubscriber::class, $subscriber);
+        foreach ([MissingTranslationLogRepository::class, TranslationOverrideRepository::class] as $repository) {
+            if ($container->hasDefinition($repository)) {
+                $container->getDefinition($repository)->setArgument('$managerName', $doctrine['entity_manager']);
+            }
+        }
 
         if ($doctrine['entity_manager'] !== null || $doctrine['private_entity_manager'] !== true) {
             return;
@@ -371,6 +384,24 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
         $container->register(PrivateEntityManagerFlushBridge::class, PrivateEntityManagerFlushBridge::class)
             ->setArguments([$lazyPrivate, new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE)])
             ->addTag('doctrine.event_listener', ['event' => 'postFlush']);
+    }
+
+    /**
+     * 1.19 (REQ-RUNTIME-003 rule 6): the conflict answer of the bundle's Web UI routes
+     * ({@see TranslationYamlToolsConflictListener}, `kernel.exception` priority -64).
+     *
+     * @param array{status: int, retry_after: int} $conflictResponse
+     */
+    private function registerConflictListener(ContainerBuilder $container, array $conflictResponse): void
+    {
+        $container->register('nowo_translation_yaml_tools.conflict_response.policy', ConflictResponsePolicy::class)
+            ->setArguments([$conflictResponse['status'], $conflictResponse['retry_after']]);
+        $container->register(TranslationYamlToolsConflictListener::class, TranslationYamlToolsConflictListener::class)
+            ->setArguments([
+                new Reference('nowo_translation_yaml_tools.conflict_response.policy'),
+                new Reference('translator', ContainerInterface::NULL_ON_INVALID_REFERENCE),
+            ])
+            ->addTag('kernel.event_listener', ['event' => 'kernel.exception', 'priority' => -64]);
     }
 
     /**

@@ -980,6 +980,9 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         renderer?: "auto"|"ui_kit"|"native"|Param, // auto (default): the UiKit locale_tabs partial when nowo-tech/ui-kit-bundle 2.5+ is installed, else the neutral FormKit markup; native: always the neutral markup; ui_kit: same as auto (falls back to native without UiKit). // Default: "auto"
  *         form_theme?: bool|Param, // When true (default), registers @NowoFormKitBundle/form/locale_tabs_theme.html.twig in twig.form_themes (it only renders fields with locale_tabs). // Default: true
  *     },
+ *     field_widgets?: array{ // Field widgets (2.22): the choice_cards (ChoiceType), switch (CheckboxType) and char_counter (TextType) options.
+ *         form_theme?: bool|Param, // When true (default), registers @NowoFormKitBundle/form/field_widgets_theme.html.twig in twig.form_themes (it only renders fields with choice_cards, switch or char_counter). // Default: true
+ *     },
  *     twig?: array{ // Twig helpers shipped by the bundle (registered only when twig/twig is installed).
  *         csrf_action_form?: bool|Param, // When true (default), registers the csrf_action_form() Twig function (CSRF-only single-action POST forms). Set false if the host keeps its own function with that name. // Default: true
  *     },
@@ -1190,6 +1193,9 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         presentation?: "standard"|"compact"|"inline"|"no_intro"|"no_title"|"no_header"|Param, // standard (default) | compact | inline | no_intro | no_title | no_header: in compact the page header keeps a visually hidden h1 and leaves its intro, breadcrumbs and back link to the top bar (header_context); 2.39: inline puts the intro on the title row, no_intro drops the intro, no_title keeps the h1 visually hidden, no_header does both. // Default: "standard"
  *         compact_actions?: "page"|"bar"|Param, // page (default): header.actions stay in the page header; bar: in the compact presentation the page header leaves them out (the host shows them in the top bar through the page_actions partial). extra_actions always stay. // Default: "page"
  *     },
+ *     auth_panel?: array{ // 2.44: the auth scaffold (page/auth.html.twig) panel (Twig global nowo_ui_kit_auth_panel).
+ *         brand?: "auto"|"none"|Param, // auto (default, the 2.43 markup): the panel brand region prints the appearance logo lockup, else AuthPage::brand as text; none: the panel prints no brand region (a host guest layout that prints its own brand). A render variable nowo_ui_auth_brand (auto | none) wins over it. // Default: "auto"
+ *     },
  *     remote_dialog?: array{ // 2.28 remote form dialog (X-Nowo-Dialog requests).
  *         convert_redirects?: bool|Param, // Turn a RedirectResponse answered to a dialog request (X-Nowo-Dialog: 1, main request) into 204 + X-Nowo-Redirect when its Location is a same-origin path, so redirectToRoute() controllers work in the dialog without code changes. // Default: false
  *         step_routes?: list<scalar|Param|null>,
@@ -1264,6 +1270,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         }>,
  *         illustration_width?: int|Param, // Default intrinsic width of the illustrations. // Default: 1024
  *         illustration_height?: int|Param, // Default intrinsic height of the illustrations. // Default: 683
+ *         illustration_provider?: scalar|Param|null, // 2.47: service id implementing Nowo\UiKitBundle\View\ErrorIllustrationProviderInterface, asked first per status code (null answer, any exception or an invalid illustration → the illustrations map). Must be fast and must not need the database. Null = the map only. // Default: null
+ *         illustration_provider_budget_ms?: int|Param, // 2.47: when > 0, a provider call slower than this many milliseconds makes the rest of the same request skip the provider (logged once). 0 = no budget. // Default: 0
  *         webp?: bool|Param, // Illustrations ship a .webp next to the fallback image (<source type="image/webp">). // Default: true
  *         retry_statuses?: list<int|Param>,
  *         back_link_statuses?: list<int|Param>,
@@ -1291,6 +1299,10 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     doctrine?: array{ // Doctrine storage of the bundle entities (missing_translation_log and overrides).
  *         entity_manager?: scalar|Param|null, // Since 1.17.0: entity manager that maps the bundle entities (e.g. a dedicated manager in a DDD host). The entities are mapped there only (also removed from an auto-mapped manager); the bundle writes to, and resets after a failure, only this manager; host managers are never touched; the host default manager stays the default. The host must declare the manager under doctrine.orm.entity_managers: the build fails when it does not (a mistyped name included) or when the manager does not map the entities. null (default): the manager that maps the bundle entities (the default one), written through the bundle private entity manager since 1.18.0 (see private_entity_manager). // Default: null
  *         private_entity_manager?: bool|Param, // Deprecated: The "private_entity_manager" option at path "nowo_translation_yaml_tools.doctrine.private_entity_manager" is deprecated: the private entity manager becomes the only zero-config mode in 2.0. Remove the option, or set doctrine.entity_manager to a dedicated manager. // Since 1.18.0 (REQ-ARCH-001 rule 6): with entity_manager null, the bundle writes through a private entity manager built on the connection, configuration, events and SQL filters of the manager that maps the bundle entities, so a bundle write never flushes or resets an application manager. Same tables, same connection. false restores the pre-1.18 behaviour (writes through the default manager): deprecated, removed in 2.0. Ignored when entity_manager is set. // Default: true
+ *     },
+ *     conflict_response?: array{ // REQ-RUNTIME-003 rule 6 (1.19): the answer of the bundle's own Web UI routes (text-overrides desk, missing-log pages) to a lock conflict, deadlock, lock wait timeout or serialization failure: an HttpException rendered by your error page with X-Conflict-Code CONFLICT_001 (with Retry-After) or CONFLICT_002 (part of the request committed, no Retry-After). Unique violations and lost connections are never conflicts.
+ *         status?: 409|503|Param, // 409 (platform default) or 503 (hosts that keep a Service Unavailable answer). // Default: 409
+ *         retry_after?: int|Param, // Retry-After seconds of a CONFLICT_001 answer. // Default: 1
  *     },
  *     default_locale?: scalar|Param|null, // Override default source locale; null uses translator.default_locale if defined, else kernel.default_locale, else en (Symfony 8 may only expose kernel.default_locale) // Default: null
  *     yaml_tree_indent?: int|Param, // Spaces per indentation level when dumping nested YAML // Default: 4

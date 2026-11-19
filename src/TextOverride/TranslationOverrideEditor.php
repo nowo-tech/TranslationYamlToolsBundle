@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\TranslationYamlToolsBundle\TextOverride;
 
 use InvalidArgumentException;
+use Nowo\TransactionContract\TransientStorageFailure;
 use Symfony\Component\Translation\TranslatorBagInterface;
 
 use function array_key_exists;
@@ -126,9 +127,13 @@ final class TranslationOverrideEditor
     /**
      * Stores submitted texts (locale => text); locales missing from $texts are left untouched.
      *
+     * With `$flush` true (the default) every locale is written in one write unit (1.19,
+     * {@see TranslationOverrides::write()}); with false the texts are only staged: call {@see self::flush()}.
+     *
      * @param array<array-key, mixed> $texts
      *
      * @throws InvalidArgumentException when a text adds or drops placeholders of the shipped text
+     * @throws TransientStorageFailure when the write met a lock conflict (`$flush` true)
      */
     public function save(string $domain, string $key, array $texts, bool $flush = true, ?string $updatedBy = null): void
     {
@@ -138,36 +143,54 @@ final class TranslationOverrideEditor
         }
 
         $shipped = $this->shippedTexts($domain, $key);
-        foreach ($this->locales->all() as $locale) {
-            if (!array_key_exists($locale, $texts)) {
-                continue;
+        $stage   = function () use ($domain, $key, $texts, $shipped, $updatedBy): void {
+            foreach ($this->locales->all() as $locale) {
+                if (!array_key_exists($locale, $texts)) {
+                    continue;
+                }
+                $value = $texts[$locale];
+                $text  = $this->overrides->clean(is_scalar($value) ? (string) $value : null);
+                // @igor-ignore - Persists a DB write; TranslationOverrides keeps no per-request state beyond its reset() memo.
+                $this->overrides->set($locale, $domain, $key, $text === trim($shipped[$locale]) ? null : $text, false, $updatedBy);
             }
-            $value = $texts[$locale];
-            $text  = $this->overrides->clean(is_scalar($value) ? (string) $value : null);
-            // @igor-ignore - Persists a DB write; TranslationOverrides keeps no per-request state beyond its reset() memo.
-            $this->overrides->set($locale, $domain, $key, $text === trim($shipped[$locale]) ? null : $text, false, $updatedBy);
-        }
+        };
 
         if ($flush) {
-            $this->overrides->flush();
+            // 1.19 (REQ-RUNTIME-003 rule 1): every locale of the message in one write unit.
+            $this->overrides->write($stage);
+
+            return;
         }
+        $stage();
     }
 
     /**
-     * Removes the override of every locale.
+     * Removes the override of every locale (one write unit with `$flush` true).
+     *
+     * @throws TransientStorageFailure when the write met a lock conflict (`$flush` true)
      */
     public function reset(string $domain, string $key, bool $flush = true): void
     {
-        foreach ($this->locales->all() as $locale) {
-            // @igor-ignore - Persists a DB write; TranslationOverrides keeps no per-request state beyond its reset() memo.
-            $this->overrides->set($locale, $domain, $key, null, false);
-        }
+        $stage = function () use ($domain, $key): void {
+            foreach ($this->locales->all() as $locale) {
+                // @igor-ignore - Persists a DB write; TranslationOverrides keeps no per-request state beyond its reset() memo.
+                $this->overrides->set($locale, $domain, $key, null, false);
+            }
+        };
 
         if ($flush) {
-            $this->overrides->flush();
+            $this->overrides->write($stage);
+
+            return;
         }
+        $stage();
     }
 
+    /**
+     * Writes the texts staged with `flush: false` as one write unit (1.19) and drops the cached map.
+     *
+     * @throws TransientStorageFailure when the write met a lock conflict
+     */
     public function flush(): void
     {
         $this->overrides->flush();

@@ -62,7 +62,8 @@ final class WorkerEntityManagerRecoveryTest extends KernelTestCase
                 self::fail('A duplicate override must fail.');
             } catch (Throwable) {
             }
-            self::assertFalse($texts->isOpen());
+            // 1.19: the write unit (transaction-doctrine forEntityManager()) replaces the closed bundle manager by name at once.
+            self::assertTrue($this->manager($doctrine, 'texts')->isOpen());
 
             $this->serve($http);
             self::assertNull($repository->findOne('en', 'messages', 'site.dup.' . $i), 'The next call reopens the bundle manager.');

@@ -71,3 +71,6 @@ missing_log:
         marked_added: 'Riga n. %id% segnata come aggiunta.'
         cleared_all: '{0}Nessuna riga del registro da svuotare.|{1}Eliminata 1 riga del registro.|]1,Inf[Eliminate %count% righe del registro.'
         cleared_status: '{0}Nessuna riga con stato «%status%» da svuotare.|{1}Eliminata 1 riga con stato «%status%».|]1,Inf[Eliminate %count% righe con stato «%status%».'
+conflict:
+    retry: 'Gli stessi dati venivano modificati nello stesso momento. Riprova.'
+    committed: 'Parte della richiesta è stata salvata prima del conflitto. Ricarica prima di riprovare.'

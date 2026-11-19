@@ -84,6 +84,8 @@ As a maintainer, I record runtime missing translation keys in Doctrine and revie
 
 - **FR-EM-001**: Since 1.18.0 the bundle writes through its own private (zero config) or dedicated (`entity_manager`) entity manager (`PrivateEntityManagerPass`, `EntityManagerOptionPass`, `Doctrine\TranslationYamlToolsEntityManager`, registry, driver, middleware, connection, `ExcludedEntityNamespaceDriver`); the host manager is never flushed.
 - **FR-EM-002**: Rows staged for the host flush are bridged to the private manager (`PrivateEntityManagerFlushBridge`, deprecated path, guarded `postFlush()`); `PendingWork` describes the unit of work.
+- **FR-CONC-001**: Since 1.19 every database write (override save / restore / flush, missing-log upserts, status changes and deletes) runs in one write unit (`Concurrency\TranslationYamlToolsWriteUnit`, transaction-doctrine runner); missing-log upserts are atomic, in key order, chunked and replayed in place after a transient failure (REQ-RUNTIME-003, docs/CONCURRENCY.md).
+- **FR-CONC-002**: Since 1.19 a lock conflict on the Web UI routes answers `conflict_response.status` (409 / 503) with `X-Conflict-Code` `CONFLICT_001` + `Retry-After` or `CONFLICT_002` (`EventListener\TranslationYamlToolsConflictListener`); unique violations and lost connections are not mapped.
 - **FR-WORKER-002**: `EntityManagerBoundarySubscriber` and `TranslationOverridesClearSubscriber` clear the private manager and the override memo at request, Messenger and console boundaries, tracked by `UnitOfWorkFrames` (worker and request stacks, 1.18.4).
 
 ### Console commands
@@ -137,7 +139,7 @@ As a maintainer, I record runtime missing translation keys in Doctrine and revie
 
 ## Success Criteria
 
-- **SC-001**: 113/113 production files mapped in [`code-inventory.md`](code-inventory.md).
+- **SC-001**: 115/115 production files mapped in [`code-inventory.md`](code-inventory.md).
 - **SC-002**: Config keys documented in `CONFIGURATION.md` match `Configuration.php`.
 - **SC-003**: PHPUnit passes for tree analyzer, sorter, and recorder.
 - **SC-004**: Demo Symfony 8 enables missing log + Web UI without manual wiring errors.
