@@ -14,6 +14,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Nowo\TransactionContract\TransientStorageFailure;
 use Nowo\TransactionDoctrine\WriteUnit\CommitLedger;
 use Nowo\TransactionDoctrine\WriteUnit\CommitMark;
+use Nowo\TranslationYamlToolsBundle\Concurrency\TranslationYamlToolsWriteUnit;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLog;
 use Nowo\TranslationYamlToolsBundle\Entity\MissingTranslationLogStatus;
 use Nowo\TranslationYamlToolsBundle\EventListener\TranslationYamlToolsConflictListener;
@@ -126,6 +127,37 @@ final class ConcurrencyRaceTest extends WebTestCase
         $translator = self::getContainer()->get('translator');
         self::assertInstanceOf(TranslatorInterface::class, $translator);
         self::assertSame('Hi A Ana', $translator->trans('site.greeting', ['%name%' => 'Ana'], 'messages', 'en'));
+        self::assertSame(0, $this->connection()->getTransactionNestingLevel());
+    }
+
+    public function testFirstSaveRaceAfterRowsStagedWithoutFlushIsRethrownNeverSilentlyLost(): void
+    {
+        // Audit UQ-1: X staged with "flush: false", then Y saved with flush losing the first-save race. Running Y's unit
+        // again would succeed without X (the failed unit discarded it): the unique violation is rethrown instead.
+        $this->client();
+        $overrides = $this->overrides();
+        $other     = $this->other();
+        $overrides->set('es', 'messages', 'site.topline.hours', 'X staged', false);
+        $runs = 0;
+
+        $failure = null;
+        try {
+            $overrides->write(static function () use ($overrides, $other, &$runs): void {
+                $overrides->set('en', 'messages', 'site.greeting', 'Hi Y %name%', false);
+                if (++$runs === 1) {
+                    $other->insert(self::TABLE, ['id' => 100001, 'locale' => 'en', 'domain' => 'messages', 'message_key' => 'site.greeting', 'value' => 'Hi B %name%', 'created_at' => '2026-01-01 00:00:00', 'updated_at' => '2026-01-01 00:00:00']);
+                }
+            });
+        } catch (Throwable $caught) {
+            $failure = $caught;
+        }
+
+        self::assertInstanceOf(Throwable::class, $failure, 'The caller learns that the write failed.');
+        self::assertTrue(TranslationYamlToolsWriteUnit::isUniqueViolation($failure));
+        self::assertSame(1, $runs, 'No second run that would drop X.');
+        self::assertNull($this->value('es', 'site.topline.hours'), 'X was not written, and the caller was told.');
+        self::assertSame('Hi B %name%', $this->value('en', 'site.greeting'));
+        self::assertSame(1, $this->rowsOf('en', 'site.greeting'));
         self::assertSame(0, $this->connection()->getTransactionNestingLevel());
     }
 

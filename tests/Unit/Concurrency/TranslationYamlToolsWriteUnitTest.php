@@ -92,7 +92,7 @@ final class TranslationYamlToolsWriteUnitTest extends TestCase
             TranslationYamlToolsWriteUnit::run($texts, $registry, static function () use ($texts): void {
                 $texts->persist(new TranslationOverride('en', 'messages', 'dup'));
                 $texts->persist(new TranslationOverride('en', 'messages', 'dup'));
-            });
+            }, true, 'texts');
             self::fail('A duplicate key must fail.');
         } catch (Throwable $failure) {
             self::assertTrue(TranslationYamlToolsWriteUnit::isUniqueViolation($failure));
@@ -165,6 +165,28 @@ final class TranslationYamlToolsWriteUnitTest extends TestCase
 
         self::assertFalse($loose->isOpen());
         self::assertSame($default, $registry->getManager('default'));
+    }
+
+    public function testOnlyACleanBundleOwnedManagerMayRunAUnitAgain(): void
+    {
+        $registry = $this->registry(['default' => self::BUNDLE, 'texts' => self::BUNDLE]);
+        $host     = $this->schema($registry, 'default');
+        $texts    = $this->schema($registry, 'texts');
+        $private  = new TranslationYamlToolsEntityManager($registry, [TranslationOverride::class]);
+
+        self::assertTrue(TranslationYamlToolsWriteUnit::isCleanBundleManager($private, $registry, null));
+        self::assertTrue(TranslationYamlToolsWriteUnit::isCleanBundleManager($texts, $registry, 'texts'));
+        self::assertFalse(TranslationYamlToolsWriteUnit::isCleanBundleManager($host, $registry, null), 'The default manager is never the bundle\'s.');
+        self::assertFalse(TranslationYamlToolsWriteUnit::isCleanBundleManager($host, $registry, 'default'), 'Naming the default manager is the deprecated mode.');
+
+        $private->persist(new TranslationOverride('en', 'messages', 'staged'));
+        $texts->persist(new TranslationOverride('en', 'messages', 'staged'));
+        self::assertFalse(TranslationYamlToolsWriteUnit::isCleanBundleManager($private, $registry, null), 'Rows staged with "flush: false" are pending.');
+        self::assertFalse(TranslationYamlToolsWriteUnit::isCleanBundleManager($texts, $registry, 'texts'));
+
+        $broken = $this->createStub(EntityManagerInterface::class);
+        $broken->method('getUnitOfWork')->willThrowException(new RuntimeException('broken unit of work'));
+        self::assertFalse(TranslationYamlToolsWriteUnit::isCleanBundleManager($broken, $registry, 'texts'), 'A unit of work that cannot compute its changes counts as pending.');
     }
 
     public function testTransientFailureIsReplayedInPlaceUntilItSucceeds(): void

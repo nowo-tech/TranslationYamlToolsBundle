@@ -25,7 +25,7 @@ repaired after a failure, and a deadlock, lock wait timeout or serialization fai
 
 | Path | Transaction | Control (rule 4) | Conflict answer |
 | --- | --- | --- | --- |
-| Overrides desk: save a message (`TranslationOverrideEditor::save()`, every locale) | One unit for all locales; the cached map is dropped after the commit | Unique key (locale, domain, key). Two first saves at once: the loser's insert fails with a unique violation and its unit runs once more, finding the winner's row and updating it (last save wins, as for any two saves of an existing row) | 409 page (HttpException) |
+| Overrides desk: save a message (`TranslationOverrideEditor::save()`, every locale) | One unit for all locales; the cached map is dropped after the commit | Unique key (locale, domain, key). Two first saves at once: the loser's insert fails with a unique violation and its unit runs once more, finding the winner's row and updating it (last save wins, as for any two saves of an existing row). The second run happens only when the bundle's own manager (private or dedicated) had nothing pending before the unit; with rows staged earlier with `flush: false`, or on the default manager (deprecated modes), the violation is rethrown: the failed unit discarded that work, so a second run would report success without it | 409 page (HttpException) |
 | Overrides desk: restore a message (`TranslationOverrideEditor::reset()`) | One unit for all locales | Deletes by key; deleting a row another request already deleted writes nothing | 409 page |
 | `TranslationOverrides::set()` / `flush()`, the form bridge (`save(..., flush: false)` then `flush()`) | One unit per call with `flush: true`; staged rows are written by one unit in `flush()` | As above; a unique violation in a bare `flush()` (rows staged earlier) is rethrown, since the staged rows cannot be read again | Your route: rethrown to your code |
 | Missing log: buffer at `kernel.terminate` / `console.terminate` / after a Messenger message (`DoctrineMissingTranslationRecorder`) | One transaction per 200 keys (`MissingTranslationLogRepository::PERSIST_CHUNK`), keys in a fixed (locale, domain, message) order | Atomic upsert per key (`INSERT … ON DUPLICATE KEY UPDATE hit_count = hit_count + n` on MySQL / MariaDB, `ON CONFLICT … DO UPDATE` on PostgreSQL and SQLite): never read-modify-write, never a duplicate row. A deadlock or lock wait timeout replays the chunk in place (3 attempts, a short random pause) | None (after the response); a failure that outlives the replays is logged at error level and the buffer dropped |
@@ -98,6 +98,7 @@ code must list `X-Conflict-Code` in `Access-Control-Expose-Headers`.
   - A real lock wait on the desk: 409, `CONFLICT_001`, `Retry-After`; nothing written; the retry saves; the connection
     is usable.
   - Two first saves of a message: one row, the last save wins; the unit ran twice with the manager replaced in between.
+  - The same race after a row was staged with `flush: false`: the unique violation is rethrown, never a silent loss.
   - The same lock failure after an earlier commit of the request: `CONFLICT_002`, no `Retry-After`.
   - Two buffers upserting the same missing key: one row, no hit lost or counted twice (the failed attempts rolled back).
   - "Mark added" racing an upsert: both the status and the new hits are kept.
@@ -109,6 +110,9 @@ code must list `X-Conflict-Code` in `Access-Control-Expose-Headers`.
 
 - **Hit counts on redelivery.** A Messenger message handled, committed and then redelivered (the ack lost) adds its
   hits twice. The hit count is a diagnostic counter; the row itself is never duplicated.
+- **Messenger retry after a partial buffer.** With `async_persist` and Messenger, when a later chunk of one message
+  still fails after its replays, the handler rethrows and Messenger retries the whole message: the hits of the chunks
+  already committed are added again (diagnostics only, no duplicate row).
 - **Missing-log buffer dropped after the replays.** At `kernel.terminate` nothing can roll back or answer any more: a
   chunk that still fails after three attempts is logged at error level and dropped (diagnostic data only). Use
   `async_persist` with Messenger to have it retried.
@@ -118,5 +122,8 @@ code must list `X-Conflict-Code` in `Access-Control-Expose-Headers`.
 - **Deprecated flush bridge.** Rows staged with `flush: false` and written by your own flush (deprecated since 1.18,
   removed in 2.0) are written after your commit; a failure there is logged, never rethrown. Call
   `TranslationOverrideEditor::flush()` instead.
-- **Stale form, last writer wins.** Two editors saving the same message both succeed; the later save is kept (both carry
-  `updated_by`).
+- **Stale form, last writer wins** (accepted for 1.19). Two editors saving the same message both succeed; the later
+  save is kept (both carry `updated_by`). Planned follow-up in [ROADMAP.md](ROADMAP.md): a hidden hash of the loaded
+  values and a domain 409 when the row changed meanwhile.
+- **First-save race with staged rows.** Losing the first-save race after rows were staged with `flush: false` (or on
+  the default manager) is rethrown, not resolved: the caller retries the whole form.

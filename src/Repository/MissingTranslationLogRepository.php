@@ -54,7 +54,11 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
 
     private readonly ManagerRegistry $managerRegistry;
 
-    public function __construct(ManagerRegistry $registry)
+    /**
+     * @param string|null $managerName `doctrine.entity_manager` (1.19: tells a dedicated manager from the default one
+     *                                 without building every manager of the registry)
+     */
+    public function __construct(ManagerRegistry $registry, private readonly ?string $managerName = null)
     {
         $this->managerRegistry = $registry;
         parent::__construct($registry, MissingTranslationLog::class);
@@ -155,7 +159,7 @@ class MissingTranslationLogRepository extends ServiceEntityRepository
      */
     public function flush(): void
     {
-        TranslationYamlToolsWriteUnit::run($this->entityManager(), $this->managerRegistry, static fn (): null => null);
+        TranslationYamlToolsWriteUnit::run($this->entityManager(), $this->managerRegistry, static fn (): null => null, true, $this->managerName);
     }
 
     /**

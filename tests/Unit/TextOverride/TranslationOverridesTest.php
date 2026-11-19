@@ -110,7 +110,8 @@ final class TranslationOverridesTest extends TestCase
     public function testWriteRunsTheStageAgainAfterAUniqueViolation(): void
     {
         $repository = $this->createMock(TranslationOverrideRepository::class);
-        $calls      = 0;
+        $repository->method('isCleanBundleManager')->willReturn(true);
+        $calls = 0;
         $repository->expects(self::exactly(2))->method('transactional')->willReturnCallback(static function (callable $work) use (&$calls): mixed {
             if (++$calls === 1) {
                 throw new RuntimeException('flush failed', 0, self::uniqueViolation());
@@ -146,10 +147,32 @@ final class TranslationOverridesTest extends TestCase
 
         $unique     = self::uniqueViolation();
         $repository = $this->createMock(TranslationOverrideRepository::class);
+        $repository->method('isCleanBundleManager')->willReturn(true);
         $repository->expects(self::exactly(2))->method('transactional')->willThrowException($unique);
         $this->expectExceptionObject($unique);
         (new TranslationOverrides($repository, new ArrayAdapter(), new SymfonyTranslationOverrideHtmlSanitizer()))->write(static function (): void {
         });
+    }
+
+    public function testWriteNeverRunsAgainWhenWorkWasPendingBeforeTheUnit(): void
+    {
+        // Audit UQ-1: rows staged with "flush: false" (or the default manager's own entities) were discarded by the
+        // failed unit; a second run would report success without them.
+        $unique     = self::uniqueViolation();
+        $repository = $this->createMock(TranslationOverrideRepository::class);
+        $repository->method('isCleanBundleManager')->willReturn(false);
+        $repository->expects(self::once())->method('transactional')->willThrowException($unique);
+        $cache = new ArrayAdapter();
+        $cache->get(TranslationOverrides::CACHE_KEY, static fn (): array => ['stale' => []]);
+
+        try {
+            (new TranslationOverrides($repository, $cache, new SymfonyTranslationOverrideHtmlSanitizer()))->write(static function (): void {
+            });
+            self::fail('The unique violation must be rethrown.');
+        } catch (UniqueConstraintViolationException $caught) {
+            self::assertSame($unique, $caught);
+        }
+        self::assertTrue($cache->hasItem(TranslationOverrides::CACHE_KEY), 'Nothing was written: the cache is kept.');
     }
 
     private static function uniqueViolation(): UniqueConstraintViolationException

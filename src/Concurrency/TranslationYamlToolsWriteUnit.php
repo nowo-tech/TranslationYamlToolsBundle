@@ -9,10 +9,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\TransactionContract\TransientStorageFailure;
 use Nowo\TransactionDoctrine\DoctrineTransactionRunner;
+use Nowo\TranslationYamlToolsBundle\Doctrine\PendingWork;
 use Nowo\TranslationYamlToolsBundle\Doctrine\TranslationYamlToolsEntityManager;
 use Throwable;
 
-use function array_keys;
 use function mt_rand;
 use function usleep;
 
@@ -53,12 +53,13 @@ final class TranslationYamlToolsWriteUnit
      *
      * @param callable(): T $work
      * @param bool $flush true: an ORM unit (the manager is flushed before the commit); false: a DBAL-only unit
+     * @param string|null $managerName `doctrine.entity_manager` (null: the private manager, or the default one)
      *
      * @throws TransientStorageFailure when the storage failed transiently (the DBAL error as previous)
      *
      * @return T
      */
-    public static function run(EntityManagerInterface $manager, ManagerRegistry $registry, callable $work, bool $flush = true): mixed
+    public static function run(EntityManagerInterface $manager, ManagerRegistry $registry, callable $work, bool $flush = true, ?string $managerName = null): mixed
     {
         if (!$flush) {
             return DoctrineTransactionRunner::forConnection($manager->getConnection())->run($work);
@@ -68,9 +69,8 @@ final class TranslationYamlToolsWriteUnit
             return DoctrineTransactionRunner::forEntityManager($manager)->run($work);
         }
 
-        $name = self::nameOf($manager, $registry);
-        if ($name !== null && $name !== $registry->getDefaultManagerName()) {
-            return DoctrineTransactionRunner::forEntityManager($manager, $registry, $name)->run($work);
+        if (self::isDedicated($registry, $managerName)) {
+            return DoctrineTransactionRunner::forEntityManager($manager, $registry, $managerName)->run($work);
         }
 
         try {
@@ -83,8 +83,9 @@ final class TranslationYamlToolsWriteUnit
             });
         } catch (Throwable $failure) {
             // Rule 2: only a manager the failed flush closed is replaced; an open application manager is never touched.
-            if (!$manager->isOpen() && $name !== null) {
-                $registry->resetManager($name);
+            $default = $registry->getDefaultManagerName();
+            if (!$manager->isOpen() && $registry->getManager($default) === $manager) {
+                $registry->resetManager($default);
             }
 
             throw $failure;
@@ -105,12 +106,12 @@ final class TranslationYamlToolsWriteUnit
      *
      * @return T
      */
-    public static function runReplayingTransients(EntityManagerInterface $manager, ManagerRegistry $registry, callable $work, bool $flush = true): mixed
+    public static function runReplayingTransients(EntityManagerInterface $manager, ManagerRegistry $registry, callable $work, bool $flush = true, ?string $managerName = null): mixed
     {
         $outermost = $manager->getConnection()->getTransactionNestingLevel() === 0;
         for ($attempt = 1;; ++$attempt) {
             try {
-                return self::run($manager, $registry, $work, $flush);
+                return self::run($manager, $registry, $work, $flush, $managerName);
             } catch (TransientStorageFailure $failure) {
                 if (!$outermost || $attempt >= self::REPLAY_ATTEMPTS) {
                     throw $failure;
@@ -136,16 +137,37 @@ final class TranslationYamlToolsWriteUnit
     }
 
     /**
-     * The registry name of `$manager`, or null when the registry does not hold it.
+     * Whether the manager is the bundle's own: the private manager, or a dedicated one (`doctrine.entity_manager` naming
+     * a manager other than the default). Never true for the application's default manager.
      */
-    private static function nameOf(EntityManagerInterface $manager, ManagerRegistry $registry): ?string
+    public static function ownsManager(EntityManagerInterface $manager, ManagerRegistry $registry, ?string $managerName): bool
     {
-        foreach (array_keys($registry->getManagerNames()) as $name) {
-            if ($registry->getManager($name) === $manager) {
-                return $name;
-            }
+        return $manager instanceof TranslationYamlToolsEntityManager || self::isDedicated($registry, $managerName);
+    }
+
+    /**
+     * Whether the bundle's manager is its own and has no pending change (1.19, audit UQ-1): only then may a unit that
+     * failed (its manager cleared, reset or replaced) be run again without dropping work staged before it. A unit of
+     * work that cannot even compute its change sets counts as pending.
+     */
+    public static function isCleanBundleManager(EntityManagerInterface $manager, ManagerRegistry $registry, ?string $managerName): bool
+    {
+        if (!self::ownsManager($manager, $registry, $managerName)) {
+            return false;
         }
 
-        return null;
+        try {
+            return PendingWork::count($manager) === 0;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * @phpstan-assert-if-true string $managerName
+     */
+    private static function isDedicated(ManagerRegistry $registry, ?string $managerName): bool
+    {
+        return $managerName !== null && $managerName !== $registry->getDefaultManagerName();
     }
 }

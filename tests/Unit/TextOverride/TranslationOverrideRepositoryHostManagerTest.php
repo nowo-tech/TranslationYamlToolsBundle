@@ -49,6 +49,14 @@ final class TranslationOverrideRepositoryHostManagerTest extends TestCase
         self::assertTrue($this->manager($registry, 'default')->isOpen());
     }
 
+    public function testCleanBundleManagerOnlyForTheConfiguredDedicatedManager(): void
+    {
+        $registry = new SqliteManagerRegistry(['default' => ['App\\Entity' => dirname(__DIR__, 2)], 'texts' => self::BUNDLE]);
+
+        self::assertTrue((new TranslationOverrideRepository($registry, 'texts'))->isCleanBundleManager());
+        self::assertFalse((new TranslationOverrideRepository($registry))->isCleanBundleManager(), 'Without the configured name the manager is not known to be the bundle\'s own.');
+    }
+
     private function manager(SqliteManagerRegistry $registry, string $name): EntityManagerInterface
     {
         $manager = $registry->getManager($name);

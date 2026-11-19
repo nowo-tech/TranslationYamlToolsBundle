@@ -95,17 +95,21 @@ composer update nowo-tech/translation-yaml-tools-bundle --with-dependencies
 - **Inside your transaction.** Called inside a transaction you opened, a bundle write is a savepoint; after a failure
   the nesting level is rolled back to where you were, and the missing-log buffer is not replayed in place (the failure
   is rethrown to you).
-- **New public API (additive):** `TranslationOverrides::write(callable $stage)` and
-  `TranslationOverrideRepository::transactional(callable $work)`, the `conflict_response` options, the
+- **New public API (additive):** `TranslationOverrides::write(callable $stage)`,
+  `TranslationOverrideRepository::transactional(callable $work)` and `isCleanBundleManager()`, an optional
+  `?string $managerName` second constructor argument on both repositories, the `conflict_response` options, the
   `MissingTranslationLogRepository::PERSIST_CHUNK` constant and the `conflict.retry` / `conflict.committed` translation
   keys. `TranslationOverrides::set()` with `flush: true` now stages and writes in one unit (it used to stage, then
   flush).
 - **Dedicated entity manager.** With `doctrine.entity_manager` naming a dedicated manager, a failed bundle write now
   resets that manager at once (transaction-doctrine `forEntityManager()`), instead of at its next use.
-- **Missing log on PostgreSQL (fix).** The upsert of a key already in the log failed on PostgreSQL since 1.2.1
-  (ambiguous column; and with a mixed-case naming strategy the quoted column names did not exist): repeated sightings
-  were never counted and the rest of that buffer was dropped. On PostgreSQL with DBAL 3 (id from a sequence, no column
-  default) even a new key failed. Nothing to migrate; counts are right from this version.
+- **Missing log on PostgreSQL (fix, >= 1.2.1 < 1.19.0).** The missing log never recorded anything on PostgreSQL: the
+  upsert failed at parse time ("column reference is ambiguous"), even for a new key, and the buffer was dropped. Nothing
+  to migrate; the log fills from this version.
+- **First-save race with staged rows.** `TranslationOverrides::write()` (and `save()` / `reset()` / `set()` with
+  `flush: true`) runs its unit again after the first-save race only when the bundle's own manager had nothing pending.
+  If you staged rows with `flush: false` first, or use the deprecated default-manager modes, the unique violation is
+  rethrown (those staged rows were not written); retry the whole form.
 - **Missing-log ids.** A buffer is written in (locale, domain, message) order, so new rows get their ids in that order
   rather than in the order the keys were met.
 - **DBAL 3.** transaction-doctrine 1.7 returns the driver's result from `Connection::commit()` again on DBAL 3 (1.6.x

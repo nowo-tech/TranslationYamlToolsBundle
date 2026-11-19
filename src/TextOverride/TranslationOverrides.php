@@ -104,16 +104,24 @@ class TranslationOverrides implements TranslationOverrideProviderInterface, Rese
      * which now finds the winner's row and updates it (the last save wins, as for two saves of an existing row). Any
      * other failure, and a second unique violation, is rethrown; a unique violation is never a lock conflict.
      *
+     * The second run happens only when the bundle's own manager (private or dedicated) had no pending change before
+     * the unit. With rows staged earlier with `flush: false`, or on the application's default manager (deprecated
+     * modes), the unique violation is rethrown instead: the failed unit discarded that earlier work, and running again
+     * would report success without it.
+     *
      * @param callable(): void $stage reads the rows again on every run (never reuse an entity loaded outside)
      *
      * @throws TransientStorageFailure when the write met a lock conflict (deadlock, lock wait timeout, serialization)
      */
     public function write(callable $stage): void
     {
+        // Audit UQ-1: a failed unit clears or replaces the manager, so a second run would silently drop anything staged
+        // before it (rows staged with "flush: false", or your own pending entities on the default manager).
+        $replayable = $this->repository->isCleanBundleManager();
         try {
             $this->repository->transactional($stage);
         } catch (Throwable $failure) {
-            if (!TranslationYamlToolsWriteUnit::isUniqueViolation($failure)) {
+            if (!$replayable || !TranslationYamlToolsWriteUnit::isUniqueViolation($failure)) {
                 throw $failure;
             }
             $this->repository->transactional($stage);

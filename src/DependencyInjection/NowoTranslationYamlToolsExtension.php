@@ -353,6 +353,11 @@ final class NowoTranslationYamlToolsExtension extends Extension implements Prepe
             ->setArgument('$requestStack', new Reference('request_stack', ContainerInterface::NULL_ON_INVALID_REFERENCE))
             ->addTag('kernel.event_subscriber');
         $container->setDefinition(EntityManagerBoundarySubscriber::class, $subscriber);
+        foreach ([MissingTranslationLogRepository::class, TranslationOverrideRepository::class] as $repository) {
+            if ($container->hasDefinition($repository)) {
+                $container->getDefinition($repository)->setArgument('$managerName', $doctrine['entity_manager']);
+            }
+        }
 
         if ($doctrine['entity_manager'] !== null || $doctrine['private_entity_manager'] !== true) {
             return;

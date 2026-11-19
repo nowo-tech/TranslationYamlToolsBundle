@@ -83,18 +83,22 @@ All notable changes to this project are documented in this file.
 - A deadlock, lock wait timeout or serialization failure of a bundle write is rethrown as
   `Nowo\TransactionContract\TransientStorageFailure` (the DBAL exception as previous). See UPGRADING.
 - Saving or restoring a message writes every locale in one transaction; two first saves of the same message no longer
-  fail with a unique violation (the loser's unit runs again and updates the winner's row).
+  fail with a unique violation (the loser's unit runs again and updates the winner's row). The second run happens only
+  when the bundle's own manager had no pending change before the unit; otherwise (rows staged with `flush: false`, or
+  the default manager in the deprecated modes) the unique violation is rethrown, never a silent loss.
+- The repositories take the configured `doctrine.entity_manager` name instead of building every manager of the
+  registry on each write.
 - The missing-log buffer is written in a fixed key order, 200 keys per transaction, and replayed in place after a
   deadlock or lock wait timeout; the Messenger handler rethrows a failure that outlives the replays.
 
 ### Fixed
 
 - Lock conflicts on the overrides desk and the missing-log pages answered 500.
-- Missing log on PostgreSQL: the upsert of a key already logged failed (ambiguous column since 1.2.1; with a mixed-case
-  naming strategy the quoted column names did not exist either), so repeated sightings were never counted and the rest
-  of the buffer was dropped. The upsert now uses the ORM's quote strategy and qualifies the existing row's columns.
-- Missing log on PostgreSQL with DBAL 3: the id comes from a sequence with no column default, so the raw upsert of a
-  new key failed with a NOT NULL violation; it now takes the sequence's next value.
+- Missing log on PostgreSQL (>= 1.2.1 < 1.19.0): it never recorded anything. The `ON CONFLICT … DO UPDATE` statement
+  failed at parse time with "column reference is ambiguous", so even a new key failed; the failure was logged and the
+  buffer dropped (the Messenger handler threw). With a mixed-case naming strategy the quoted column names did not exist
+  either, and on DBAL 3 the sequence id was missing. The upsert now uses the ORM's quote strategy, qualifies the
+  existing row's columns and takes the sequence's next value. No security impact (diagnostic data only).
 
 ### Demo
 

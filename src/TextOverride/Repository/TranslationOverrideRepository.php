@@ -26,7 +26,11 @@ class TranslationOverrideRepository extends ServiceEntityRepository
 {
     private readonly ManagerRegistry $managerRegistry;
 
-    public function __construct(ManagerRegistry $registry)
+    /**
+     * @param string|null $managerName `doctrine.entity_manager` (1.19: tells a dedicated manager from the default one
+     *                                 without building every manager of the registry)
+     */
+    public function __construct(ManagerRegistry $registry, private readonly ?string $managerName = null)
     {
         $this->managerRegistry = $registry;
         parent::__construct($registry, TranslationOverride::class);
@@ -106,7 +110,17 @@ class TranslationOverrideRepository extends ServiceEntityRepository
      */
     public function transactional(callable $work): mixed
     {
-        return TranslationYamlToolsWriteUnit::run($this->entityManager(), $this->managerRegistry, $work);
+        return TranslationYamlToolsWriteUnit::run($this->entityManager(), $this->managerRegistry, $work, true, $this->managerName);
+    }
+
+    /**
+     * Whether the overrides live on the bundle's own manager (private or dedicated) and it has no pending change
+     * (1.19, audit UQ-1): only then may {@see TranslationOverrides::write()} run a unit again after the first-save
+     * race, since the failed unit cleared or replaced that manager.
+     */
+    public function isCleanBundleManager(): bool
+    {
+        return TranslationYamlToolsWriteUnit::isCleanBundleManager($this->entityManager(), $this->managerRegistry, $this->managerName);
     }
 
     private function entityManager(): EntityManagerInterface
