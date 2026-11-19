@@ -144,7 +144,7 @@ One-file bridge into an existing `base.html.twig` (the reference integration):
 
 Per-bundle exceptions: `web_ui.layout_template` (one UI only), `web_ui.templates.<page>` (one page),
 `nowo_ui_kit.theme.bundles.NowoTranslationYamlToolsBundle` (slots / tokens). Pages, view models and data blocks:
-[TEMPLATES](TEMPLATES.md); upgrade notes: [UPGRADING](UPGRADING.md#unreleased).
+[TEMPLATES](TEMPLATES.md); upgrade notes: [UPGRADING](UPGRADING.md#to-1190).
 
 ### Form profile (FormKit)
 

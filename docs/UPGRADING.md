@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.19.0](#to-1190)
 - [To 1.18.4](#to-1184)
 - [To 1.18.3](#to-1183)
 - [To 1.18.2](#to-1182)
@@ -71,6 +72,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.19.0
+
+From **1.18.4**:
+
+```bash
+composer update nowo-tech/translation-yaml-tools-bundle
+```
 
 Concurrency (REQ-RUNTIME-003), see [CONCURRENCY.md](CONCURRENCY.md). No configuration change is required.
 
