@@ -1,28 +1,27 @@
-{#- REQ-DEMO-014: the demo shell is UiKit's admin layout with UiKit's default theme (nowo-ui.css from the bundle's own
-    asset package, no CSS framework, no CDN). The missing-translation log and the text-overrides desk (UiKit list /
-    form scaffolds) render in it too (nowo_ui_kit.layouts.admin). -#}
-{% extends '@NowoUiKit/layout/admin.html.twig' %}
+{#- REQ-DEMO-014: the demo runs inside UiKit's shared demo platform shell (@NowoUiKit/demo_platform/layout.html.twig):
+    the same top bar, aside, content width, theme and footer as every other nowo-tech bundle demo. This file only
+    declares the demo (nowo_ui_demo_platform). The missing-translation log and the text-overrides desk (UiKit list /
+    form scaffolds) render in it too (nowo_ui_kit.layouts). -#}
+{% extends '@NowoUiKit/demo_platform/layout.html.twig' %}
+{#- The shell's own sign-in button makes the top bar wider than a 390 px phone with this bundle name (UiKit gap), so the
+    account link is an aside item instead. -#}
+{% set _account = is_granted('ROLE_ADMIN')
+    ? {label: 'Logout', route: 'app_logout', section: 'Account', testid: 'demo-nav-logout'}
+    : {label: 'Login', route: 'app_login', section: 'Account', testid: 'demo-nav-login'} %}
+{% set nowo_ui_demo_platform = {
+    bundle: 'Translation YAML Tools',
+    home_route: 'demo_home',
+    repository: 'https://github.com/nowo-tech/TranslationYamlToolsBundle',
+    translation_domain: false,
+    nav: [
+        {label: 'Insights', route: 'demo_home', section: 'Demo pages'},
+        {label: 'Twig probes', route: 'demo_missing_log_probes', params: {scenario: 'twig'}, section: 'Demo pages', testid: 'demo-nav-demo_missing_log_probes-twig'},
+        {label: 'Domain/locale probes', route: 'demo_missing_log_probes', params: {scenario: 'domain-locale'}, section: 'Demo pages', testid: 'demo-nav-demo_missing_log_probes-domain-locale'},
+        {label: 'Repeat-hits probes', route: 'demo_missing_log_probes', params: {scenario: 'repeat-hits'}, section: 'Demo pages', testid: 'demo-nav-demo_missing_log_probes-repeat-hits'},
+        {label: 'Missing-log UI', route: 'nowo_translation_yaml_tools_missing_log_index', active: ['nowo_translation_yaml_tools_missing_log*'], section: 'Bundle admin'},
+        {label: 'Site texts', route: 'nowo_translation_yaml_tools_overrides_index', active: ['nowo_translation_yaml_tools_overrides*'], section: 'Bundle admin'},
+        _account,
+    ],
+} %}
 
-{% block nowo_ui_document_title %}{% block title %}Translation YAML Tools demo{% endblock %}{% endblock %}
-
-{% block nowo_ui_navigation %}
-    {% set _route = app.request.attributes.get('_route') %}
-    <header class="nowo-ui-header" data-testid="demo-masthead">
-        <a class="nowo-ui-brand" href="{{ path('demo_home') }}">Translation YAML Tools demo</a>
-        <nav class="nowo-ui-menu" aria-label="Translation YAML Tools">
-            <a class="nowo-ui-link" href="{{ path('demo_home') }}"{% if _route == 'demo_home' or _route == 'demo_missing_log_probes' %} aria-current="page"{% endif %}>Insights</a>
-            <a class="nowo-ui-link" href="{{ path('nowo_translation_yaml_tools_missing_log_index') }}"{% if _route starts with 'nowo_translation_yaml_tools_missing_log' %} aria-current="page"{% endif %}>Missing-log UI</a>
-            <a class="nowo-ui-link" href="{{ path('nowo_translation_yaml_tools_overrides_index') }}"{% if _route starts with 'nowo_translation_yaml_tools_overrides' %} aria-current="page"{% endif %}>Site texts</a>
-        </nav>
-        <div class="nowo-ui-header__end">
-            {% if is_granted('ROLE_ADMIN') %}
-                <a class="nowo-ui-link" href="{{ path('app_logout') }}">Logout</a>
-            {% elseif _route != 'app_login' %}
-                <a class="nowo-ui-link" href="{{ path('app_login') }}">Login</a>
-            {% endif %}
-            {{ include('@NowoUiKitBundle/partials/_theme_toggle.html.twig', { compact: true }, false) }}
-        </div>
-    </header>
-{% endblock %}
-
-{% block nowo_ui_content %}{% block body %}{% endblock %}{% endblock %}
+{% block nowo_ui_document_title %}{% block title %}Translation YAML Tools demo{% endblock %} — Symfony 8{% endblock %}

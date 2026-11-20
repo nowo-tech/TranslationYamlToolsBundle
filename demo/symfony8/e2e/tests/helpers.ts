@@ -9,11 +9,7 @@ export async function loginAsAdmin(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/_demo\/translation-yaml-tools\/missing-log/);
 }
 
-/** Wait for the Symfony WebProfiler toolbar (dev) so it is part of the capture. */
-export async function waitForToolbar(page: Page): Promise<void> {
-  const toolbar = page.locator('.sf-toolbar');
-  if (await toolbar.count()) {
-    await expect(toolbar.locator('.sf-toolbarreset, .sf-toolbar-block').first()).toBeVisible({ timeout: 15_000 });
-    await page.waitForTimeout(400);
-  }
+/** README screenshots never show the Symfony Web Debug Toolbar. */
+export async function hideToolbar(page: Page): Promise<void> {
+  await page.addStyleTag({ content: '.sf-toolbar, .sf-minitoolbar, [id^="sfwdt"] { display: none !important; }' });
 }

@@ -3,6 +3,8 @@
 # missing-translation log and the text-overrides desk render in it).
 nowo_ui_kit:
     css_framework: custom
+    base_stylesheet: true
     icon_set: none
     layouts:
         admin: 'base.html.twig'
+        guest: 'base.html.twig'

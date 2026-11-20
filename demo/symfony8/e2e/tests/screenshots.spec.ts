@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { loginAsAdmin, waitForToolbar } from './helpers';
+import { loginAsAdmin, hideToolbar } from './helpers';
 
 /** REQ-DEMO-013 — README screenshots (captured as PNG, converted to WebP by scripts/to-webp.mjs). */
 const outDir = process.env.SCREENSHOT_DIR
@@ -17,8 +17,8 @@ test.describe('Translation YAML Tools screenshots', () => {
 
   test('translation-insights — locales, YAML paths and missing keys per domain', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /Domains & YAML files/ })).toBeVisible();
-    await waitForToolbar(page);
+    await expect(page.getByRole('heading', { name: /^Domain / }).first()).toBeVisible();
+    await hideToolbar(page);
     await page.screenshot({ path: resolve(outDir, 'translation-insights.png') });
   });
 
@@ -29,7 +29,7 @@ test.describe('Translation YAML Tools screenshots', () => {
     await page.goto('/missing-log/probes/repeat-hits');
     await loginAsAdmin(page);
     await expect(page.locator('table').getByText('nowo_demo.missing_from_controller').first()).toBeVisible();
-    await waitForToolbar(page);
+    await hideToolbar(page);
     await page.screenshot({ path: resolve(outDir, 'missing-log-ui.png') });
   });
 
@@ -39,7 +39,7 @@ test.describe('Translation YAML Tools screenshots', () => {
     await page.locator('textarea[name="texts[en]"]').fill('Default locale is English — edited from the text-overrides desk');
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.locator('.nowo-ui-flash--success')).toBeVisible();
-    await waitForToolbar(page);
+    await hideToolbar(page);
     await page.screenshot({ path: resolve(outDir, 'text-overrides.png'), fullPage: true });
     // Leave the demo as it was (restore through the UiKit confirm dialog).
     await page.getByTestId('tyt-overrides-reset').click();
