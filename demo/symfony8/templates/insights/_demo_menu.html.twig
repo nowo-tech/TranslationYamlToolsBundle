@@ -1,8 +1,0 @@
-{% set currentRoute = app.request.attributes.get('_route') %}
-{% set currentScenario = app.request.attributes.get('scenario') %}
-<nav class="nowo-ui-menu" aria-label="Demo pages">
-    <a class="nowo-ui-link" href="{{ path('demo_home') }}"{% if currentRoute == 'demo_home' %} aria-current="page"{% endif %}>Home</a>
-    <a class="nowo-ui-link" href="{{ path('demo_missing_log_probes', { scenario: 'twig' }) }}"{% if currentRoute == 'demo_missing_log_probes' and currentScenario == 'twig' %} aria-current="page"{% endif %}>Twig probes</a>
-    <a class="nowo-ui-link" href="{{ path('demo_missing_log_probes', { scenario: 'domain-locale' }) }}"{% if currentRoute == 'demo_missing_log_probes' and currentScenario == 'domain-locale' %} aria-current="page"{% endif %}>Domain/locale probes</a>
-    <a class="nowo-ui-link" href="{{ path('demo_missing_log_probes', { scenario: 'repeat-hits' }) }}"{% if currentRoute == 'demo_missing_log_probes' and currentScenario == 'repeat-hits' %} aria-current="page"{% endif %}>Repeat-hits probes</a>
-</nav>

@@ -8,7 +8,7 @@
         "doctrine/orm": "^3.0",
         "nowo-tech/form-kit-bundle": "^2.23",
         "nowo-tech/translation-yaml-tools-bundle": "@dev",
-        "nowo-tech/ui-kit-bundle": "^2.52",
+        "nowo-tech/ui-kit-bundle": "^2.60",
         "php": ">=8.4,<8.6",
         "symfony/console": "^8.0",
         "symfony/dotenv": "^8.0",

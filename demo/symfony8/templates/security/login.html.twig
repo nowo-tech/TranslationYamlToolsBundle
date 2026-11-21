@@ -2,28 +2,32 @@
 
 {% block title %}Login — Translation YAML Tools demo{% endblock %}
 
+{% block nowo_ui_page_header %}
+    {{ include(nowo_ui_partial('page_header'), {
+        title: 'Demo login',
+        intro: 'Required for the missing-log Web UI (ROLE_ADMIN). Credentials: admin / admin (local demos only).',
+    }) }}
+{% endblock %}
+
+{% block nowo_ui_flashes %}
+    {{ include('@NowoUiKit/demo_platform/_flashes.html.twig', {flash_messages: error ? {error: [error.messageKey|trans(error.messageData, 'security')]} : null}) }}
+{% endblock %}
+
 {% block body %}
-    <div class="nowo-ui-page-header"><h1 class="nowo-ui-page-header__title">Demo login</h1></div>
-    <section class="nowo-ui-card">
-        <div class="nowo-ui-card__body">
-            <p>Required for the <strong>missing-log Web UI</strong> (<code class="nowo-ui-code">ROLE_ADMIN</code>).</p>
-            <p class="nowo-ui-muted">Credentials: <code class="nowo-ui-code">admin</code> / <code class="nowo-ui-code">admin</code> (local demos only).</p>
-
-            {% if error %}
-                <div class="nowo-ui-flash nowo-ui-flash--error" role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
-            {% endif %}
-
-            {# REQ-TWIG-005 rule 8: LoginFormType maps _username / _password / _csrf_token (authenticate). #}
-            {{ form_start(form) }}
+    {#- REQ-TWIG-005 rule 8: LoginFormType maps _username / _password / _csrf_token (authenticate). -#}
+    {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'Sign in', kind: 'form', form: form} %}
+        {% block section_body %}
+            {{ form_start(form, {attr: {id: 'demo-login-form'}}) }}
                 {% for child in form %}
                     {% if not child.rendered %}
                         {{ form_row(child) }}
                     {% endif %}
                 {% endfor %}
-                <button type="submit" class="nowo-ui-btn nowo-ui-btn--primary">Sign in</button>
-            {{ form_end(form) }}
-
-            <p><a class="nowo-ui-link" href="{{ path('demo_home') }}">← Back to home</a></p>
-        </div>
-    </section>
+            {{ form_end(form, {render_rest: false}) }}
+        {% endblock %}
+        {% block section_footer %}
+            <a class="nowo-ui-btn nowo-ui-btn--outline" href="{{ path('demo_home') }}">Back to home</a>
+            <button type="submit" form="demo-login-form" class="nowo-ui-btn nowo-ui-btn--primary">Sign in</button>
+        {% endblock %}
+    {% endembed %}
 {% endblock %}

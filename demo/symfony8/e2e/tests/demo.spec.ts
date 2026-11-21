@@ -8,7 +8,7 @@ test.describe('Translation YAML Tools demo', () => {
     expect(response?.ok()).toBeTruthy();
     await expect(page.getByRole('heading', { level: 1, name: /Translation YAML Tools/ })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Resolved translation directories' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /Domains & YAML files/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Domain / }).first()).toBeVisible();
     await expect(page.locator('main table').first()).toBeVisible();
   });
 
