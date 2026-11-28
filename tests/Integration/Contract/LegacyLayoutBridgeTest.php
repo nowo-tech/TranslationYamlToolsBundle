@@ -161,7 +161,7 @@ final class LegacyLayoutBridgeTest extends TestCase
 
     private function twig(): Environment
     {
-        $case = new class('legacy') extends PageContractTestCase {
+        $case = new class('environment') extends PageContractTestCase {
             public static function pageFixtures(): iterable
             {
                 return [];
