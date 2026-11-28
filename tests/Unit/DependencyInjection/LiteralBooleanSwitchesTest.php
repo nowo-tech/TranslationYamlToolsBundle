@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Compiler\MergeExtensionConfigurationPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 
 /**
  * REQ-SEC-004 L1: the switches that open a Web UI or skip its access check must be literal booleans. An
@@ -69,9 +70,21 @@ final class LiteralBooleanSwitchesTest extends TestCase
         $container->registerExtension(new NowoTranslationYamlToolsExtension());
         $container->loadFromExtension('nowo_translation_yaml_tools', $config);
 
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage('nowo_translation_yaml_tools.' . $path . ' must be a literal boolean');
-        (new MergeExtensionConfigurationPass())->process($container);
+        try {
+            (new MergeExtensionConfigurationPass())->process($container);
+        } catch (InvalidConfigurationException $e) {
+            self::assertStringContainsString('nowo_translation_yaml_tools.' . $path . ' must be a literal boolean', $e->getMessage());
+
+            return;
+        } catch (RuntimeException $e) {
+            // Symfony 8.2 resolves the placeholder of an `enabled` node itself while the container is built (the real
+            // value, or a refusal when the variable is unknown then): never the fail-open cast this test guards against.
+            self::assertStringContainsString('nowo_translation_yaml_tools.' . $path . '" must be known when the container is compiled', $e->getMessage());
+
+            return;
+        }
+
+        self::fail('The placeholder was accepted.');
     }
 
     public function testLiteralBooleansStillLoad(): void
